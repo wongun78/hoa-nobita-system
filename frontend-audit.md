@@ -24,6 +24,7 @@
 - **Submissions**: Submit, late handling.
 - **Grading**: Score, feedback, request resubmit.
 - **Notifications**: Target ALL/CLASS/USER, role-based policies.
+- **Activity**: ActivityLog backend, RecentActivityTimeline frontend component.
 
 ## 3. Dead Button Audit
 - `onClick={() => {}}`: 0 found.
@@ -45,3 +46,9 @@
 - Backend policies verified: Teacher (ALL/CLASS/USER), Admin (CLASS only, assigned only), Student (read-only).
 - Frontend UI updated with filters, target display, and delete actions.
 - 10 specific API tests added to `test-api.sh` and passing.
+
+## 7. Sprint 10 Activity Log Notes
+- Backend: `ActivityLog` entity, repository, service, and controller implemented.
+- Domain Services: `ActivityService` injected into all domain services to log mutations.
+- Frontend: `RecentActivityTimeline` component created and integrated into Dashboard, Class Detail, and User Detail pages.
+- Testing: API tests added to `test-api.sh` and passing.
