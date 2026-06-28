@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Link } from 'react-router-dom'
 import { useUsers, useCreateUser, useDeleteUser, useUpdateUserStatus } from '../features/users/hooks'
 import { createUserSchema, type CreateUserForm } from '../features/users/schema'
 import { Button } from '../components/ui/button'
@@ -54,7 +55,11 @@ export function UsersPage() {
             <tbody>
               {data.map(u => (
                 <tr key={u.id} className="border-b hover:bg-slate-50">
-                  <td className="py-3 px-4 font-medium">{u.fullName}</td>
+                  <td className="py-3 px-4 font-medium">
+                    <Link to={`/users/${u.id}`} className="text-[#1E3A8A] hover:underline">
+                      {u.fullName}
+                    </Link>
+                  </td>
                   <td className="text-slate-600">{u.email}</td>
                   <td><Badge variant="outline">{u.roles?.[0]}</Badge></td>
                   <td>
@@ -62,7 +67,8 @@ export function UsersPage() {
                       {u.status ?? 'ACTIVE'}
                     </button>
                   </td>
-                  <td className="text-right pr-4">
+                  <td className="text-right pr-4 space-x-3">
+                    <Link to={`/users/${u.id}`} className="text-[#3B82F6] hover:underline">Chi tiết</Link>
                     <button onClick={() => setConfirmId(u.id)} className="text-red-600 hover:underline">Xóa</button>
                   </td>
                 </tr>

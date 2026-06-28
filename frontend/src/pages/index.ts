@@ -1,4 +1,4 @@
-export { AssignmentDetailPage, ClassDetailPage } from './detail-pages'
+export { AssignmentDetailPage, ClassDetailPage, UserDetailPage } from './detail-pages'
 export { LoginPage } from './login-page'
 export { AssignmentSubmissionsPage, AssignmentsPage, ClassAssignmentsPage, ClassesPage, DashboardPage, MaterialsPage, MySubmissionsPage, NotificationsPage, UsersPage } from './list-pages'
 export { ProtectedRoute } from './route-guards'

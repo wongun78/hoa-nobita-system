@@ -66,7 +66,7 @@
 | Dashboard Teacher | KPI + charts + tasks + class health | Implemented KPI grid, charts (PieChart), today tasks, class health table, risk students. | `frontend/src/pages/dashboard-page.tsx` | Done |
 | Dashboard Admin | Scoped dashboard | Implemented scoped KPI, assigned class count, scoped tasks. | `frontend/src/pages/dashboard-page.tsx` | Done |
 | Dashboard Student | Own data only | Implemented joined classes, open assignments, submitted count, resubmit requested. | `frontend/src/pages/dashboard-page.tsx` | Done |
-| Users | List/create/edit/status/delete/detail | Implemented list, create dialog, delete confirm dialog, temp password dialog. Detail page missing. | `frontend/src/pages/users-page.tsx` | Partial |
+| Users | List/create/edit/status/delete/detail | Implemented list, create dialog, delete confirm dialog, temp password dialog. Detail page implemented. | `frontend/src/pages/users-page.tsx`, `user-detail-page.tsx` | Done |
 | Classes | List/detail/tabs/admins/students/settings | Implemented list, detail with tabs (lessons, materials, assignments). Students tab is placeholder. Settings missing. | `frontend/src/pages/class-detail-page.tsx`, `classes-page.tsx` | Partial |
 | Lessons | Create/edit/delete/list/detail | Implemented list in class detail tab, create/edit dialogs, delete confirm. | `frontend/src/pages/class-detail-page.tsx` | Done |
 | Materials | Create/edit/delete/upload/download/visibility | Implemented list in class detail tab, create/edit dialogs, delete confirm, visibility toggle. Upload/download deferred to Files sprint. | `frontend/src/pages/class-detail-page.tsx` | Done |
@@ -83,10 +83,9 @@
 
 ### Remaining Work (Priority Order)
 1. **Dashboard & Notifications**: Nâng cấp Dashboard cho Teacher (Thống kê, Lớp học đang dạy, Bài tập cần chấm).
-2. **User Detail Page**: Implement the user profile, progress, and submission history view.
-3. **Submissions CRUD**: Implement Edit and Delete for submissions (if allowed by policy).
-4. **Notifications**: Implement Delete and advanced targeting (Role/User).
-5. **Activity & Reports**: Implement ActivityLog (or derived) and Reports page (optional/deferred).
+2. **Submissions CRUD**: Implement Edit and Delete for submissions (if allowed by policy).
+3. **Notifications**: Implement Delete and advanced targeting (Role/User).
+4. **Activity & Reports**: Implement ActivityLog (or derived) and Reports page (optional/deferred).
 
 | Gap | Status | Notes |
 |-----|--------|-------|

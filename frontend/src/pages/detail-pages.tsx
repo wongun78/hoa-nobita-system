@@ -10,6 +10,8 @@ import { useI18n } from '../i18n/use-i18n'
 import { api } from '../lib/api'
 import { Page } from './shared'
 
+export { UserDetailPage } from './user-detail-page'
+
 export function ClassDetailPage() {
   const { t } = useI18n()
   const { classId } = useParams()

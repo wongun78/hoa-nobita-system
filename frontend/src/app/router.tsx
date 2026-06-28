@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { AssignmentDetailPage, AssignmentSubmissionsPage, AssignmentsPage, ChangePasswordPage, ClassAssignmentsPage, ClassDetailPage, ClassesPage, DashboardPage, ForbiddenPage, LoginPage, MaterialsPage, MySubmissionsPage, NotFoundPage, NotificationsPage, ProtectedRoute, UsersPage, GradingPage } from '../pages'
+import { AssignmentDetailPage, AssignmentSubmissionsPage, AssignmentsPage, ChangePasswordPage, ClassAssignmentsPage, ClassDetailPage, ClassesPage, DashboardPage, ForbiddenPage, LoginPage, MaterialsPage, MySubmissionsPage, NotFoundPage, NotificationsPage, ProtectedRoute, UsersPage, UserDetailPage, GradingPage } from '../pages'
 
 export function AppRouter() {
   return <Routes>
@@ -15,6 +15,7 @@ export function AppRouter() {
     <Route path="/grading" element={<ProtectedRoute roles={['TEACHER_OWNER','CLASS_ADMIN']}><GradingPage/></ProtectedRoute>}/>
     <Route path="/me/submissions" element={<ProtectedRoute roles={['STUDENT']}><MySubmissionsPage/></ProtectedRoute>}/>
     <Route path="/users" element={<ProtectedRoute roles={['TEACHER_OWNER']}><UsersPage/></ProtectedRoute>}/>
+    <Route path="/users/:userId" element={<ProtectedRoute roles={['TEACHER_OWNER']}><UserDetailPage/></ProtectedRoute>}/>
     <Route path="/notifications" element={<ProtectedRoute><NotificationsPage/></ProtectedRoute>}/>
     <Route path="/change-password" element={<ProtectedRoute><ChangePasswordPage/></ProtectedRoute>}/>
     <Route path="/forbidden" element={<ForbiddenPage/>}/>
