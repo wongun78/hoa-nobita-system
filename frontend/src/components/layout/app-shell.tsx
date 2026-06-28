@@ -1,4 +1,4 @@
-import { Bell, BookOpen, FileText, GraduationCap, LayoutDashboard, LogOut, Users } from 'lucide-react'
+import { BarChart3, Bell, BookOpen, FileText, GraduationCap, LayoutDashboard, LogOut, Users } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../features/auth/use-auth'
 import { useI18n } from '../../i18n/use-i18n'
@@ -19,6 +19,7 @@ export function AppShell({ children }: AppShellProps) {
     { to: '/assignments', label: t.assignments, icon: BookOpen, show: true },
     { to: '/me/submissions', label: t.submissions, icon: FileText, show: hasRole('STUDENT') },
     { to: '/users', label: t.users, icon: Users, show: hasRole('TEACHER_OWNER') },
+    { to: '/reports', label: 'Báo cáo', icon: BarChart3, show: hasRole('TEACHER_OWNER') },
     { to: '/notifications', label: t.notifications, icon: Bell, show: true }
   ].filter(n => n.show)
   const active = (to: string) => loc.pathname === to || (to !== '/classes' && loc.pathname.startsWith(to + '/'))

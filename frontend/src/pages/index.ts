@@ -4,3 +4,4 @@ export { AssignmentSubmissionsPage, AssignmentsPage, ClassAssignmentsPage, Class
 export { ProtectedRoute } from './route-guards'
 export { ChangePasswordPage, ForbiddenPage, NotFoundPage } from './status-pages'
 export { GradingPage } from './grading-page'
+export { ReportsPage } from './reports-page'

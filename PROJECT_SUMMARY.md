@@ -177,7 +177,7 @@ All endpoints return `{ success, data, message }` wrapper via `ApiResponse`.
   - Testing: Added API tests for activity endpoints. All 100 tests passing.
 
 ## Next Steps
-- Proceed to Sprint 11 (Reports or other remaining tasks).
+- Sprint 11 Reports completed: system KPIs, class performance, and top-student summaries are available from `/reports`.
 
 ## 10. How to Run (Quick Start)
 ```bash

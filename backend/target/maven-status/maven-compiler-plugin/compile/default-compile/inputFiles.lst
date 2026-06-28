@@ -40,11 +40,17 @@
 /Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/common/PageResponse.java
 /Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/common/PermissionService.java
 /Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/common/SecurityUtils.java
+/Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/controller/report/ReportController.java
 /Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/dashboard/DashboardController.java
 /Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/dashboard/DashboardService.java
 /Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/dashboard/dto/AdminDashboardResponse.java
 /Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/dashboard/dto/StudentDashboardResponse.java
 /Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/dashboard/dto/TeacherDashboardResponse.java
+/Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/dto/report/AssignmentPerformanceDto.java
+/Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/dto/report/ClassPerformanceDto.java
+/Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/dto/report/ClassReportResponse.java
+/Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/dto/report/StudentPerformanceDto.java
+/Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/dto/report/SystemReportResponse.java
 /Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/file/FileController.java
 /Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/file/FileService.java
 /Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/file/entity/StoredFile.java
@@ -73,6 +79,7 @@
 /Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/notification/dto/NotificationResponse.java
 /Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/notification/entity/Notification.java
 /Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/notification/repository/NotificationRepository.java
+/Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/service/report/ReportService.java
 /Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/submission/SubmissionController.java
 /Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/submission/SubmissionService.java
 /Users/wongun78/Vault/projects/hoa-nobita-system/backend/src/main/java/com/hoanobita/topikplatform/submission/dto/SubmissionRequest.java

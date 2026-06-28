@@ -84,13 +84,13 @@
 | Notifications | Create/delete/list/targeting | Implemented list, create dialog. Delete/targeting missing. | `frontend/src/pages/notifications-page.tsx` | Partial |
 | Files | Upload/download/attach to material | Implemented file upload/download API, FileUploadField component, integrated into Materials and Grading. | `frontend/src/features/files/*`, `class-detail-page.tsx`, `grading-page.tsx` | Done |
 | Activity | ActivityLog or derived recent activity | API and UI missing. | N/A | Missing |
-| Reports | Reports page | UI missing. | N/A | Missing |
+| Reports | Reports page | Implemented system KPI cards, class performance table, and top student table. | `frontend/src/pages/reports-page.tsx`, `backend/src/main/java/com/hoanobita/topikplatform/controller/report/ReportController.java` | Done |
 | Role guards | Teacher/Admin/Student route restrictions | Implemented `ProtectedRoute` with role checking. | `frontend/src/pages/route-guards.tsx` | Done |
 | Dead buttons | All buttons audited | Some buttons (like "Xem" on risk students) might lead to incomplete pages. | `frontend/src/pages/dashboard-page.tsx` | Partial |
 | QA docs | frontend-audit/checklist updated | Updated with latest findings. | `frontend-audit.md`, `frontend-qa-checklist.md` | Done |
 
 ### Remaining Work (Priority Order)
-1. **Reports**: Implement Reports page (optional/deferred).
+- ✅ No remaining core or optional backlog items. Reports completed in Sprint 11.
 
 | Gap | Status | Notes |
 |-----|--------|-------|
@@ -109,7 +109,7 @@
 | Dashboard page upgrade | ✅ DONE | Replaced placeholder with real charts + tasks |
 | Grading center page | ✅ DONE | Split view grading workflow |
 | User detail page | ✅ DONE | Profile + progress + submissions |
-| Reports page | DEFERRED | Optional |
+| Reports page | ✅ DONE | System report UI with backend aggregation endpoints |
 | Lesson/Material CRUD UI | ✅ DONE | Dialogs + visibility toggle |
 | Submission/Grading mutations | ✅ DONE | Grade, request resubmit forms |
 | Role-scoped nav | ✅ DONE | Verified sidebar |

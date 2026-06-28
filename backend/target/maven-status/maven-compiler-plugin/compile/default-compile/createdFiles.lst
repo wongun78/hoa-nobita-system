@@ -10,11 +10,14 @@ com/hoanobita/topikplatform/common/Enums$ClassStatus.class
 com/hoanobita/topikplatform/lesson/repository/LessonRepository.class
 com/hoanobita/topikplatform/assignment/AssignmentService.class
 com/hoanobita/topikplatform/dashboard/dto/AdminDashboardResponse$StatusCount.class
+com/hoanobita/topikplatform/dto/report/ClassPerformanceDto.class
 com/hoanobita/topikplatform/user/repository/RoleRepository.class
 com/hoanobita/topikplatform/submission/dto/SubmissionResponse.class
 com/hoanobita/topikplatform/classroom/entity/ClassAdmin.class
+com/hoanobita/topikplatform/dto/report/ClassReportResponse.class
 com/hoanobita/topikplatform/common/Enums$SubmissionStatus.class
 com/hoanobita/topikplatform/activity/dto/ActivityResponse.class
+com/hoanobita/topikplatform/dto/report/ClassReportResponse$ClassReportResponseBuilder.class
 com/hoanobita/topikplatform/notification/NotificationService.class
 com/hoanobita/topikplatform/activity/ActivityService.class
 com/hoanobita/topikplatform/user/dto/UserResponse.class
@@ -33,6 +36,8 @@ com/hoanobita/topikplatform/notification/NotificationController.class
 com/hoanobita/topikplatform/grading/dto/GradeResponse.class
 com/hoanobita/topikplatform/classroom/repository/ClassMemberRepository.class
 com/hoanobita/topikplatform/user/UserController.class
+com/hoanobita/topikplatform/dto/report/SystemReportResponse$SystemReportResponseBuilder.class
+com/hoanobita/topikplatform/service/report/ReportService.class
 com/hoanobita/topikplatform/user/repository/UserRepository.class
 com/hoanobita/topikplatform/auth/dto/ChangePasswordRequest.class
 com/hoanobita/topikplatform/dashboard/dto/StudentDashboardResponse$UpcomingAssignment.class
@@ -63,6 +68,7 @@ com/hoanobita/topikplatform/user/dto/CreateUserRequest.class
 com/hoanobita/topikplatform/classroom/ClassroomService$StudentMemberResponse.class
 com/hoanobita/topikplatform/common/GlobalExceptionHandler.class
 com/hoanobita/topikplatform/lesson/LessonService.class
+com/hoanobita/topikplatform/dto/report/AssignmentPerformanceDto$AssignmentPerformanceDtoBuilder.class
 com/hoanobita/topikplatform/user/dto/UpdateUserRequest.class
 com/hoanobita/topikplatform/user/entity/User.class
 com/hoanobita/topikplatform/dashboard/dto/TeacherDashboardResponse$GradeDistribution.class
@@ -75,6 +81,7 @@ com/hoanobita/topikplatform/user/UserService.class
 com/hoanobita/topikplatform/dashboard/dto/AdminDashboardResponse$AssignmentKpi.class
 com/hoanobita/topikplatform/auth/dto/LoginResponse$UserInfo.class
 com/hoanobita/topikplatform/dashboard/dto/TeacherDashboardResponse$NeedGradingByClass.class
+com/hoanobita/topikplatform/dto/report/SystemReportResponse.class
 com/hoanobita/topikplatform/auth/dto/LoginResponse.class
 com/hoanobita/topikplatform/activity/repository/ActivityLogRepository.class
 com/hoanobita/topikplatform/auth/AuthController.class
@@ -98,11 +105,14 @@ com/hoanobita/topikplatform/dashboard/dto/TeacherDashboardResponse$AssignmentKpi
 com/hoanobita/topikplatform/file/FileService.class
 com/hoanobita/topikplatform/notification/entity/Notification.class
 com/hoanobita/topikplatform/dashboard/dto/StudentDashboardResponse$NotificationSummary.class
+com/hoanobita/topikplatform/dto/report/StudentPerformanceDto$StudentPerformanceDtoBuilder.class
 com/hoanobita/topikplatform/common/BaseEntity.class
 com/hoanobita/topikplatform/dashboard/dto/StudentDashboardResponse$SubmissionStats.class
+com/hoanobita/topikplatform/dto/report/AssignmentPerformanceDto.class
 com/hoanobita/topikplatform/submission/entity/Submission.class
 com/hoanobita/topikplatform/grading/GradingService.class
 com/hoanobita/topikplatform/dashboard/dto/AdminDashboardResponse$ClassKpi.class
+com/hoanobita/topikplatform/dto/report/StudentPerformanceDto.class
 com/hoanobita/topikplatform/common/PermissionService.class
 com/hoanobita/topikplatform/dashboard/dto/AdminDashboardResponse.class
 com/hoanobita/topikplatform/auth/JwtFilter.class
@@ -112,6 +122,7 @@ com/hoanobita/topikplatform/dashboard/dto/TeacherDashboardResponse$StudentKpi.cl
 com/hoanobita/topikplatform/common/Enums.class
 com/hoanobita/topikplatform/auth/AuthService.class
 com/hoanobita/topikplatform/classroom/ClassroomController.class
+com/hoanobita/topikplatform/dto/report/ClassPerformanceDto$ClassPerformanceDtoBuilder.class
 com/hoanobita/topikplatform/grading/dto/GradeRequest.class
 com/hoanobita/topikplatform/file/repository/FileRepository.class
 com/hoanobita/topikplatform/dashboard/dto/AdminDashboardResponse$NeedGradingByClass.class
@@ -125,6 +136,7 @@ com/hoanobita/topikplatform/lesson/dto/LessonResponse.class
 com/hoanobita/topikplatform/lesson/entity/Lesson.class
 com/hoanobita/topikplatform/dashboard/DashboardController.class
 com/hoanobita/topikplatform/dashboard/dto/AdminDashboardResponse$ScoreKpi.class
+com/hoanobita/topikplatform/controller/report/ReportController.class
 com/hoanobita/topikplatform/lesson/LessonController.class
 com/hoanobita/topikplatform/dashboard/dto/AdminDashboardResponse$ChartsSection.class
 com/hoanobita/topikplatform/dashboard/dto/AdminDashboardResponse$SubmissionKpi.class
