@@ -70,7 +70,7 @@
 | Classes | List/detail/tabs/admins/students/settings | Implemented list, detail with tabs (lessons, materials, assignments). Students tab is placeholder. Settings missing. | `frontend/src/pages/class-detail-page.tsx`, `classes-page.tsx` | Partial |
 | Lessons | Create/edit/delete/list/detail | Implemented list in class detail tab, create dialog, delete confirm. Edit/detail missing. | `frontend/src/pages/class-detail-page.tsx` | Partial |
 | Materials | Create/edit/delete/upload/download/visibility | Implemented list in class detail tab, create dialog, delete confirm. Upload/download/visibility toggle missing. | `frontend/src/pages/class-detail-page.tsx` | Partial |
-| Assignments | Create/edit/publish/close/copy/delete/detail | Implemented list, detail, publish/close buttons. Create/edit/copy/delete missing. | `frontend/src/pages/assignments-page.tsx`, `assignment-detail-page.tsx` | Partial |
+| Assignments | Create/edit/publish/close/copy/delete/detail | Implemented list, detail, publish/close buttons, create/edit/copy/delete dialogs. | `frontend/src/pages/assignments-page.tsx`, `assignment-detail-page.tsx`, `class-detail-page.tsx` | Done |
 | Submissions | Submit/edit/delete/detail/my submissions | Implemented submit form, my submissions list, assignment submissions list. Edit/delete/detail missing. | `frontend/src/pages/assignment-detail-page.tsx`, `my-submissions-page.tsx`, `assignment-submissions-page.tsx` | Partial |
 | Grading | Split view/grade/update/request resubmit | Implemented split-view grading UI, integrated API hooks, added class detail grading tab link. | `frontend/src/pages/grading-page.tsx`, `frontend/src/pages/class-detail-page.tsx` | Done |
 | Notifications | Create/delete/list/targeting | Implemented list, create dialog. Delete/targeting missing. | `frontend/src/pages/notifications-page.tsx` | Partial |
@@ -82,8 +82,8 @@
 | QA docs | frontend-audit/checklist updated | Updated with latest findings. | `frontend-audit.md`, `frontend-qa-checklist.md` | Done |
 
 ### Remaining Work (Priority Order)
-1. **Files Module**: Implement file upload/download API and integrate with Materials and Submissions (including the disabled download button in Grading Center).
-2. **Assignments CRUD**: Implement Create, Edit, Copy, and Delete dialogs/forms for assignments.
+1. **Dashboard & Notifications**: Nâng cấp Dashboard cho Teacher (Thống kê, Lớp học đang dạy, Bài tập cần chấm).
+2. **Files Module**: Implement file upload/download API and integrate with Materials and Submissions (including the disabled download button in Grading Center).
 3. **Lessons & Materials CRUD**: Implement Edit dialogs and visibility toggles.
 4. **User Detail Page**: Implement the user profile, progress, and submission history view.
 5. **Submissions CRUD**: Implement Edit and Delete for submissions (if allowed by policy).
