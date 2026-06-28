@@ -18,9 +18,11 @@ import { ConfirmDialog } from '../components/ui/confirm-dialog'
 import { Select } from '../components/ui/select'
 import { AssignmentStatusBadge, DeadlinePill } from '../features/assignments/components/assignment-badges'
 import { AssignmentFormDialog } from '../features/assignments/components/assignment-form-dialog'
+import { FileUploadField } from '../features/files/components/file-upload-field'
+import { useDownloadFile } from '../features/files/hooks'
 
 const lessonSchema = z.object({ title: z.string().min(2), description: z.string().optional(), lessonDate: z.string().optional(), orderIndex: z.number().min(0).default(1), status: z.enum(['DRAFT','PUBLISHED','ARCHIVED']).default('PUBLISHED') })
-const materialSchema = z.object({ title: z.string().min(2), description: z.string().optional(), externalUrl: z.string().url("URL không hợp lệ").optional().or(z.literal('')), visible: z.boolean().default(true) })
+const materialSchema = z.object({ title: z.string().min(2), description: z.string().optional(), externalUrl: z.string().url("URL không hợp lệ").optional().or(z.literal('')), fileId: z.string().optional(), visible: z.boolean().default(true) }).refine(data => data.externalUrl || data.fileId, { message: "Vui lòng cung cấp URL hoặc tải tệp lên", path: ["externalUrl"] })
 const classSchema = z.object({ name: z.string().min(2), code: z.string().min(2), description: z.string().optional(), levelFrom: z.number().min(1).max(6), levelTo: z.number().min(1).max(6), status: z.enum(['ACTIVE','ARCHIVED']).default('ACTIVE'), startDate: z.string().optional(), endDate: z.string().optional() }).refine(data => data.levelFrom <= data.levelTo, { message: "Level from must be <= level to", path: ["levelFrom"] })
 const addMemberSchema = z.object({ userId: z.string().min(1, "Vui lòng chọn người dùng") })
 
@@ -42,6 +44,7 @@ export function ClassDetailPage() {
   const updateMaterial = useUpdateMaterial(id)
   const delMaterial = useDeleteMaterial(id)
   const toggleVisibility = useUpdateVisibility(id)
+  const downloadFile = useDownloadFile()
   const createAssignment = useCreateAssignment(id)
   const updateAssignment = useUpdateAssignment()
   const deleteAssignment = useDeleteAssignment()
@@ -60,7 +63,9 @@ export function ClassDetailPage() {
   const [lessonOpen, setLessonOpen] = useState(false)
   const [editLessonOpen, setEditLessonOpen] = useState<any | null>(null)
   const [matOpen, setMatOpen] = useState(false)
+  const [matMode, setMatMode] = useState<'url' | 'file'>('url')
   const [editMatOpen, setEditMatOpen] = useState<any | null>(null)
+  const [editMatMode, setEditMatMode] = useState<'url' | 'file'>('url')
   const [assignOpen, setAssignOpen] = useState(false)
   const [editAssignOpen, setEditAssignOpen] = useState<any | null>(null)
   const [studentOpen, setStudentOpen] = useState(false)
@@ -74,8 +79,8 @@ export function ClassDetailPage() {
 
   const lessonForm = useForm({ resolver: zodResolver(lessonSchema), defaultValues: { title: '', description: '', lessonDate: '', orderIndex: 1, status: 'PUBLISHED' as const } })
   const editLessonForm = useForm({ resolver: zodResolver(lessonSchema), defaultValues: { title: '', description: '', lessonDate: '', orderIndex: 1, status: 'PUBLISHED' as const } })
-  const matForm = useForm({ resolver: zodResolver(materialSchema), defaultValues: { title: '', description: '', externalUrl: '', visible: true } })
-  const editMatForm = useForm({ resolver: zodResolver(materialSchema), defaultValues: { title: '', description: '', externalUrl: '', visible: true } })
+  const matForm = useForm({ resolver: zodResolver(materialSchema), defaultValues: { title: '', description: '', externalUrl: '', fileId: '', visible: true } })
+  const editMatForm = useForm({ resolver: zodResolver(materialSchema), defaultValues: { title: '', description: '', externalUrl: '', fileId: '', visible: true } })
   const classForm = useForm({ resolver: zodResolver(classSchema), values: cls ? { name: cls.name, code: cls.code, description: cls.description || '', levelFrom: cls.levelFrom, levelTo: cls.levelTo, status: cls.status, startDate: cls.startDate || '', endDate: cls.endDate || '' } : undefined })
   const studentForm = useForm({ resolver: zodResolver(addMemberSchema), defaultValues: { userId: '' } })
   const adminForm = useForm({ resolver: zodResolver(addMemberSchema), defaultValues: { userId: '' } })
@@ -143,7 +148,7 @@ export function ClassDetailPage() {
         )}
         {tab === 'materials' && (
           <div className="space-y-4">
-            <div className="flex justify-between"><div className="text-sm text-slate-500">Tài liệu lớp</div>{canManage && <Button onClick={() => setMatOpen(true)}>+ Thêm tài liệu</Button>}</div>
+            <div className="flex justify-between"><div className="text-sm text-slate-500">Tài liệu lớp</div>{canManage && <Button onClick={() => { setMatMode('url'); setMatOpen(true); }}>+ Thêm tài liệu</Button>}</div>
             {materials.data?.length === 0 && <div className="text-slate-500 text-sm">Lớp này chưa có tài liệu nào.</div>}
             <div className="grid gap-4">
               {materials.data?.map(m => (
@@ -151,23 +156,28 @@ export function ClassDetailPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-lg">{m.title}</span>
+                      <span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">{m.fileId ? 'Tệp' : 'Liên kết'}</span>
                       {!m.visible && <span className="px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-800">Đang ẩn</span>}
                     </div>
                     {m.description && <div className="text-sm text-slate-600 mt-1">{m.description}</div>}
-                    {m.externalUrl && <a href={m.externalUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline mt-1 block">{m.externalUrl}</a>}
                   </div>
-                  {canManage && (
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => toggleVisibility.mutate({ id: m.id, visible: !m.visible })}>
-                        {m.visible ? 'Ẩn' : 'Hiện'}
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => {
-                        editMatForm.reset({ title: m.title, description: m.description || '', externalUrl: m.externalUrl || '', visible: m.visible })
-                        setEditMatOpen(m)
-                      }}>Sửa</Button>
-                      <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setConfirmMat(m.id)}>Xóa</Button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {m.externalUrl && <a href={m.externalUrl} target="_blank" rel="noopener noreferrer"><Button variant="outline" size="sm">Mở liên kết</Button></a>}
+                    {m.fileId && <Button variant="outline" size="sm" onClick={() => downloadFile.mutate({ fileId: m.fileId!, fileName: m.fileName || m.title })} disabled={downloadFile.isPending}>Tải xuống</Button>}
+                    {canManage && (
+                      <>
+                        <Button variant="outline" size="sm" onClick={() => toggleVisibility.mutate({ id: m.id, visible: !m.visible })}>
+                          {m.visible ? 'Ẩn' : 'Hiện'}
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => {
+                          setEditMatMode(m.fileId ? 'file' : 'url')
+                          editMatForm.reset({ title: m.title, description: m.description || '', externalUrl: m.externalUrl || '', fileId: m.fileId || '', visible: m.visible })
+                          setEditMatOpen(m)
+                        }}>Sửa</Button>
+                        <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setConfirmMat(m.id)}>Xóa</Button>
+                      </>
+                    )}
+                  </div>
                 </Card>
               ))}
             </div>
@@ -367,37 +377,70 @@ export function ClassDetailPage() {
       </Dialog>
 
       <Dialog open={matOpen} onClose={() => setMatOpen(false)} title="Thêm tài liệu">
+        <div className="flex gap-4 mb-4 border-b pb-2">
+          <button className={`pb-2 px-2 ${matMode === 'url' ? 'border-b-2 border-blue-600 font-medium text-blue-600' : 'text-slate-500'}`} onClick={() => { setMatMode('url'); matForm.setValue('fileId', ''); }}>Liên kết ngoài</button>
+          <button className={`pb-2 px-2 ${matMode === 'file' ? 'border-b-2 border-blue-600 font-medium text-blue-600' : 'text-slate-500'}`} onClick={() => { setMatMode('file'); matForm.setValue('externalUrl', ''); }}>Tệp tải lên</button>
+        </div>
         <FormProvider {...matForm}>
           <form onSubmit={matForm.handleSubmit(v => { createMaterial.mutateAsync(v as any).then(() => { setMatOpen(false); matForm.reset() }) })} className="space-y-4">
             <FormField name="title" label="Tiêu đề" />
             <FormField name="description" label="Mô tả" />
-            <FormField name="externalUrl" label="URL (nếu có)" />
+            
+            {matMode === 'url' ? (
+              <FormField name="externalUrl" label="URL" />
+            ) : (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Tệp đính kèm</label>
+                <FileUploadField onUploadSuccess={(id) => matForm.setValue('fileId', id, { shouldValidate: true })} />
+                {matForm.formState.errors.externalUrl && <p className="text-sm text-red-600">{matForm.formState.errors.externalUrl.message as string}</p>}
+              </div>
+            )}
+
             <FormField name="visible" label="Hiển thị với học viên">
               <Select {...matForm.register('visible', { setValueAs: v => v === 'true' })}>
                 <option value="true">Có</option>
                 <option value="false">Không</option>
               </Select>
             </FormField>
-            <div className="text-sm text-slate-500 italic">Tải tệp sẽ được bật ở Sprint Files.</div>
-            <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setMatOpen(false)}>Hủy</Button><Button type="submit" disabled={createMaterial.isPending}>Thêm</Button></div>
+            <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setMatOpen(false)}>Hủy</Button><Button type="submit" disabled={createMaterial.isPending || (matMode === 'file' && !matForm.watch('fileId'))}>Thêm</Button></div>
           </form>
         </FormProvider>
       </Dialog>
 
       <Dialog open={!!editMatOpen} onClose={() => setEditMatOpen(null)} title="Sửa tài liệu">
+        <div className="flex gap-4 mb-4 border-b pb-2">
+          <button className={`pb-2 px-2 ${editMatMode === 'url' ? 'border-b-2 border-blue-600 font-medium text-blue-600' : 'text-slate-500'}`} onClick={() => { setEditMatMode('url'); editMatForm.setValue('fileId', ''); }}>Liên kết ngoài</button>
+          <button className={`pb-2 px-2 ${editMatMode === 'file' ? 'border-b-2 border-blue-600 font-medium text-blue-600' : 'text-slate-500'}`} onClick={() => { setEditMatMode('file'); editMatForm.setValue('externalUrl', ''); }}>Tệp tải lên</button>
+        </div>
         <FormProvider {...editMatForm}>
           <form onSubmit={editMatForm.handleSubmit(v => { updateMaterial.mutateAsync({ id: editMatOpen.id, req: v as any }).then(() => setEditMatOpen(null)) })} className="space-y-4">
             <FormField name="title" label="Tiêu đề" />
             <FormField name="description" label="Mô tả" />
-            <FormField name="externalUrl" label="URL (nếu có)" />
+            
+            {editMatMode === 'url' ? (
+              <FormField name="externalUrl" label="URL" />
+            ) : (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Tệp đính kèm</label>
+                {editMatForm.watch('fileId') ? (
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-slate-50">
+                    <span className="text-sm text-slate-600">Đã có tệp đính kèm</span>
+                    <Button type="button" variant="outline" size="sm" onClick={() => editMatForm.setValue('fileId', '', { shouldValidate: true })}>Thay đổi</Button>
+                  </div>
+                ) : (
+                  <FileUploadField onUploadSuccess={(id) => editMatForm.setValue('fileId', id, { shouldValidate: true })} />
+                )}
+                {editMatForm.formState.errors.externalUrl && <p className="text-sm text-red-600">{editMatForm.formState.errors.externalUrl.message as string}</p>}
+              </div>
+            )}
+
             <FormField name="visible" label="Hiển thị với học viên">
               <Select {...editMatForm.register('visible', { setValueAs: v => v === 'true' })}>
                 <option value="true">Có</option>
                 <option value="false">Không</option>
               </Select>
             </FormField>
-            <div className="text-sm text-slate-500 italic">Tải tệp sẽ được bật ở Sprint Files.</div>
-            <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setEditMatOpen(null)}>Hủy</Button><Button type="submit" disabled={updateMaterial.isPending}>Lưu thay đổi</Button></div>
+            <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setEditMatOpen(null)}>Hủy</Button><Button type="submit" disabled={updateMaterial.isPending || (editMatMode === 'file' && !editMatForm.watch('fileId'))}>Lưu thay đổi</Button></div>
           </form>
         </FormProvider>
       </Dialog>

@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useGradingQueue, useGradeSubmission, useRequestResubmit } from '../features/grading/hooks'
 import { useClasses } from '../features/classes/hooks'
+import { useDownloadFile } from '../features/files/hooks'
 import { Card } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
@@ -25,6 +26,7 @@ export function GradingPage() {
   const { data: queue, isLoading } = useGradingQueue(classId)
   const gradeMut = useGradeSubmission(classId)
   const resubmitMut = useRequestResubmit(classId)
+  const downloadFile = useDownloadFile()
 
   const form = useForm({
     resolver: zodResolver(gradeSchema),
@@ -130,10 +132,14 @@ export function GradingPage() {
                     </div>
                     {selectedSub.fileId && (
                       <div className="mt-3">
-                        <Button variant="outline" size="sm" disabled title="Tải tệp sẽ được bật sau khi module Files hoàn tất.">
-                          Tải file đính kèm ({selectedSub.fileId})
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => downloadFile.mutate({ fileId: selectedSub.fileId!, fileName: `submission-${selectedSub.id}` })}
+                          disabled={downloadFile.isPending}
+                        >
+                          {downloadFile.isPending ? 'Đang tải...' : `Tải file đính kèm`}
                         </Button>
-                        <div className="text-xs text-slate-500 mt-1">Tải tệp sẽ được bật sau khi module Files hoàn tất.</div>
                       </div>
                     )}
                   </div>

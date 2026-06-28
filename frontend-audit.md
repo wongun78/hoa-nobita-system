@@ -32,9 +32,11 @@
 - **ClassDetailPage (Tab Tài liệu)**: Đã nâng cấp. Hiển thị danh sách tài liệu. Teacher/Admin có thể Tạo, Sửa, Xóa, Ẩn/Hiện tài liệu.
 - **Files**: Tính năng tải tệp (upload/download) được hoãn lại cho Sprint Files. Hiện tại chỉ hỗ trợ External URL.
 
-## 5. Loading/empty/error states
-- Shared system states exist for loading, empty, and error cases.
-- List-driven pages show status feedback for API latency and failures.
+## 5. Files (Tệp đính kèm)
+- **Files API**: Đã tích hợp API upload và download tệp.
+- **FileUploadField**: Component dùng chung để tải tệp lên, kiểm tra dung lượng và định dạng.
+- **Materials**: Đã tích hợp tải tệp lên khi tạo/sửa tài liệu. Hỗ trợ tải xuống tệp đính kèm.
+- **Grading**: Đã tích hợp tải xuống tệp đính kèm của bài nộp.
 
 ## 6. API integration issues
 - Axios client remains centralized in `frontend/src/lib/api.ts` with Bearer token injection.

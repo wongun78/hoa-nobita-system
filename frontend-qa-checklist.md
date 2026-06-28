@@ -49,14 +49,14 @@
 | Admin Dashboard API | Pass | `GET /dashboard/admin` returns assigned-class scoped metrics |
 | Student Dashboard API | Pass | `GET /dashboard/student` returns own classes, upcoming, submissions, feedback |
 
-## Sprint 4: Lessons & Materials CRUD Verification
+## Sprint 5: Files Module Verification
 | Check | Result | Evidence |
 |---|---|---|
-| Lessons List | Pass | `ClassDetailPage` shows ordered lessons with status badges. |
-| Lessons Actions | Pass | Create, Edit, Delete buttons work and are role-scoped. |
-| Materials List | Pass | `ClassDetailPage` shows materials with visibility status. |
-| Materials Actions | Pass | Create, Edit, Delete, Toggle Visibility buttons work and are role-scoped. |
-| API Integration | Pass | Create, Update, Delete APIs fully integrated for both. Visibility toggle integrated. |
-| Dead Buttons | Pass | No dead buttons found in Lessons/Materials workflow. |
-| Build & Tests | Pass | Frontend typecheck/lint/build pass. Backend tests pass. |
+| Files API | Pass | `uploadFile` and `downloadFile` implemented and working. |
+| FileUploadField | Pass | Reusable component handles file selection, validation, and upload. |
+| Materials Integration | Pass | Create/Edit Material supports both External URL and File Upload. |
+| Material Download | Pass | Download button works for materials with `fileId`. |
+| Grading Integration | Pass | Download button works for submissions with `fileId`. |
+| Dead Buttons | Pass | Removed deferred file notes. No dead buttons found. |
+| Build & Tests | Pass | Frontend typecheck/lint/build pass. |
 | Dashboard API Tests | Pass | `test-api.sh` asserts dashboard structure and role scoping |

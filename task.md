@@ -74,7 +74,7 @@
 | Submissions | Submit/edit/delete/detail/my submissions | Implemented submit form, my submissions list, assignment submissions list. Edit/delete/detail missing. | `frontend/src/pages/assignment-detail-page.tsx`, `my-submissions-page.tsx`, `assignment-submissions-page.tsx` | Partial |
 | Grading | Split view/grade/update/request resubmit | Implemented split-view grading UI, integrated API hooks, added class detail grading tab link. | `frontend/src/pages/grading-page.tsx`, `frontend/src/pages/class-detail-page.tsx` | Done |
 | Notifications | Create/delete/list/targeting | Implemented list, create dialog. Delete/targeting missing. | `frontend/src/pages/notifications-page.tsx` | Partial |
-| Files | Upload/download/attach to material | API and UI missing. | N/A | Missing |
+| Files | Upload/download/attach to material | Implemented file upload/download API, FileUploadField component, integrated into Materials and Grading. | `frontend/src/features/files/*`, `class-detail-page.tsx`, `grading-page.tsx` | Done |
 | Activity | ActivityLog or derived recent activity | API and UI missing. | N/A | Missing |
 | Reports | Reports page | UI missing. | N/A | Missing |
 | Role guards | Teacher/Admin/Student route restrictions | Implemented `ProtectedRoute` with role checking. | `frontend/src/pages/route-guards.tsx` | Done |
@@ -83,11 +83,10 @@
 
 ### Remaining Work (Priority Order)
 1. **Dashboard & Notifications**: Nâng cấp Dashboard cho Teacher (Thống kê, Lớp học đang dạy, Bài tập cần chấm).
-2. **Files Module**: Implement file upload/download API and integrate with Materials and Submissions (including the disabled download button in Grading Center).
-3. **User Detail Page**: Implement the user profile, progress, and submission history view.
-4. **Submissions CRUD**: Implement Edit and Delete for submissions (if allowed by policy).
-5. **Notifications**: Implement Delete and advanced targeting (Role/User).
-6. **Activity & Reports**: Implement ActivityLog (or derived) and Reports page (optional/deferred).
+2. **User Detail Page**: Implement the user profile, progress, and submission history view.
+3. **Submissions CRUD**: Implement Edit and Delete for submissions (if allowed by policy).
+4. **Notifications**: Implement Delete and advanced targeting (Role/User).
+5. **Activity & Reports**: Implement ActivityLog (or derived) and Reports page (optional/deferred).
 
 | Gap | Status | Notes |
 |-----|--------|-------|
