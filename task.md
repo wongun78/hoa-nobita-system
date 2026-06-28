@@ -90,14 +90,16 @@
 | QA docs | frontend-audit/checklist updated | Updated with latest findings. | `frontend-audit.md`, `frontend-qa-checklist.md` | Done |
 
 ### Remaining Work (Priority Order)
-1. **Dashboard & Notifications**: Nâng cấp Dashboard cho Teacher (Thống kê, Lớp học đang dạy, Bài tập cần chấm).
-2. **Notifications**: Implement Delete and advanced targeting (Role/User).
-3. **Activity & Reports**: Implement ActivityLog (or derived) and Reports page (optional/deferred).
+1. **Reports**: Implement Reports page (optional/deferred).
 
 | Gap | Status | Notes |
 |-----|--------|-------|
 | Dashboard module | ✅ DONE | Teacher/Admin/Student dashboards implemented |
 | /dashboard/teacher | ✅ DONE | Full KPI, charts, today tasks, class health, due soon, risk students, recent activity |
+| /dashboard/admin | ✅ DONE | Scoped to assigned classes only |
+| /dashboard/student | ✅ DONE | Own classes, assignments, submissions, feedback |
+| ActivityLog entity | ✅ DONE | Implemented in Sprint 10 |
+| Additional dashboard queries | ✅ DONE | Extended repositories for dashboard calculations |
 | /dashboard/admin | ✅ DONE | Scoped to assigned classes only |
 | /dashboard/student | ✅ DONE | Own classes, assignments, submissions, feedback |
 | ActivityLog entity | DEFERRED | Using derived activity from submissions/grades for now |
