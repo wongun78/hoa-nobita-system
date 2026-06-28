@@ -1,5 +1,6 @@
 package com.hoanobita.topikplatform.notification;
 
+import com.hoanobita.topikplatform.activity.ActivityService;
 import com.hoanobita.topikplatform.common.BusinessException;
 import com.hoanobita.topikplatform.common.Enums.TargetType;
 import com.hoanobita.topikplatform.common.PermissionService;
@@ -20,11 +21,13 @@ public class NotificationService {
     private final NotificationRepository repo;
     private final PermissionService permissions;
     private final SecurityUtils security;
+    private final ActivityService activityService;
 
-    public NotificationService(NotificationRepository repo, PermissionService permissions, SecurityUtils security) {
+    public NotificationService(NotificationRepository repo, PermissionService permissions, SecurityUtils security, ActivityService activityService) {
         this.repo = repo;
         this.permissions = permissions;
         this.security = security;
+        this.activityService = activityService;
     }
 
     public List<NotificationResponse> list() {
@@ -51,7 +54,9 @@ public class NotificationService {
         n.setTargetType(req.targetType());
         n.setTargetId(req.targetId());
         n.setCreatedBy(user.getId());
-        return toResponse(repo.save(n));
+        repo.save(n);
+        activityService.log("NOTIFICATION_CREATED", "NOTIFICATION", n.getId(), n.getTitle(), req.targetType() == TargetType.CLASS ? req.targetId() : null, "Đã tạo thông báo mới: " + n.getTitle());
+        return toResponse(n);
     }
 
     @Transactional
@@ -60,6 +65,7 @@ public class NotificationService {
         Notification n = repo.findById(id).orElseThrow(() -> BusinessException.notFound("Notification not found"));
         if (!user.isTeacher() && !n.getCreatedBy().equals(user.getId())) throw BusinessException.forbidden("Cannot delete this notification");
         repo.delete(n);
+        activityService.log("NOTIFICATION_DELETED", "NOTIFICATION", n.getId(), n.getTitle(), n.getTargetType() == TargetType.CLASS ? n.getTargetId() : null, "Đã xóa thông báo: " + n.getTitle());
     }
 
     private NotificationResponse toResponse(Notification n) {

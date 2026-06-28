@@ -158,6 +158,27 @@ All endpoints return `{ success, data, message }` wrapper via `ApiResponse`.
 - No file upload UI yet (backend endpoint exists)
 - Korean font strategy (`Noto Sans KR`) is prepared but not fully applied in all components
 
+## Sprint 9: Notifications Complete
+- **Goal**: Complete Notifications module with real create/delete/targeting behavior and role-safe UI.
+- **Status**: Completed.
+- **Key Features**:
+  - Backend: Verified target types (ALL, CLASS, USER) and permission policies (Teacher: all, Admin: assigned class only, Student: read-only).
+  - Frontend: Upgraded `notifications-page.tsx` with filters, target display, and delete actions. Implemented Create Notification Dialog with RHF+Zod and role-based target options.
+  - Integration: Integrated notifications into Class Detail page.
+  - Testing: Added 10 specific notification tests to `test-api.sh`. All 89 tests passing.
+  - Audit: Ran dead button audit and updated `frontend-audit.md`.
+
+## Sprint 10: Activity Log & Recent Activity Complete
+- **Goal**: Implement a real ActivityLog backend and integrate recent activity into dashboard/class detail/user detail where appropriate.
+- **Status**: Completed.
+- **Key Features**:
+  - Backend: Created `ActivityLog` entity, repository, service, and controller. Injected `ActivityService` into all domain services to log mutations.
+  - Frontend: Created `RecentActivityTimeline` component. Integrated into Teacher/Admin Dashboard, Class Detail, and User Detail pages.
+  - Testing: Added API tests for activity endpoints. All 100 tests passing.
+
+## Next Steps
+- Proceed to Sprint 11 (Reports or other remaining tasks).
+
 ## 10. How to Run (Quick Start)
 ```bash
 docker compose up -d postgres

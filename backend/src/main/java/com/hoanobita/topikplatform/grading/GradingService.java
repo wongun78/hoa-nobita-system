@@ -1,5 +1,6 @@
 package com.hoanobita.topikplatform.grading;
 
+import com.hoanobita.topikplatform.activity.ActivityService;
 import com.hoanobita.topikplatform.assignment.entity.Assignment;
 import com.hoanobita.topikplatform.assignment.repository.AssignmentRepository;
 import com.hoanobita.topikplatform.common.BusinessException;
@@ -29,14 +30,16 @@ public class GradingService {
     private final PermissionService permissions;
     private final SecurityUtils security;
     private final SubmissionService submissionService;
+    private final ActivityService activityService;
 
-    public GradingService(GradeRepository grades, SubmissionRepository submissions, AssignmentRepository assignments, PermissionService permissions, SecurityUtils security, SubmissionService submissionService) {
+    public GradingService(GradeRepository grades, SubmissionRepository submissions, AssignmentRepository assignments, PermissionService permissions, SecurityUtils security, SubmissionService submissionService, ActivityService activityService) {
         this.grades = grades;
         this.submissions = submissions;
         this.assignments = assignments;
         this.permissions = permissions;
         this.security = security;
         this.submissionService = submissionService;
+        this.activityService = activityService;
     }
 
     public List<SubmissionResponse> classSubmissions(UUID classId) {
@@ -60,6 +63,7 @@ public class GradingService {
         g.setGradedAt(Instant.now());
         s.setStatus(SubmissionStatus.GRADED);
         submissions.save(s);
+        activityService.log("SUBMISSION_GRADED", "SUBMISSION", s.getId(), "Bài nộp của học viên", a.getClassId(), "Đã chấm điểm bài nộp cho bài tập: " + a.getTitle());
         return toResponse(grades.save(g));
     }
 
@@ -72,6 +76,7 @@ public class GradingService {
         if (req.score().compareTo(a.getMaxScore()) > 0) throw BusinessException.badRequest("Score cannot exceed assignment max score");
         g.setScore(req.score());
         g.setFeedback(req.feedback());
+        activityService.log("GRADE_UPDATED", "SUBMISSION", s.getId(), "Bài nộp của học viên", a.getClassId(), "Đã cập nhật điểm bài nộp cho bài tập: " + a.getTitle());
         return toResponse(grades.save(g));
     }
 
@@ -82,6 +87,7 @@ public class GradingService {
         permissions.requireManageClass(security.currentUser(), a.getClassId());
         s.setStatus(SubmissionStatus.RESUBMIT_REQUESTED);
         submissions.save(s);
+        activityService.log("RESUBMIT_REQUESTED", "SUBMISSION", s.getId(), "Bài nộp của học viên", a.getClassId(), "Đã yêu cầu nộp lại bài tập: " + a.getTitle());
     }
 
     private GradeResponse toResponse(Grade g) {

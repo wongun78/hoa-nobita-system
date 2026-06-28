@@ -1,4 +1,4 @@
-export type TargetType = 'ALL' | 'CLASS' | 'ROLE'
+export type TargetType = 'ALL' | 'CLASS' | 'USER'
 
 export interface Notification {
   id: string
@@ -6,6 +6,7 @@ export interface Notification {
   content: string
   targetType: TargetType
   targetId?: string
+  createdBy: string
   createdAt: string
 }
 

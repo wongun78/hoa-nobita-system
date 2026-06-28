@@ -49,6 +49,25 @@ public class PermissionService {
         return classAdminRepo.existsByClassIdAndAdminId(classId, adminId);
     }
 
+    /** Check if admin can access a student's progress (student must be in at least one of admin's classes) */
+    public boolean canAccessStudentProgress(User admin, UUID studentId) {
+        if (admin.isTeacher()) return true;
+        if (!admin.isAdmin()) return false;
+        
+        List<UUID> adminClassIds = classAdminRepo.findClassIdsByAdminId(admin.getId());
+        if (adminClassIds.isEmpty()) return false;
+        
+        List<UUID> studentClassIds = classMemberRepo.findClassIdsByStudentId(studentId);
+        
+        // Check for intersection
+        for (UUID classId : studentClassIds) {
+            if (adminClassIds.contains(classId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** Get all class IDs accessible to user */
     public List<UUID> getAccessibleClassIds(User user) {
         if (user.isTeacher()) return null; // null means all

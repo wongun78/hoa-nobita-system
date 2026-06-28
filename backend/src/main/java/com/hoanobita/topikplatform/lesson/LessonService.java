@@ -1,5 +1,6 @@
 package com.hoanobita.topikplatform.lesson;
 
+import com.hoanobita.topikplatform.activity.ActivityService;
 import com.hoanobita.topikplatform.common.BusinessException;
 import com.hoanobita.topikplatform.common.Enums.LessonStatus;
 import com.hoanobita.topikplatform.common.PermissionService;
@@ -19,10 +20,12 @@ public class LessonService {
 
     private final LessonRepository lessonRepo;
     private final PermissionService permissionService;
+    private final ActivityService activityService;
 
-    public LessonService(LessonRepository lessonRepo, PermissionService permissionService) {
+    public LessonService(LessonRepository lessonRepo, PermissionService permissionService, ActivityService activityService) {
         this.lessonRepo = lessonRepo;
         this.permissionService = permissionService;
+        this.activityService = activityService;
     }
 
     public List<LessonResponse> listByClass(UUID classId, User user) {
@@ -52,6 +55,7 @@ public class LessonService {
         }
 
         lesson = lessonRepo.save(lesson);
+        activityService.log("LESSON_CREATED", "LESSON", lesson.getId(), lesson.getTitle(), classId, "Đã tạo bài học mới: " + lesson.getTitle());
         return toResponse(lesson);
     }
 
@@ -79,6 +83,7 @@ public class LessonService {
         lesson.setUpdatedBy(user.getId());
 
         lesson = lessonRepo.save(lesson);
+        activityService.log("LESSON_UPDATED", "LESSON", lesson.getId(), lesson.getTitle(), lesson.getClassId(), "Đã cập nhật bài học: " + lesson.getTitle());
         return toResponse(lesson);
     }
 
@@ -89,6 +94,7 @@ public class LessonService {
         permissionService.requireManageClass(user, lesson.getClassId());
         lesson.softDelete();
         lessonRepo.save(lesson);
+        activityService.log("LESSON_DELETED", "LESSON", lesson.getId(), lesson.getTitle(), lesson.getClassId(), "Đã xóa bài học: " + lesson.getTitle());
     }
 
     private LessonResponse toResponse(Lesson lesson) {

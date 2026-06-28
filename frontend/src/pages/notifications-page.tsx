@@ -2,56 +2,197 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useNotifications, useCreateNotification } from '../features/notifications/hooks'
+import { useNotifications, useCreateNotification, useDeleteNotification } from '../features/notifications/hooks'
+import { useClasses } from '../features/classes/hooks'
+import { useAuth } from '../features/auth/use-auth'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { Dialog } from '../components/ui/dialog'
+import { ConfirmDialog } from '../components/ui/confirm-dialog'
 import { FormField } from '../components/ui/form'
+import { ErrorState, LoadingState } from '../components/system/states'
+import { Page } from './shared'
 
-const notifSchema = z.object({ title: z.string().min(2), content: z.string().min(5), targetType: z.enum(['ALL','CLASS','USER']).default('ALL'), targetId: z.string().optional() })
+const notifSchema = z.object({ 
+  title: z.string().min(2, 'Tiêu đề quá ngắn'), 
+  content: z.string().min(5, 'Nội dung quá ngắn'), 
+  targetType: z.enum(['ALL','CLASS','USER']).default('ALL'), 
+  targetId: z.string().optional() 
+}).refine(data => {
+  if (data.targetType === 'CLASS' && !data.targetId) return false;
+  if (data.targetType === 'USER' && !data.targetId) return false;
+  return true;
+}, {
+  message: "Vui lòng chọn đối tượng cụ thể",
+  path: ["targetId"]
+})
 
 export function NotificationsPage() {
-  const { data, isLoading } = useNotifications()
+  const { data, isLoading, isError } = useNotifications()
+  const { data: classes } = useClasses()
   const create = useCreateNotification()
+  const delMut = useDeleteNotification()
+  const { hasRole, user } = useAuth()
+  
   const [open, setOpen] = useState(false)
-  const form = useForm({ resolver: zodResolver(notifSchema), defaultValues: { title: '', content: '', targetType: 'ALL' as const } })
+  const [delId, setDelId] = useState<string | null>(null)
+  const [filter, setFilter] = useState<string>('ALL_TYPES')
+  
+  const isTeacher = hasRole('TEACHER_OWNER')
+  const isAdmin = hasRole('CLASS_ADMIN')
+  const isStudent = hasRole('STUDENT')
+  const canCreate = isTeacher || isAdmin
 
-  const onCreate = async (v: any) => { await create.mutateAsync(v); setOpen(false); form.reset() }
+  const form = useForm({ 
+    resolver: zodResolver(notifSchema), 
+    defaultValues: { 
+      title: '', 
+      content: '', 
+      targetType: isTeacher ? 'ALL' : 'CLASS' as const,
+      targetId: ''
+    } 
+  })
+
+  const targetType = form.watch('targetType')
+
+  const onCreate = async (v: any) => { 
+    // Clean up targetId if ALL
+    const payload = { ...v }
+    if (payload.targetType === 'ALL') {
+      delete payload.targetId
+    }
+    await create.mutateAsync(payload)
+    setOpen(false)
+    form.reset() 
+  }
+
+  const onDelete = async () => {
+    if (delId) {
+      await delMut.mutateAsync(delId)
+      setDelId(null)
+    }
+  }
+
+  if (isLoading) return <Page title="Thông báo"><LoadingState text="Đang tải thông báo..."/></Page>
+  if (isError) return <Page title="Thông báo"><ErrorState text="Không thể tải thông báo"/></Page>
+
+  const filteredData = filter === 'ALL_TYPES' ? data : data?.filter((n: any) => n.targetType === filter)
+
+  const getTargetDisplay = (n: any) => {
+    if (n.targetType === 'ALL') return 'Toàn hệ thống'
+    if (n.targetType === 'CLASS') {
+      const c = classes?.find(c => c.id === n.targetId)
+      return `Lớp: ${c ? c.name : n.targetId}`
+    }
+    if (n.targetType === 'USER') return `Người dùng: ${n.targetId}`
+    return n.targetType
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between">
-        <h1 className="text-2xl font-bold text-[#1E3A8A]">Thông báo</h1>
-        <Button onClick={() => setOpen(true)}>+ Tạo thông báo</Button>
+    <Page title="Thông báo">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <p className="text-slate-500">Cập nhật thông tin mới nhất từ hệ thống và lớp học.</p>
+        {canCreate && (
+          <Button onClick={() => {
+            form.reset({ title: '', content: '', targetType: isTeacher ? 'ALL' : 'CLASS', targetId: '' })
+            setOpen(true)
+          }}>+ Tạo thông báo</Button>
+        )}
       </div>
 
-      {isLoading && <div className="text-slate-500">Đang tải...</div>}
-      {!isLoading && (!data || data.length === 0) && <div className="text-slate-500">Chưa có thông báo.</div>}
-      <div className="space-y-3">
-        {data?.map((n: any) => (
-          <Card key={n.id} className="p-4">
-            <div className="font-semibold">{n.title}</div>
-            <div className="text-sm text-slate-600 mt-1">{n.content}</div>
-            <div className="text-xs text-slate-400 mt-2">{n.targetType} {n.targetId ? `• ${n.targetId}` : ''}</div>
-          </Card>
-        ))}
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+        <Button variant={filter === 'ALL_TYPES' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('ALL_TYPES')}>Tất cả</Button>
+        <Button variant={filter === 'ALL' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('ALL')}>Hệ thống</Button>
+        <Button variant={filter === 'CLASS' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('CLASS')}>Lớp học</Button>
+        {isTeacher && <Button variant={filter === 'USER' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('USER')}>Cá nhân</Button>}
+      </div>
+
+      {(!filteredData || filteredData.length === 0) && (
+        <div className="text-center p-12 border rounded-xl bg-slate-50 text-slate-500">
+          {isStudent ? "Bạn chưa có thông báo nào." : "Chưa có thông báo nào."}
+        </div>
+      )}
+      
+      <div className="space-y-4">
+        {filteredData?.map((n: any) => {
+          const canDelete = isTeacher || (isAdmin && n.createdBy === user?.id)
+          
+          return (
+            <Card key={n.id} className="p-5">
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                      n.targetType === 'ALL' ? 'bg-blue-100 text-blue-800' : 
+                      n.targetType === 'CLASS' ? 'bg-emerald-100 text-emerald-800' : 
+                      'bg-amber-100 text-amber-800'
+                    }`}>
+                      {getTargetDisplay(n)}
+                    </span>
+                    <span className="text-xs text-slate-400">{new Date(n.createdAt).toLocaleString('vi-VN')}</span>
+                  </div>
+                  <h3 className="font-bold text-lg text-slate-800">{n.title}</h3>
+                </div>
+                {canDelete && (
+                  <Button variant="outline" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => setDelId(n.id)}>
+                    Xóa
+                  </Button>
+                )}
+              </div>
+              <div className="text-slate-600 mt-3 whitespace-pre-wrap">{n.content}</div>
+            </Card>
+          )
+        })}
       </div>
 
       <Dialog open={open} onClose={() => setOpen(false)} title="Tạo thông báo">
         <form onSubmit={form.handleSubmit(onCreate)} className="space-y-4">
           <FormField name="title" label="Tiêu đề" />
           <FormField name="content" label="Nội dung" />
+          
           <div>
-            <label className="text-sm font-medium">Đối tượng</label>
+            <label className="text-sm font-medium text-slate-700">Đối tượng nhận</label>
             <select {...form.register('targetType')} className="mt-1 w-full rounded-xl border px-3 py-2 text-sm">
-              <option value="ALL">Tất cả</option>
-              <option value="CLASS">Lớp</option>
-              <option value="USER">Người dùng</option>
+              {isTeacher && <option value="ALL">Toàn hệ thống</option>}
+              <option value="CLASS">Lớp học</option>
+              {isTeacher && <option value="USER">Người dùng</option>}
             </select>
           </div>
-          <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setOpen(false)}>Hủy</Button><Button type="submit">Gửi</Button></div>
+          
+          {targetType === 'CLASS' && (
+            <div>
+              <label className="text-sm font-medium text-slate-700">Chọn lớp học</label>
+              <select {...form.register('targetId')} className="mt-1 w-full rounded-xl border px-3 py-2 text-sm">
+                <option value="">-- Chọn lớp --</option>
+                {classes?.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              {form.formState.errors.targetId && (
+                <p className="text-xs text-red-500 mt-1">{form.formState.errors.targetId.message as string}</p>
+              )}
+            </div>
+          )}
+          
+          {targetType === 'USER' && (
+            <FormField name="targetId" label="ID Người dùng" />
+          )}
+          
+          <div className="flex justify-end gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Hủy</Button>
+            <Button type="submit" disabled={create.isPending}>Gửi thông báo</Button>
+          </div>
         </form>
       </Dialog>
-    </div>
+
+      <ConfirmDialog
+        open={!!delId}
+        onClose={() => setDelId(null)}
+        title="Xóa thông báo"
+        message="Bạn có chắc chắn muốn xóa thông báo này? Hành động này không thể hoàn tác."
+        onConfirm={onDelete}
+        destructive
+      />
+    </Page>
   )
 }

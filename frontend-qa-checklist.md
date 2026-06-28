@@ -41,6 +41,7 @@
 | STUDENT | `/me/submissions` | My submissions | Pass | Student-only route |
 | STUDENT | `/users` | Forbidden | Pass | Guarded route |
 | STUDENT | `/notifications` | Relevant notifications | Pass | Backend scoped |
+| CLASS_ADMIN | `/users/:userId` | User Detail | Pass | Can only view progress of students in assigned classes |
 
 ## Dashboard Analytics Verification
 | Check | Result | Evidence |

@@ -1,5 +1,7 @@
 package com.hoanobita.topikplatform.dashboard;
 
+import com.hoanobita.topikplatform.activity.ActivityService;
+import com.hoanobita.topikplatform.activity.dto.ActivityResponse;
 import com.hoanobita.topikplatform.assignment.entity.Assignment;
 import com.hoanobita.topikplatform.assignment.repository.AssignmentRepository;
 import com.hoanobita.topikplatform.classroom.entity.Klass;
@@ -43,12 +45,13 @@ public class DashboardService {
     private final GradeRepository gradeRepo;
     private final MaterialRepository materialRepo;
     private final NotificationRepository notificationRepo;
+    private final ActivityService activityService;
 
     public DashboardService(KlassRepository klassRepo, ClassAdminRepository classAdminRepo,
                             ClassMemberRepository classMemberRepo, UserRepository userRepo,
                             AssignmentRepository assignmentRepo, SubmissionRepository submissionRepo,
                             GradeRepository gradeRepo, MaterialRepository materialRepo,
-                            NotificationRepository notificationRepo) {
+                            NotificationRepository notificationRepo, ActivityService activityService) {
         this.klassRepo = klassRepo;
         this.classAdminRepo = classAdminRepo;
         this.classMemberRepo = classMemberRepo;
@@ -58,6 +61,7 @@ public class DashboardService {
         this.gradeRepo = gradeRepo;
         this.materialRepo = materialRepo;
         this.notificationRepo = notificationRepo;
+        this.activityService = activityService;
     }
 
     // ==================== TEACHER DASHBOARD ====================
@@ -188,6 +192,9 @@ public class DashboardService {
                 new TeacherDashboardResponse.StatusCount("NEED_GRADING", needGrading)
         );
 
+        // Recent Activity
+        List<ActivityResponse> recentActivity = activityService.recentForCurrentUser();
+
         // Today tasks
         List<TeacherDashboardResponse.TodayTask> todayTasks = new ArrayList<>();
         if (needGrading > 0) {
@@ -274,16 +281,6 @@ public class DashboardService {
                 .limit(6)
                 .toList();
 
-        // Recent activity (derived from recent submissions, grades, assignments)
-        List<TeacherDashboardResponse.RecentActivity> recentActivity = new ArrayList<>();
-        allSubmissions.stream().sorted(Comparator.comparing(Submission::getCreatedAt).reversed()).limit(5).forEach(sub -> {
-            User student = userRepo.findById(sub.getStudentId()).orElse(null);
-            Assignment a = assignmentRepo.findActiveById(sub.getAssignmentId()).orElse(null);
-            if (student != null && a != null) {
-                recentActivity.add(new TeacherDashboardResponse.RecentActivity(sub.getId().toString(), "SUBMISSION", student.getFullName() + " đã nộp bài " + a.getTitle(), student.getFullName(), a.getTitle(), sub.getCreatedAt(), "/assignments/" + a.getId() + "/submissions"));
-            }
-        });
-
         TeacherDashboardResponse.KpiSection kpi = new TeacherDashboardResponse.KpiSection(
                 new TeacherDashboardResponse.ClassKpi(allClasses.size(), (int) activeClasses, (int) completedClasses, (int) draftClasses, (int) archivedClasses, (int) draftClasses),
                 new TeacherDashboardResponse.StudentKpi(allStudents.size(), (int) activeStudents, (int) suspendedStudents, (int) inactiveStudents, (int) newStudents7d, (int) newStudents30d, (int) unassignedStudents),
@@ -301,7 +298,20 @@ public class DashboardService {
         int todayActionCount = todayTasks.size() + (int) needGrading + (int) dueSoon48h;
         int overdueMissing = (int) overdueAssignments + (int) (allAssignments.size() * activeStudents - submittedSubs);
 
-        return new TeacherDashboardResponse(today, teacher.getFullName(), todayActionCount, (int) activeClasses, (int) activeStudents, (int) needGrading, overdueMissing, kpi, charts, todayTasks, classHealth, dueSoon, riskStudents, recentActivity);
+        // Map ActivityLogResponse to TeacherDashboardResponse.RecentActivity
+        List<TeacherDashboardResponse.RecentActivity> mappedRecentActivity = recentActivity.stream()
+                .map(log -> new TeacherDashboardResponse.RecentActivity(
+                        log.id().toString(),
+                        log.actionType(),
+                        log.message(),
+                        log.actorName(),
+                        log.targetName() != null ? log.targetName() : "",
+                        log.createdAt(),
+                        "#"
+                ))
+                .toList();
+
+        return new TeacherDashboardResponse(today, teacher.getFullName(), todayActionCount, (int) activeClasses, (int) activeStudents, (int) needGrading, overdueMissing, kpi, charts, todayTasks, classHealth, dueSoon, riskStudents, mappedRecentActivity);
     }
 
     // ==================== ADMIN DASHBOARD ====================
@@ -378,7 +388,21 @@ public class DashboardService {
                 List.of(new AdminDashboardResponse.StatusCount("PUBLISHED", published), new AdminDashboardResponse.StatusCount("CLOSED", closed))
         );
 
-        return new AdminDashboardResponse(assignedClasses.size(), (int) needGrading, (int) dueSoon, (int) missing, kpi, charts, tasks);
+        // Recent Activity
+        List<ActivityResponse> recentActivity = activityService.recentForCurrentUser();
+        List<TeacherDashboardResponse.RecentActivity> mappedRecentActivity = recentActivity.stream()
+                .map(log -> new TeacherDashboardResponse.RecentActivity(
+                        log.id().toString(),
+                        log.actionType(),
+                        log.message(),
+                        log.actorName(),
+                        log.targetName() != null ? log.targetName() : "",
+                        log.createdAt(),
+                        "#"
+                ))
+                .toList();
+
+        return new AdminDashboardResponse(assignedClasses.size(), (int) needGrading, (int) dueSoon, (int) missing, kpi, charts, tasks, mappedRecentActivity);
     }
 
     // ==================== STUDENT DASHBOARD ====================
@@ -445,6 +469,20 @@ public class DashboardService {
 
         StudentDashboardResponse.SubmissionStats stats = new StudentDashboardResponse.SubmissionStats(mySubmissions.size(), (int) onTime, (int) late, avgScore);
 
-        return new StudentDashboardResponse(joinedClasses.size(), openAssignments.size(), (int) dueSoon, mySubmissions.size(), (int) graded, (int) resubmit, latestFeedback, upcoming, recentMats, notifs, stats);
+        // Recent Activity
+        List<ActivityResponse> recentActivity = activityService.recentForCurrentUser();
+        List<TeacherDashboardResponse.RecentActivity> mappedRecentActivity = recentActivity.stream()
+                .map(log -> new TeacherDashboardResponse.RecentActivity(
+                        log.id().toString(),
+                        log.actionType(),
+                        log.message(),
+                        log.actorName(),
+                        log.targetName() != null ? log.targetName() : "",
+                        log.createdAt(),
+                        "#"
+                ))
+                .toList();
+
+        return new StudentDashboardResponse(joinedClasses.size(), openAssignments.size(), (int) dueSoon, mySubmissions.size(), (int) graded, (int) resubmit, latestFeedback, upcoming, recentMats, notifs, stats, mappedRecentActivity);
     }
 }

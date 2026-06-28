@@ -1,5 +1,6 @@
 package com.hoanobita.topikplatform.material;
 
+import com.hoanobita.topikplatform.activity.ActivityService;
 import com.hoanobita.topikplatform.common.BusinessException;
 import com.hoanobita.topikplatform.common.PermissionService;
 import com.hoanobita.topikplatform.material.dto.*;
@@ -17,10 +18,12 @@ public class MaterialService {
 
     private final MaterialRepository materialRepo;
     private final PermissionService permissionService;
+    private final ActivityService activityService;
 
-    public MaterialService(MaterialRepository materialRepo, PermissionService permissionService) {
+    public MaterialService(MaterialRepository materialRepo, PermissionService permissionService, ActivityService activityService) {
         this.materialRepo = materialRepo;
         this.permissionService = permissionService;
+        this.activityService = activityService;
     }
 
     public List<MaterialResponse> listByClass(UUID classId, User user) {
@@ -53,6 +56,7 @@ public class MaterialService {
         material.setCreatedBy(user.getId());
 
         material = materialRepo.save(material);
+        activityService.log("MATERIAL_CREATED", "MATERIAL", material.getId(), material.getTitle(), classId, "Đã tải lên tài liệu mới: " + material.getTitle());
         return toResponse(material);
     }
 
@@ -83,6 +87,7 @@ public class MaterialService {
         material.setUpdatedBy(user.getId());
 
         material = materialRepo.save(material);
+        activityService.log("MATERIAL_UPDATED", "MATERIAL", material.getId(), material.getTitle(), material.getClassId(), "Đã cập nhật tài liệu: " + material.getTitle());
         return toResponse(material);
     }
 
@@ -93,6 +98,7 @@ public class MaterialService {
         permissionService.requireManageClass(user, material.getClassId());
         material.softDelete();
         materialRepo.save(material);
+        activityService.log("MATERIAL_DELETED", "MATERIAL", material.getId(), material.getTitle(), material.getClassId(), "Đã xóa tài liệu: " + material.getTitle());
     }
 
     @Transactional

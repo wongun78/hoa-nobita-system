@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
+import com.hoanobita.topikplatform.dashboard.dto.TeacherDashboardResponse.RecentActivity;
+
 public record AdminDashboardResponse(
         int assignedClassCount,
         int todayNeedGradingCount,
@@ -11,7 +13,8 @@ public record AdminDashboardResponse(
         int missingSubmissionCount,
         KpiSection kpi,
         ChartsSection charts,
-        List<TodayTask> todayTasks
+        List<TodayTask> todayTasks,
+        List<RecentActivity> recentActivity
 ) {
     public record KpiSection(
             ClassKpi classes,

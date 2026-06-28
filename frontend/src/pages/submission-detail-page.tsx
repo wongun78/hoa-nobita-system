@@ -47,7 +47,12 @@ export function SubmissionDetailPage() {
         <div>
           <h1 className="text-2xl font-bold text-[#1E3A8A]">Chi tiết bài nộp</h1>
           <div className="text-sm text-slate-500 mt-1">
-            {a ? <Link to={`/assignments/${a.id}`} className="hover:underline">{a.title}</Link> : 'Đang tải...'}
+            {s.assignmentTitle ? (
+              <Link to={`/assignments/${s.assignmentId}`} className="hover:underline">{s.assignmentTitle}</Link>
+            ) : a ? (
+              <Link to={`/assignments/${a.id}`} className="hover:underline">{a.title}</Link>
+            ) : 'Đang tải...'}
+            {s.className && <span className="ml-2 px-2 py-0.5 bg-slate-100 rounded text-xs">{s.className}</span>}
           </div>
         </div>
         
@@ -119,7 +124,11 @@ export function SubmissionDetailPage() {
               {canManage && (
                 <div className="flex justify-between border-b pb-2">
                   <span className="text-slate-500">Học viên</span>
-                  <span className="font-medium">{s.studentId}</span>
+                  <span className="font-medium">
+                    <Link to={`/users/${s.studentId}`} className="text-[#3B82F6] hover:underline">
+                      {s.studentName || s.studentId}
+                    </Link>
+                  </span>
                 </div>
               )}
             </div>
@@ -130,7 +139,7 @@ export function SubmissionDetailPage() {
               <h3 className="font-medium text-green-800 mb-4">Kết quả chấm</h3>
               <div className="text-center mb-4">
                 <span className="text-4xl font-bold text-green-600">{s.score}</span>
-                {a && <span className="text-green-600/70"> / {a.maxScore}</span>}
+                {(s.maxScore || a?.maxScore) && <span className="text-green-600/70"> / {s.maxScore || a?.maxScore}</span>}
               </div>
               {s.feedback && (
                 <div className="mt-4 p-3 bg-white rounded border border-green-100 text-sm text-slate-700 whitespace-pre-wrap">

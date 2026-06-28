@@ -27,7 +27,7 @@ export interface TeacherDashboardResponse {
   classHealth: Array<{ classId: string; className: string; studentCount: number; adminNames: string[]; openAssignmentCount: number; submissionRate: number; needGradingCount: number; averageScore: number; status: string; issues: string[]; actionUrl: string }>;
   assignmentsDueSoon: Array<{ assignmentId: string; title: string; classId: string; className: string; deadline: string; status: string; submittedCount: number; totalStudents: number; lateCount: number; needGradingCount: number; actionUrl: string }>;
   riskStudents: Array<{ studentId: string; fullName: string; email: string; phone: string; classId: string; className: string; submissionRate: number; averageScore: number; issue: string; riskLevel: string; actionUrl: string }>;
-  recentActivity: Array<{ id: string; type: string; message: string; actorName: string; targetName: string; createdAt: string; targetUrl: string }>;
+  recentActivity: Array<{ id: string; actionType: string; message: string; actorName: string; targetName: string; createdAt: string; targetUrl: string }>;
 }
 
 export interface AdminDashboardResponse {
@@ -50,6 +50,7 @@ export interface AdminDashboardResponse {
     assignmentStatusInAssignedClasses: Array<{ status: string; count: number }>;
   };
   todayTasks: Array<{ id: string; type: string; title: string; description: string; priority: string; targetUrl: string; ctaLabel: string }>;
+  recentActivity: Array<{ id: string; actionType: string; message: string; actorName: string; targetName: string; createdAt: string; targetUrl: string }>;
 }
 
 export interface StudentDashboardResponse {
@@ -64,4 +65,5 @@ export interface StudentDashboardResponse {
   recentMaterials: Array<{ materialId: string; title: string; classId: string; className: string; createdAt: string }>;
   notifications: Array<{ id: string; title: string; targetType: string; createdAt: string }>;
   ownSubmissionStats: { total: number; onTime: number; late: number; averageScore: number };
+  recentActivity: Array<{ id: string; actionType: string; message: string; actorName: string; targetName: string; createdAt: string; targetUrl: string }>;
 }

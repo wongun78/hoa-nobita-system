@@ -79,10 +79,60 @@ R=$(api_post /submissions/$SUB_ID/grade "$TEACHER" '{"score":9,"feedback":"Bài 
 R=$(api_post /submissions/$SUB_ID/grade "$STUDENT1" '{"score":9}'); assert_status 'Student cannot grade submission' "$(extract_status "$R")" 403
 R=$(api_post /submissions/$SUB_ID/grade "$TEACHER" '{"score":99}'); assert_status 'Grade score > maxScore returns 400' "$(extract_status "$R")" 400
 R=$(api_get /submissions/$SUB_ID "$STUDENT1"); assert_status 'Student sees own grade/feedback' "$(extract_status "$R")" 200
+R=$(api_get /users/$STUDENT1_ID/progress "$STUDENT1"); assert_status 'Student sees own progress' "$(extract_status "$R")" 200
+R=$(api_get /users/$STUDENT1_ID/progress "$TEACHER"); assert_status 'Teacher sees student progress' "$(extract_status "$R")" 200
+R=$(api_get /users/$ADMIN_ID/progress "$STUDENT1"); assert_status 'Student cannot see other progress' "$(extract_status "$R")" 403
+R=$(api_get /users/$STUDENT1_ID/progress "$ADMIN"); assert_status 'Admin sees progress of student in assigned class' "$(extract_status "$R")" 200
+
+# Create a student not in admin's class
+R=$(api_post /users "$TEACHER" "{\"fullName\":\"Học viên ngoài lớp $SUFFIX\",\"email\":\"out$SUFFIX@hoanobita.com\",\"phone\":\"097$SUFFIX\",\"role\":\"STUDENT\"}"); assert_status 'Teacher creates outside student success' "$(extract_status "$R")" 201; OUT_STUDENT_ID=$(extract_body "$R"|jq -r '.data.id // empty')
+R=$(api_get /users/$OUT_STUDENT_ID/progress "$ADMIN"); assert_status 'Admin cannot see progress of student outside assigned class' "$(extract_status "$R")" 403
+
 # Notifications and validation/soft delete
 R=$(api_post /notifications "$TEACHER" "{\"title\":\"Lịch học tuần này\",\"content\":\"Lớp học lúc 19:30.\",\"targetType\":\"CLASS\",\"targetId\":\"$CLASS_ID\"}"); assert_status 'Teacher creates class notification success' "$(extract_status "$R")" 201
 R=$(api_get /notifications "$STUDENT1"); assert_status 'Student in class sees notification' "$(extract_status "$R")" 200
 R=$(api_post /notifications "$STUDENT1" '{"title":"Bad","content":"Bad","targetType":"ALL"}'); assert_status 'Student cannot create notification' "$(extract_status "$R")" 403
+
+# 1. Teacher creates ALL notification
+R=$(api_post /notifications "$TEACHER" '{"title":"System Update","content":"Downtime tomorrow","targetType":"ALL"}'); assert_status 'Teacher creates ALL notification' "$(extract_status "$R")" 201; NOTIF_ALL_ID=$(extract_body "$R"|jq -r '.data.id // empty')
+
+# 2. Admin tries to create ALL notification (should fail)
+R=$(api_post /notifications "$ADMIN" '{"title":"Admin System Update","content":"Downtime tomorrow","targetType":"ALL"}'); assert_status 'Admin creates ALL notification returns 403' "$(extract_status "$R")" 403
+
+# 3. Admin creates CLASS notification for assigned class
+R=$(api_post /notifications "$ADMIN" "{\"title\":\"Class Update\",\"content\":\"No class tomorrow\",\"targetType\":\"CLASS\",\"targetId\":\"$CLASS_ID\"}"); assert_status 'Admin creates CLASS notification for assigned class' "$(extract_status "$R")" 201; NOTIF_CLASS_ID=$(extract_body "$R"|jq -r '.data.id // empty')
+
+# 4. Admin tries to create CLASS notification for unassigned class (should fail)
+# Get a class NOT assigned to admin (assuming teacher has one)
+UNASSIGNED_CLASS_ID=$(api_get /classes "$TEACHER" | sed '$d' | jq -r "[.data[] | select(.id != \"$CLASS_ID\")][0].id")
+if [[ "$UNASSIGNED_CLASS_ID" == "null" || -z "$UNASSIGNED_CLASS_ID" ]]; then
+  # Create one if it doesn't exist
+  R_NEW_CLASS=$(api_post /classes "$TEACHER" "{\"name\":\"Unassigned Class\",\"code\":\"UNASSIGNED\",\"levelFrom\":1,\"levelTo\":2,\"status\":\"ACTIVE\"}")
+  UNASSIGNED_CLASS_ID=$(extract_body "$R_NEW_CLASS"|jq -r '.data.id // empty')
+fi
+R=$(api_post /notifications "$ADMIN" "{\"title\":\"Class Update\",\"content\":\"No class tomorrow\",\"targetType\":\"CLASS\",\"targetId\":\"$UNASSIGNED_CLASS_ID\"}"); assert_status 'Admin creates CLASS notification for unassigned class returns 403' "$(extract_status "$R")" 403
+
+# 5. Student tries to create notification (should fail)
+R=$(api_post /notifications "$STUDENT1" '{"title":"Student Update","content":"Hello","targetType":"ALL"}'); assert_status 'Student creates notification returns 403' "$(extract_status "$R")" 403
+
+# 6. Student lists notifications (should see ALL and CLASS if enrolled)
+R=$(api_get /notifications "$STUDENT1"); assert_status 'Student lists notifications' "$(extract_status "$R")" 200
+
+# 7. Admin deletes their own notification
+R=$(api_delete /notifications/$NOTIF_CLASS_ID "$ADMIN"); assert_status 'Admin deletes their own notification' "$(extract_status "$R")" 200
+
+# 8. Admin tries to delete teacher's notification (should fail)
+R=$(api_delete /notifications/$NOTIF_ALL_ID "$ADMIN"); assert_status 'Admin deleting teacher notification returns 403' "$(extract_status "$R")" 403
+
+# 9. Teacher deletes their own notification
+R=$(api_delete /notifications/$NOTIF_ALL_ID "$TEACHER"); assert_status 'Teacher deletes their own notification' "$(extract_status "$R")" 200
+
+# 10. Student deletes notification (should fail)
+# Create a notification for student to try to delete
+R=$(api_post /notifications "$TEACHER" '{"title":"System Update","content":"Downtime tomorrow","targetType":"ALL"}'); NOTIF_ALL_ID2=$(extract_body "$R"|jq -r '.data.id // empty')
+R=$(api_delete /notifications/$NOTIF_ALL_ID2 "$STUDENT1"); assert_status 'Student deletes notification returns 403' "$(extract_status "$R")" 403
+R=$(api_delete /notifications/$NOTIF_ALL_ID2 "$TEACHER"); assert_status 'Teacher deletes their own notification 2' "$(extract_status "$R")" 200
+
 R=$(api_delete /assignments/$ASSIGN_ID "$TEACHER"); assert_status 'Teacher deletes assignment success' "$(extract_status "$R")" 200
 R=$(api_post /users "$TEACHER" '{"fullName":"Bad","email":"not-email","role":"STUDENT"}'); assert_status 'Create user with invalid email returns 400' "$(extract_status "$R")" 400
 R=$(api_post /classes "$TEACHER" '{"name":"Bad","code":"BADLEVEL","levelFrom":5,"levelTo":1}'); assert_status 'Create class with level_from > level_to returns 400' "$(extract_status "$R")" 400

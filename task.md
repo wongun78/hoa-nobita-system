@@ -59,6 +59,14 @@
 - Verified frontend typecheck, lint, and build.
 - Verified backend tests.
 
+### Phase 16 — Sprint 8 Student Progress & Permissions: ✅ COMPLETE
+- Enriched `SubmissionResponse` DTO with assignment title, class name, student name, and max score.
+- Implemented `GET /api/v1/users/{id}/progress` endpoint to calculate student progress statistics and risk levels.
+- Fixed permission bug: `CLASS_ADMIN` can now only view progress of students in their assigned classes.
+- Updated `scripts/test-api.sh` to verify the new permission rules.
+- Updated frontend `UserDetailPage` to display real progress data.
+- Updated frontend `MySubmissionsPage` and `SubmissionDetailPage` to use enriched DTO fields.
+
 ## AUDIT CHECKLIST (2026-06-28)
 
 | Area | Requirement | Current implementation | Evidence file | Status |

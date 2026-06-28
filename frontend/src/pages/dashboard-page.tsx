@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button'
 import { Link } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { AlertCircle, Clock, Users, BookOpen, TrendingUp, Award } from 'lucide-react'
+import { RecentActivityTimeline } from '../features/activity/components/recent-activity-timeline'
 
 const COLORS = ['#3B82F6', '#60A5FA', '#93C5FD', '#DBEAFE']
 
@@ -161,6 +162,12 @@ export function DashboardPage() {
             </div>
           </Card>
         </div>
+
+        {/* Recent Activity */}
+        <Card className="p-6">
+          <div className="font-semibold mb-4">Hoạt động gần đây</div>
+          <RecentActivityTimeline activities={d.recentActivity} />
+        </Card>
       </div>
     )
   }
@@ -184,7 +191,7 @@ export function DashboardPage() {
           <KpiCard label="Cần chấm" value={d.kpi.submissions.needGrading} sub={`${d.kpi.submissions.late} nộp trễ`} />
         </div>
 
-        <Card className="p-6">
+          <Card className="p-6">
           <div className="font-semibold mb-4">Việc cần xử lý (lớp được phân công)</div>
           {d.todayTasks.length === 0 && <div className="text-slate-500">Không có việc cần xử lý.</div>}
           <div className="space-y-2">
@@ -195,6 +202,12 @@ export function DashboardPage() {
               </div>
             ))}
           </div>
+        </Card>
+
+        {/* Recent Activity */}
+        <Card className="p-6">
+          <div className="font-semibold mb-4">Hoạt động gần đây</div>
+          <RecentActivityTimeline activities={d.recentActivity} />
         </Card>
       </div>
     )
@@ -244,6 +257,12 @@ export function DashboardPage() {
             ) : <div className="text-slate-500 text-sm">Chưa có phản hồi.</div>}
           </Card>
         </div>
+
+        {/* Recent Activity */}
+        <Card className="p-6">
+          <div className="font-semibold mb-4">Hoạt động gần đây</div>
+          <RecentActivityTimeline activities={d.recentActivity} />
+        </Card>
       </div>
     )
   }

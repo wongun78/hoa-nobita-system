@@ -40,12 +40,15 @@ export function MySubmissionsPage() {
         {data?.map(s => (
           <Card key={s.id} className="p-4 flex justify-between items-center">
             <div>
-              <div className="font-medium">Bài tập: {s.assignmentId}</div>
-              <div className="text-xs text-slate-500 mt-1">{new Date(s.submittedAt).toLocaleString('vi-VN')}</div>
+              <div className="font-medium">{s.assignmentTitle || `Bài tập: ${s.assignmentId}`}</div>
+              <div className="text-xs text-slate-500 mt-1">
+                {s.className && <span className="mr-2">{s.className} •</span>}
+                {new Date(s.submittedAt).toLocaleString('vi-VN')}
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <Badge variant={s.status === 'GRADED' ? 'default' : 'outline'}>{s.status}</Badge>
-              {s.score != null && <span className="font-semibold text-[#16A34A]">{s.score}</span>}
+              {s.score != null && <span className="font-semibold text-[#16A34A]">{s.score}{s.maxScore ? `/${s.maxScore}` : ''}</span>}
               <Link to={`/submissions/${s.id}`} className="text-sm text-[#3B82F6]">Chi tiết</Link>
             </div>
           </Card>

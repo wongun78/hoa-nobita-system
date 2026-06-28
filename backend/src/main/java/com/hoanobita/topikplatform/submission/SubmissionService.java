@@ -1,7 +1,10 @@
 package com.hoanobita.topikplatform.submission;
 
+import com.hoanobita.topikplatform.activity.ActivityService;
 import com.hoanobita.topikplatform.assignment.entity.Assignment;
 import com.hoanobita.topikplatform.assignment.repository.AssignmentRepository;
+import com.hoanobita.topikplatform.classroom.entity.Klass;
+import com.hoanobita.topikplatform.classroom.repository.KlassRepository;
 import com.hoanobita.topikplatform.common.BusinessException;
 import com.hoanobita.topikplatform.common.Enums.AssignmentStatus;
 import com.hoanobita.topikplatform.common.Enums.SubmissionStatus;
@@ -13,6 +16,7 @@ import com.hoanobita.topikplatform.submission.dto.SubmissionResponse;
 import com.hoanobita.topikplatform.submission.entity.Submission;
 import com.hoanobita.topikplatform.submission.repository.SubmissionRepository;
 import com.hoanobita.topikplatform.user.entity.User;
+import com.hoanobita.topikplatform.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,15 +29,21 @@ public class SubmissionService {
     private final SubmissionRepository repo;
     private final AssignmentRepository assignments;
     private final GradeRepository grades;
+    private final KlassRepository klasses;
+    private final UserRepository users;
     private final PermissionService permissions;
     private final SecurityUtils security;
+    private final ActivityService activityService;
 
-    public SubmissionService(SubmissionRepository repo, AssignmentRepository assignments, GradeRepository grades, PermissionService permissions, SecurityUtils security) {
+    public SubmissionService(SubmissionRepository repo, AssignmentRepository assignments, GradeRepository grades, KlassRepository klasses, UserRepository users, PermissionService permissions, SecurityUtils security, ActivityService activityService) {
         this.repo = repo;
         this.assignments = assignments;
         this.grades = grades;
+        this.klasses = klasses;
+        this.users = users;
         this.permissions = permissions;
         this.security = security;
+        this.activityService = activityService;
     }
 
     public List<SubmissionResponse> byAssignment(UUID assignmentId) {
@@ -81,7 +91,9 @@ public class SubmissionService {
         s.setFileId(req.fileId());
         s.setSubmittedAt(Instant.now());
         s.setStatus(a.getDueAt() != null && Instant.now().isAfter(a.getDueAt()) ? SubmissionStatus.LATE : SubmissionStatus.SUBMITTED);
-        return toResponse(repo.save(s));
+        repo.save(s);
+        activityService.log("SUBMISSION_CREATED", "SUBMISSION", s.getId(), "Bài nộp của " + user.getFullName(), a.getClassId(), "Học viên " + user.getFullName() + " đã nộp bài tập: " + a.getTitle());
+        return toResponse(s);
     }
 
     @Transactional
@@ -94,7 +106,10 @@ public class SubmissionService {
         s.setContentText(req.contentText());
         s.setContentUrl(req.contentUrl());
         s.setFileId(req.fileId());
-        return toResponse(repo.save(s));
+        repo.save(s);
+        Assignment a = assignment(s.getAssignmentId());
+        activityService.log("SUBMISSION_UPDATED", "SUBMISSION", s.getId(), "Bài nộp của " + user.getFullName(), a.getClassId(), "Học viên " + user.getFullName() + " đã cập nhật bài nộp cho bài tập: " + a.getTitle());
+        return toResponse(s);
     }
 
     @Transactional
@@ -104,6 +119,8 @@ public class SubmissionService {
         if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Cannot delete this submission");
         s.setDeletedAt(Instant.now());
         repo.save(s);
+        Assignment a = assignment(s.getAssignmentId());
+        activityService.log("SUBMISSION_DELETED", "SUBMISSION", s.getId(), "Bài nộp của " + user.getFullName(), a.getClassId(), "Học viên " + user.getFullName() + " đã xóa bài nộp cho bài tập: " + a.getTitle());
     }
 
     public Submission find(UUID id) {
@@ -118,6 +135,25 @@ public class SubmissionService {
 
     public SubmissionResponse toResponse(Submission s) {
         var grade = grades.findBySubmissionId(s.getId()).orElse(null);
-        return new SubmissionResponse(s.getId(), s.getAssignmentId(), s.getStudentId(), s.getContentText(), s.getContentUrl(), s.getFileId(), s.getStatus().name(), s.getSubmittedAt(), grade == null ? null : grade.getScore(), grade == null ? null : grade.getFeedback());
+        var assignment = assignments.findById(s.getAssignmentId()).orElse(null);
+        var klass = assignment != null ? klasses.findById(assignment.getClassId()).orElse(null) : null;
+        var student = users.findById(s.getStudentId()).orElse(null);
+        
+        return new SubmissionResponse(
+                s.getId(), 
+                s.getAssignmentId(), 
+                assignment != null ? assignment.getTitle() : "Unknown Assignment",
+                klass != null ? klass.getName() : "Unknown Class",
+                s.getStudentId(), 
+                student != null ? student.getFullName() : "Unknown Student",
+                s.getContentText(), 
+                s.getContentUrl(), 
+                s.getFileId(), 
+                s.getStatus().name(), 
+                s.getSubmittedAt(), 
+                grade == null ? null : grade.getScore(), 
+                assignment != null ? assignment.getMaxScore() : null,
+                grade == null ? null : grade.getFeedback()
+        );
     }
 }

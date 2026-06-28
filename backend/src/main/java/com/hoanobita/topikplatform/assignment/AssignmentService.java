@@ -1,5 +1,6 @@
 package com.hoanobita.topikplatform.assignment;
 
+import com.hoanobita.topikplatform.activity.ActivityService;
 import com.hoanobita.topikplatform.assignment.dto.AssignmentRequest;
 import com.hoanobita.topikplatform.assignment.dto.AssignmentResponse;
 import com.hoanobita.topikplatform.assignment.entity.Assignment;
@@ -22,11 +23,13 @@ public class AssignmentService {
     private final AssignmentRepository repo;
     private final PermissionService permissions;
     private final SecurityUtils security;
+    private final ActivityService activityService;
 
-    public AssignmentService(AssignmentRepository repo, PermissionService permissions, SecurityUtils security) {
+    public AssignmentService(AssignmentRepository repo, PermissionService permissions, SecurityUtils security, ActivityService activityService) {
         this.repo = repo;
         this.permissions = permissions;
         this.security = security;
+        this.activityService = activityService;
     }
 
     public List<AssignmentResponse> list(UUID classId) {
@@ -64,6 +67,7 @@ public class AssignmentService {
         a.setClassId(classId);
         apply(a, req);
         repo.save(a);
+        activityService.log("ASSIGNMENT_CREATED", "ASSIGNMENT", a.getId(), a.getTitle(), classId, "Đã tạo bài tập mới: " + a.getTitle());
         return toResponse(a);
     }
 
@@ -73,7 +77,9 @@ public class AssignmentService {
         permissions.requireManageClass(security.currentUser(), a.getClassId());
         validate(req);
         apply(a, req);
-        return toResponse(repo.save(a));
+        repo.save(a);
+        activityService.log("ASSIGNMENT_UPDATED", "ASSIGNMENT", a.getId(), a.getTitle(), a.getClassId(), "Đã cập nhật bài tập: " + a.getTitle());
+        return toResponse(a);
     }
 
     @Transactional
@@ -81,7 +87,9 @@ public class AssignmentService {
         Assignment a = find(id);
         permissions.requireManageClass(security.currentUser(), a.getClassId());
         a.setStatus(AssignmentStatus.PUBLISHED);
-        return toResponse(repo.save(a));
+        repo.save(a);
+        activityService.log("ASSIGNMENT_PUBLISHED", "ASSIGNMENT", a.getId(), a.getTitle(), a.getClassId(), "Đã xuất bản bài tập: " + a.getTitle());
+        return toResponse(a);
     }
 
     @Transactional
@@ -89,7 +97,9 @@ public class AssignmentService {
         Assignment a = find(id);
         permissions.requireManageClass(security.currentUser(), a.getClassId());
         a.setStatus(AssignmentStatus.CLOSED);
-        return toResponse(repo.save(a));
+        repo.save(a);
+        activityService.log("ASSIGNMENT_CLOSED", "ASSIGNMENT", a.getId(), a.getTitle(), a.getClassId(), "Đã đóng bài tập: " + a.getTitle());
+        return toResponse(a);
     }
 
     @Transactional
@@ -98,6 +108,7 @@ public class AssignmentService {
         permissions.requireManageClass(security.currentUser(), a.getClassId());
         a.setDeletedAt(Instant.now());
         repo.save(a);
+        activityService.log("ASSIGNMENT_DELETED", "ASSIGNMENT", a.getId(), a.getTitle(), a.getClassId(), "Đã xóa bài tập: " + a.getTitle());
     }
 
     @Transactional

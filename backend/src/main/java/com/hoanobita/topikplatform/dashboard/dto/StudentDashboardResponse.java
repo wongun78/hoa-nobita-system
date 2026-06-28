@@ -5,6 +5,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import com.hoanobita.topikplatform.dashboard.dto.TeacherDashboardResponse.RecentActivity;
+
 public record StudentDashboardResponse(
         int joinedClassCount,
         int openAssignmentCount,
@@ -16,7 +18,8 @@ public record StudentDashboardResponse(
         List<UpcomingAssignment> upcomingAssignments,
         List<RecentMaterial> recentMaterials,
         List<NotificationSummary> notifications,
-        SubmissionStats ownSubmissionStats
+        SubmissionStats ownSubmissionStats,
+        List<RecentActivity> recentActivity
 ) {
     public record LatestFeedback(UUID submissionId, UUID assignmentId, String assignmentTitle, BigDecimal score, String feedback, Instant gradedAt) {}
     public record UpcomingAssignment(UUID assignmentId, String title, UUID classId, String className, Instant deadline, String status) {}

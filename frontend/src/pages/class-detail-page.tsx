@@ -21,6 +21,17 @@ import { AssignmentFormDialog } from '../features/assignments/components/assignm
 import { FileUploadField } from '../features/files/components/file-upload-field'
 import { useDownloadFile } from '../features/files/hooks'
 
+import { useClassActivity } from '../features/activity/hooks'
+import { RecentActivityTimeline } from '../features/activity/components/recent-activity-timeline'
+
+function ClassActivityTab({ classId }: { classId: string }) {
+  const { data, isLoading } = useClassActivity(classId)
+  
+  if (isLoading) return <div className="text-slate-500 text-sm">Đang tải hoạt động...</div>
+  if (!data || data.length === 0) return <div className="text-slate-500 text-sm">Chưa có hoạt động nào.</div>
+  
+  return <RecentActivityTimeline activities={data} />
+}
 const lessonSchema = z.object({ title: z.string().min(2), description: z.string().optional(), lessonDate: z.string().optional(), orderIndex: z.number().min(0).default(1), status: z.enum(['DRAFT','PUBLISHED','ARCHIVED']).default('PUBLISHED') })
 const materialSchema = z.object({ title: z.string().min(2), description: z.string().optional(), externalUrl: z.string().url("URL không hợp lệ").optional().or(z.literal('')), fileId: z.string().optional(), visible: z.boolean().default(true) }).refine(data => data.externalUrl || data.fileId, { message: "Vui lòng cung cấp URL hoặc tải tệp lên", path: ["externalUrl"] })
 const classSchema = z.object({ name: z.string().min(2), code: z.string().min(2), description: z.string().optional(), levelFrom: z.number().min(1).max(6), levelTo: z.number().min(1).max(6), status: z.enum(['ACTIVE','ARCHIVED']).default('ACTIVE'), startDate: z.string().optional(), endDate: z.string().optional() }).refine(data => data.levelFrom <= data.levelTo, { message: "Level from must be <= level to", path: ["levelFrom"] })
@@ -94,6 +105,8 @@ export function ClassDetailPage() {
     { id: 'materials', label: 'Tài liệu' },
     { id: 'assignments', label: 'Bài tập' },
     { id: 'grading', label: 'Chấm bài' },
+    { id: 'notifications', label: 'Thông báo' },
+    { id: 'activity', label: 'Hoạt động' },
     ...(canManage ? [{ id: 'students', label: 'Học viên' }, { id: 'settings', label: 'Cài đặt' }] : []),
   ]
 
@@ -229,6 +242,23 @@ export function ClassDetailPage() {
             <div className="text-sm text-slate-600 p-4 bg-blue-50 rounded border border-blue-100">
               Tính năng chấm bài đã được chuyển sang giao diện Split-view chuyên dụng. Vui lòng truy cập Trung tâm chấm bài để có trải nghiệm tốt nhất.
             </div>
+          </div>
+        )}
+        {tab === 'notifications' && (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div className="text-sm text-slate-500">Thông báo của lớp học</div>
+              <Link to="/notifications"><Button>Đến trung tâm thông báo</Button></Link>
+            </div>
+            <div className="text-sm text-slate-600 p-4 bg-blue-50 rounded border border-blue-100">
+              Quản lý thông báo đã được chuyển sang trang Thông báo chuyên dụng. Vui lòng truy cập Trung tâm thông báo để xem và tạo thông báo mới.
+            </div>
+          </div>
+        )}
+        {tab === 'activity' && (
+          <div className="space-y-4">
+            <div className="text-sm text-slate-500">Hoạt động gần đây của lớp</div>
+            <ClassActivityTab classId={id} />
           </div>
         )}
         {tab === 'students' && canManage && (

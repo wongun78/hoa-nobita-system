@@ -47,6 +47,26 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.ok(userService.getUserById(id)));
     }
 
+    @GetMapping("/{id}/progress")
+    public ResponseEntity<?> getStudentProgress(@PathVariable UUID id) {
+        var currentUser = securityUtils.getCurrentUser();
+        
+        // Students can only view their own progress
+        if (currentUser.isStudent() && !currentUser.getId().equals(id)) {
+            throw com.hoanobita.topikplatform.common.BusinessException.forbidden("You can only view your own progress");
+        }
+        
+        // Admins can only view progress of students in their assigned classes
+        if (currentUser.isAdmin() && !currentUser.isTeacher() && !currentUser.getId().equals(id)) {
+            boolean hasAccess = permissionService.canAccessStudentProgress(currentUser, id);
+            if (!hasAccess) {
+                throw com.hoanobita.topikplatform.common.BusinessException.forbidden("You can only view progress of students in your assigned classes");
+            }
+        }
+        
+        return ResponseEntity.ok(ApiResponse.ok(userService.getStudentProgress(id)));
+    }
+
     @PatchMapping("/{id}")
     public ResponseEntity<?> updateUser(@PathVariable UUID id, @RequestBody UpdateUserRequest request) {
         var currentUser = securityUtils.getCurrentUser();

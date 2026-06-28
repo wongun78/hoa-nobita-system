@@ -1,5 +1,6 @@
 package com.hoanobita.topikplatform.classroom;
 
+import com.hoanobita.topikplatform.activity.ActivityService;
 import com.hoanobita.topikplatform.classroom.dto.*;
 import com.hoanobita.topikplatform.classroom.entity.*;
 import com.hoanobita.topikplatform.classroom.repository.*;
@@ -26,15 +27,17 @@ public class ClassroomService {
     private final ClassMemberRepository classMemberRepo;
     private final UserRepository userRepo;
     private final PermissionService permissionService;
+    private final ActivityService activityService;
 
     public ClassroomService(KlassRepository klassRepo, ClassAdminRepository classAdminRepo,
                             ClassMemberRepository classMemberRepo, UserRepository userRepo,
-                            PermissionService permissionService) {
+                            PermissionService permissionService, ActivityService activityService) {
         this.klassRepo = klassRepo;
         this.classAdminRepo = classAdminRepo;
         this.classMemberRepo = classMemberRepo;
         this.userRepo = userRepo;
         this.permissionService = permissionService;
+        this.activityService = activityService;
     }
 
     public List<ClassResponse> listClasses(User currentUser) {
@@ -87,6 +90,7 @@ public class ClassroomService {
         if (request.endDate() != null) klass.setEndDate(LocalDate.parse(request.endDate()));
 
         klass = klassRepo.save(klass);
+        activityService.log("CLASS_CREATED", "CLASS", klass.getId(), klass.getName(), klass.getId(), "Đã tạo lớp học mới: " + klass.getName());
         return toResponse(klass);
     }
 
@@ -117,6 +121,7 @@ public class ClassroomService {
 
         klass.setUpdatedBy(currentUser.getId());
         klass = klassRepo.save(klass);
+        activityService.log("CLASS_UPDATED", "CLASS", klass.getId(), klass.getName(), klass.getId(), "Đã cập nhật thông tin lớp học: " + klass.getName());
         return toResponse(klass);
     }
 
@@ -127,6 +132,7 @@ public class ClassroomService {
         permissionService.requireTeacher(currentUser);
         klass.softDelete();
         klassRepo.save(klass);
+        activityService.log("CLASS_DELETED", "CLASS", klass.getId(), klass.getName(), klass.getId(), "Đã xóa lớp học: " + klass.getName());
     }
 
     // --- Admin management ---
@@ -149,12 +155,17 @@ public class ClassroomService {
         }
 
         classAdminRepo.save(new ClassAdmin(classId, adminId));
+        activityService.log("CLASS_ADMIN_ADDED", "USER", adminId, admin.getFullName(), classId, "Đã thêm trợ giảng " + admin.getFullName() + " vào lớp");
     }
 
     @Transactional
     public void removeAdmin(UUID classId, UUID adminId, User currentUser) {
         permissionService.requireTeacher(currentUser);
+        var admin = userRepo.findActiveById(adminId).orElse(null);
         classAdminRepo.deleteByClassIdAndAdminId(classId, adminId);
+        if (admin != null) {
+            activityService.log("CLASS_ADMIN_REMOVED", "USER", adminId, admin.getFullName(), classId, "Đã xóa trợ giảng " + admin.getFullName() + " khỏi lớp");
+        }
     }
 
     // --- Student management ---
@@ -189,16 +200,23 @@ public class ClassroomService {
             member.setStatus(MemberStatus.ACTIVE);
             classMemberRepo.save(member);
         }
+        activityService.log("CLASS_STUDENT_ADDED", "USER", studentId, student.getFullName(), classId, "Đã thêm học viên " + student.getFullName() + " vào lớp");
     }
 
     @Transactional
     public void removeStudent(UUID classId, UUID studentId, User currentUser) {
         permissionService.requireManageClass(currentUser, classId);
         var member = classMemberRepo.findByClassIdAndStudentId(classId, studentId)
-                .orElseThrow(() -> BusinessException.notFound("Student not in class"));
+                .orElseThrow(() -> BusinessException.notFound("Student not in this class"));
+        
         member.setStatus(MemberStatus.REMOVED);
         member.setRemovedAt(Instant.now());
         classMemberRepo.save(member);
+        
+        var student = userRepo.findActiveById(studentId).orElse(null);
+        if (student != null) {
+            activityService.log("CLASS_STUDENT_REMOVED", "USER", studentId, student.getFullName(), classId, "Đã xóa học viên " + student.getFullName() + " khỏi lớp");
+        }
     }
 
     @Transactional
