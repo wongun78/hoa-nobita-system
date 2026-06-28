@@ -31,7 +31,8 @@ export function AssignmentSubmissionsPage() {
             <div className="flex items-center gap-3">
               <Badge variant="outline">{s.status}</Badge>
               {s.score != null && <span className="text-sm font-semibold text-[#16A34A]">{s.score}</span>}
-              <Link to={`/grading`}><Button size="sm" variant="outline">Chấm bài</Button></Link>
+              <Link to={`/submissions/${s.id}`}><Button size="sm" variant="outline">Chi tiết</Button></Link>
+              <Link to={`/grading?submissionId=${s.id}`}><Button size="sm" variant="outline">Chấm bài</Button></Link>
             </div>
           </Card>
         ))}

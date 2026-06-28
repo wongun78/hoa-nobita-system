@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { AssignmentDetailPage, AssignmentSubmissionsPage, AssignmentsPage, ChangePasswordPage, ClassAssignmentsPage, ClassDetailPage, ClassesPage, DashboardPage, ForbiddenPage, LoginPage, MaterialsPage, MySubmissionsPage, NotFoundPage, NotificationsPage, ProtectedRoute, UsersPage, UserDetailPage, GradingPage } from '../pages'
+import { AssignmentDetailPage, AssignmentSubmissionsPage, AssignmentsPage, ChangePasswordPage, ClassAssignmentsPage, ClassDetailPage, ClassesPage, DashboardPage, ForbiddenPage, LoginPage, MaterialsPage, MySubmissionsPage, NotFoundPage, NotificationsPage, ProtectedRoute, UsersPage, UserDetailPage, SubmissionDetailPage, GradingPage } from '../pages'
 
 export function AppRouter() {
   return <Routes>
@@ -12,6 +12,7 @@ export function AppRouter() {
     <Route path="/assignments" element={<ProtectedRoute><AssignmentsPage/></ProtectedRoute>}/>
     <Route path="/assignments/:assignmentId" element={<ProtectedRoute><AssignmentDetailPage/></ProtectedRoute>}/>
     <Route path="/assignments/:assignmentId/submissions" element={<ProtectedRoute roles={['TEACHER_OWNER','CLASS_ADMIN']}><AssignmentSubmissionsPage/></ProtectedRoute>}/>
+    <Route path="/submissions/:submissionId" element={<ProtectedRoute><SubmissionDetailPage/></ProtectedRoute>}/>
     <Route path="/grading" element={<ProtectedRoute roles={['TEACHER_OWNER','CLASS_ADMIN']}><GradingPage/></ProtectedRoute>}/>
     <Route path="/me/submissions" element={<ProtectedRoute roles={['STUDENT']}><MySubmissionsPage/></ProtectedRoute>}/>
     <Route path="/users" element={<ProtectedRoute roles={['TEACHER_OWNER']}><UsersPage/></ProtectedRoute>}/>

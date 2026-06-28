@@ -1,28 +1,26 @@
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAssignment, usePublishAssignment, useCloseAssignment, useDeleteAssignment, useCopyAssignment, useUpdateAssignment } from '../features/assignments/hooks'
-import { useSubmissions, useSubmit } from '../features/submissions/hooks'
+import { useSubmissions } from '../features/submissions/hooks'
 import { useAuth } from '../features/auth/use-auth'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
-import { Input } from '../components/ui/input'
 import { useState } from 'react'
 import { AssignmentStatusBadge, DeadlinePill } from '../features/assignments/components/assignment-badges'
 import { ConfirmDialog } from '../components/ui/confirm-dialog'
 import { AssignmentFormDialog } from '../features/assignments/components/assignment-form-dialog'
+import { SubmissionFormDialog } from '../features/submissions/components/submission-form-dialog'
 
 export function AssignmentDetailPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const { data: a, isLoading } = useAssignment(id)
   const subs = useSubmissions(id)
-  const submit = useSubmit(id)
   const publish = usePublishAssignment()
   const close = useCloseAssignment()
   const deleteAssignment = useDeleteAssignment()
   const copyAssignment = useCopyAssignment()
   const updateAssignment = useUpdateAssignment()
   const { hasRole } = useAuth()
-  const [content, setContent] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
 
@@ -78,9 +76,8 @@ export function AssignmentDetailPage() {
             <div className="text-slate-600">Bạn đã nộp bài và bài tập này không cho phép nộp lại.</div>
           ) : (
             <div className="space-y-4">
-              <Input placeholder="Nhập nội dung bài nộp hoặc đính kèm link..." value={content} onChange={e => setContent(e.target.value)} />
-              <Button onClick={() => submit.mutateAsync({ contentText: content }).then(() => setContent(''))} disabled={!content.trim() || submit.isPending}>
-                {submit.isPending ? 'Đang nộp...' : 'Nộp bài'}
+              <Button onClick={() => setEditOpen(true)}>
+                {mySubmission ? 'Nộp lại bài' : 'Nộp bài'}
               </Button>
             </div>
           )}
@@ -89,7 +86,12 @@ export function AssignmentDetailPage() {
 
       {!canManage && mySubmission && (
         <Card className="p-6 bg-slate-50">
-          <h3 className="font-medium mb-4">Bài nộp của bạn</h3>
+          <div className="flex justify-between items-start mb-4">
+            <h3 className="font-medium">Bài nộp của bạn</h3>
+            <Link to={`/submissions/${mySubmission.id}`}>
+              <Button variant="outline" size="sm">Xem chi tiết</Button>
+            </Link>
+          </div>
           <div className="space-y-2">
             <div className="text-sm text-slate-500">Trạng thái: <span className="font-medium text-slate-700">{mySubmission.status}</span></div>
             <div className="text-sm text-slate-500">Thời gian nộp: {new Date(mySubmission.submittedAt).toLocaleString('vi-VN')}</div>
@@ -115,14 +117,23 @@ export function AssignmentDetailPage() {
       />
 
       {editOpen && (
-        <AssignmentFormDialog
-          open={editOpen}
-          onClose={() => setEditOpen(false)}
-          title="Sửa bài tập"
-          submitLabel="Lưu thay đổi"
-          defaultValues={a}
-          onSubmit={(data) => updateAssignment.mutateAsync({ id, req: data })}
-        />
+        canManage ? (
+          <AssignmentFormDialog
+            open={editOpen}
+            onClose={() => setEditOpen(false)}
+            title="Sửa bài tập"
+            submitLabel="Lưu thay đổi"
+            defaultValues={a}
+            onSubmit={(data) => updateAssignment.mutateAsync({ id, req: data })}
+          />
+        ) : (
+          <SubmissionFormDialog
+            open={editOpen}
+            onClose={() => setEditOpen(false)}
+            submission={mySubmission}
+            assignmentId={id}
+          />
+        )
       )}
     </div>
   )

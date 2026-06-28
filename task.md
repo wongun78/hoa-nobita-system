@@ -71,7 +71,7 @@
 | Lessons | Create/edit/delete/list/detail | Implemented list in class detail tab, create/edit dialogs, delete confirm. | `frontend/src/pages/class-detail-page.tsx` | Done |
 | Materials | Create/edit/delete/upload/download/visibility | Implemented list in class detail tab, create/edit dialogs, delete confirm, visibility toggle. Upload/download deferred to Files sprint. | `frontend/src/pages/class-detail-page.tsx` | Done |
 | Assignments | Create/edit/publish/close/copy/delete/detail | Implemented list, detail, publish/close buttons, create/edit/copy/delete dialogs. | `frontend/src/pages/assignments-page.tsx`, `assignment-detail-page.tsx`, `class-detail-page.tsx` | Done |
-| Submissions | Submit/edit/delete/detail/my submissions | Implemented submit form, my submissions list, assignment submissions list. Edit/delete/detail missing. | `frontend/src/pages/assignment-detail-page.tsx`, `my-submissions-page.tsx`, `assignment-submissions-page.tsx` | Partial |
+| Submissions | Submit/edit/delete/detail/my submissions | Implemented submit form, my submissions list, assignment submissions list, submission detail, edit, and delete. | `frontend/src/pages/assignment-detail-page.tsx`, `my-submissions-page.tsx`, `assignment-submissions-page.tsx`, `submission-detail-page.tsx` | Done |
 | Grading | Split view/grade/update/request resubmit | Implemented split-view grading UI, integrated API hooks, added class detail grading tab link. | `frontend/src/pages/grading-page.tsx`, `frontend/src/pages/class-detail-page.tsx` | Done |
 | Notifications | Create/delete/list/targeting | Implemented list, create dialog. Delete/targeting missing. | `frontend/src/pages/notifications-page.tsx` | Partial |
 | Files | Upload/download/attach to material | Implemented file upload/download API, FileUploadField component, integrated into Materials and Grading. | `frontend/src/features/files/*`, `class-detail-page.tsx`, `grading-page.tsx` | Done |
@@ -83,9 +83,8 @@
 
 ### Remaining Work (Priority Order)
 1. **Dashboard & Notifications**: Nâng cấp Dashboard cho Teacher (Thống kê, Lớp học đang dạy, Bài tập cần chấm).
-2. **Submissions CRUD**: Implement Edit and Delete for submissions (if allowed by policy).
-3. **Notifications**: Implement Delete and advanced targeting (Role/User).
-4. **Activity & Reports**: Implement ActivityLog (or derived) and Reports page (optional/deferred).
+2. **Notifications**: Implement Delete and advanced targeting (Role/User).
+3. **Activity & Reports**: Implement ActivityLog (or derived) and Reports page (optional/deferred).
 
 | Gap | Status | Notes |
 |-----|--------|-------|
