@@ -49,15 +49,14 @@
 | Admin Dashboard API | Pass | `GET /dashboard/admin` returns assigned-class scoped metrics |
 | Student Dashboard API | Pass | `GET /dashboard/student` returns own classes, upcoming, submissions, feedback |
 
-## Sprint 3: Assignments CRUD & Workflow Verification
+## Sprint 4: Lessons & Materials CRUD Verification
 | Check | Result | Evidence |
 |---|---|---|
-| Global Assignments List | Pass | `AssignmentsPage` shows KPI cards, filters, and list. |
-| Global Assignments Actions | Pass | Edit, Publish, Close, Copy, Delete buttons work and are role-scoped. |
-| Assignment Detail View | Pass | `AssignmentDetailPage` shows details, Teacher/Admin actions, and Student submission form. |
-| Class Detail Assignments Tab | Pass | Integrated `AssignmentFormDialog` and action buttons similar to Global list. |
-| Reusable Components | Pass | `AssignmentFormDialog`, `AssignmentStatusBadge`, `DeadlinePill` used consistently. |
-| API Integration | Pass | Create, Update, Delete, Publish, Close, Copy APIs fully integrated. |
-| Dead Buttons | Pass | No dead buttons found in Assignments workflow. |
+| Lessons List | Pass | `ClassDetailPage` shows ordered lessons with status badges. |
+| Lessons Actions | Pass | Create, Edit, Delete buttons work and are role-scoped. |
+| Materials List | Pass | `ClassDetailPage` shows materials with visibility status. |
+| Materials Actions | Pass | Create, Edit, Delete, Toggle Visibility buttons work and are role-scoped. |
+| API Integration | Pass | Create, Update, Delete APIs fully integrated for both. Visibility toggle integrated. |
+| Dead Buttons | Pass | No dead buttons found in Lessons/Materials workflow. |
 | Build & Tests | Pass | Frontend typecheck/lint/build pass. Backend tests pass. |
 | Dashboard API Tests | Pass | `test-api.sh` asserts dashboard structure and role scoping |

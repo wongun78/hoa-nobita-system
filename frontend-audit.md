@@ -27,9 +27,10 @@
 - Visible Vietnamese copy uses accents: `Đăng nhập`, `Lớp học`, `Bài tập`, `Tài liệu`, `Thông báo`, `Nộp bài`, `Không có quyền truy cập`.
 - Verified with grep for common unaccented strings; no matches found in `frontend/src`.
 
-## 4. Clutter/excessive copy
-- Dashboard copy is concise and task-oriented.
-- Removed starter/demo visual clutter and kept a calm white/blue enterprise layout.
+## 4. Lessons & Materials (Buổi học & Tài liệu)
+- **ClassDetailPage (Tab Buổi học)**: Đã nâng cấp. Hiển thị danh sách buổi học theo thứ tự. Teacher/Admin có thể Tạo, Sửa, Xóa buổi học.
+- **ClassDetailPage (Tab Tài liệu)**: Đã nâng cấp. Hiển thị danh sách tài liệu. Teacher/Admin có thể Tạo, Sửa, Xóa, Ẩn/Hiện tài liệu.
+- **Files**: Tính năng tải tệp (upload/download) được hoãn lại cho Sprint Files. Hiện tại chỉ hỗ trợ External URL.
 
 ## 5. Loading/empty/error states
 - Shared system states exist for loading, empty, and error cases.

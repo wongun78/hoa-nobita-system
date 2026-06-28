@@ -68,8 +68,8 @@
 | Dashboard Student | Own data only | Implemented joined classes, open assignments, submitted count, resubmit requested. | `frontend/src/pages/dashboard-page.tsx` | Done |
 | Users | List/create/edit/status/delete/detail | Implemented list, create dialog, delete confirm dialog, temp password dialog. Detail page missing. | `frontend/src/pages/users-page.tsx` | Partial |
 | Classes | List/detail/tabs/admins/students/settings | Implemented list, detail with tabs (lessons, materials, assignments). Students tab is placeholder. Settings missing. | `frontend/src/pages/class-detail-page.tsx`, `classes-page.tsx` | Partial |
-| Lessons | Create/edit/delete/list/detail | Implemented list in class detail tab, create dialog, delete confirm. Edit/detail missing. | `frontend/src/pages/class-detail-page.tsx` | Partial |
-| Materials | Create/edit/delete/upload/download/visibility | Implemented list in class detail tab, create dialog, delete confirm. Upload/download/visibility toggle missing. | `frontend/src/pages/class-detail-page.tsx` | Partial |
+| Lessons | Create/edit/delete/list/detail | Implemented list in class detail tab, create/edit dialogs, delete confirm. | `frontend/src/pages/class-detail-page.tsx` | Done |
+| Materials | Create/edit/delete/upload/download/visibility | Implemented list in class detail tab, create/edit dialogs, delete confirm, visibility toggle. Upload/download deferred to Files sprint. | `frontend/src/pages/class-detail-page.tsx` | Done |
 | Assignments | Create/edit/publish/close/copy/delete/detail | Implemented list, detail, publish/close buttons, create/edit/copy/delete dialogs. | `frontend/src/pages/assignments-page.tsx`, `assignment-detail-page.tsx`, `class-detail-page.tsx` | Done |
 | Submissions | Submit/edit/delete/detail/my submissions | Implemented submit form, my submissions list, assignment submissions list. Edit/delete/detail missing. | `frontend/src/pages/assignment-detail-page.tsx`, `my-submissions-page.tsx`, `assignment-submissions-page.tsx` | Partial |
 | Grading | Split view/grade/update/request resubmit | Implemented split-view grading UI, integrated API hooks, added class detail grading tab link. | `frontend/src/pages/grading-page.tsx`, `frontend/src/pages/class-detail-page.tsx` | Done |
@@ -84,11 +84,10 @@
 ### Remaining Work (Priority Order)
 1. **Dashboard & Notifications**: Nâng cấp Dashboard cho Teacher (Thống kê, Lớp học đang dạy, Bài tập cần chấm).
 2. **Files Module**: Implement file upload/download API and integrate with Materials and Submissions (including the disabled download button in Grading Center).
-3. **Lessons & Materials CRUD**: Implement Edit dialogs and visibility toggles.
-4. **User Detail Page**: Implement the user profile, progress, and submission history view.
-5. **Submissions CRUD**: Implement Edit and Delete for submissions (if allowed by policy).
-6. **Notifications**: Implement Delete and advanced targeting (Role/User).
-7. **Activity & Reports**: Implement ActivityLog (or derived) and Reports page (optional/deferred).
+3. **User Detail Page**: Implement the user profile, progress, and submission history view.
+4. **Submissions CRUD**: Implement Edit and Delete for submissions (if allowed by policy).
+5. **Notifications**: Implement Delete and advanced targeting (Role/User).
+6. **Activity & Reports**: Implement ActivityLog (or derived) and Reports page (optional/deferred).
 
 | Gap | Status | Notes |
 |-----|--------|-------|

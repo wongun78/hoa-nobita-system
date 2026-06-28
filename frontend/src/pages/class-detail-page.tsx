@@ -4,8 +4,8 @@ import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useClass, useUpdateClass, useDeleteClass, useClassStudents, useAddClassStudent, useRemoveClassStudent, useUpdateClassStudentStatus, useAddClassAdmin, useRemoveClassAdmin } from '../features/classes/hooks'
-import { useLessons, useCreateLesson, useDeleteLesson } from '../features/lessons/hooks'
-import { useMaterials, useCreateMaterial, useDeleteMaterial } from '../features/materials/hooks'
+import { useLessons, useCreateLesson, useDeleteLesson, useUpdateLesson } from '../features/lessons/hooks'
+import { useMaterials, useCreateMaterial, useDeleteMaterial, useUpdateMaterial, useUpdateVisibility } from '../features/materials/hooks'
 import { useAssignments, useCreateAssignment, useDeleteAssignment, useCopyAssignment, usePublishAssignment, useCloseAssignment, useUpdateAssignment } from '../features/assignments/hooks'
 import { useUsers } from '../features/users/hooks'
 import { useAuth } from '../features/auth/use-auth'
@@ -19,8 +19,8 @@ import { Select } from '../components/ui/select'
 import { AssignmentStatusBadge, DeadlinePill } from '../features/assignments/components/assignment-badges'
 import { AssignmentFormDialog } from '../features/assignments/components/assignment-form-dialog'
 
-const lessonSchema = z.object({ title: z.string().min(2), description: z.string().optional(), orderIndex: z.number().default(1), status: z.enum(['DRAFT','PUBLISHED','ARCHIVED']).default('PUBLISHED') })
-const materialSchema = z.object({ title: z.string().min(2), externalUrl: z.string().url().optional(), visible: z.boolean().default(true) })
+const lessonSchema = z.object({ title: z.string().min(2), description: z.string().optional(), lessonDate: z.string().optional(), orderIndex: z.number().min(0).default(1), status: z.enum(['DRAFT','PUBLISHED','ARCHIVED']).default('PUBLISHED') })
+const materialSchema = z.object({ title: z.string().min(2), description: z.string().optional(), externalUrl: z.string().url("URL không hợp lệ").optional().or(z.literal('')), visible: z.boolean().default(true) })
 const classSchema = z.object({ name: z.string().min(2), code: z.string().min(2), description: z.string().optional(), levelFrom: z.number().min(1).max(6), levelTo: z.number().min(1).max(6), status: z.enum(['ACTIVE','ARCHIVED']).default('ACTIVE'), startDate: z.string().optional(), endDate: z.string().optional() }).refine(data => data.levelFrom <= data.levelTo, { message: "Level from must be <= level to", path: ["levelFrom"] })
 const addMemberSchema = z.object({ userId: z.string().min(1, "Vui lòng chọn người dùng") })
 
@@ -36,9 +36,12 @@ export function ClassDetailPage() {
   const users = useUsers()
 
   const createLesson = useCreateLesson(id)
+  const updateLesson = useUpdateLesson(id)
   const delLesson = useDeleteLesson(id)
   const createMaterial = useCreateMaterial(id)
+  const updateMaterial = useUpdateMaterial(id)
   const delMaterial = useDeleteMaterial(id)
+  const toggleVisibility = useUpdateVisibility(id)
   const createAssignment = useCreateAssignment(id)
   const updateAssignment = useUpdateAssignment()
   const deleteAssignment = useDeleteAssignment()
@@ -55,7 +58,9 @@ export function ClassDetailPage() {
 
   const [tab, setTab] = useState('lessons')
   const [lessonOpen, setLessonOpen] = useState(false)
+  const [editLessonOpen, setEditLessonOpen] = useState<any | null>(null)
   const [matOpen, setMatOpen] = useState(false)
+  const [editMatOpen, setEditMatOpen] = useState<any | null>(null)
   const [assignOpen, setAssignOpen] = useState(false)
   const [editAssignOpen, setEditAssignOpen] = useState<any | null>(null)
   const [studentOpen, setStudentOpen] = useState(false)
@@ -67,8 +72,10 @@ export function ClassDetailPage() {
   const [confirmAdmin, setConfirmAdmin] = useState<string|null>(null)
   const [confirmClass, setConfirmClass] = useState(false)
 
-  const lessonForm = useForm({ resolver: zodResolver(lessonSchema), defaultValues: { title: '', description: '', orderIndex: 1, status: 'PUBLISHED' as const } })
-  const matForm = useForm({ resolver: zodResolver(materialSchema), defaultValues: { title: '', externalUrl: '', visible: true } })
+  const lessonForm = useForm({ resolver: zodResolver(lessonSchema), defaultValues: { title: '', description: '', lessonDate: '', orderIndex: 1, status: 'PUBLISHED' as const } })
+  const editLessonForm = useForm({ resolver: zodResolver(lessonSchema), defaultValues: { title: '', description: '', lessonDate: '', orderIndex: 1, status: 'PUBLISHED' as const } })
+  const matForm = useForm({ resolver: zodResolver(materialSchema), defaultValues: { title: '', description: '', externalUrl: '', visible: true } })
+  const editMatForm = useForm({ resolver: zodResolver(materialSchema), defaultValues: { title: '', description: '', externalUrl: '', visible: true } })
   const classForm = useForm({ resolver: zodResolver(classSchema), values: cls ? { name: cls.name, code: cls.code, description: cls.description || '', levelFrom: cls.levelFrom, levelTo: cls.levelTo, status: cls.status, startDate: cls.startDate || '', endDate: cls.endDate || '' } : undefined })
   const studentForm = useForm({ resolver: zodResolver(addMemberSchema), defaultValues: { userId: '' } })
   const adminForm = useForm({ resolver: zodResolver(addMemberSchema), defaultValues: { userId: '' } })
@@ -99,8 +106,8 @@ export function ClassDetailPage() {
           {canManage && <Button variant="outline" onClick={() => setTab('settings')}>Sửa lớp</Button>}
           {isTeacher && <Button variant="outline" onClick={() => setAdminOpen(true)}>Gán admin</Button>}
           {canManage && <Button variant="outline" onClick={() => setStudentOpen(true)}>Thêm học viên</Button>}
-          <Link to={`/classes/${id}/assignments`}><Button variant="outline">Bài tập lớp</Button></Link>
-          <Link to={`/classes/${id}/materials`}><Button variant="outline">Tài liệu</Button></Link>
+          <Button variant="outline" onClick={() => { setTab('assignments'); navigate(`/classes/${id}/assignments`); }}>Bài tập lớp</Button>
+          <Button variant="outline" onClick={() => { setTab('materials'); navigate(`/classes/${id}/materials`); }}>Tài liệu</Button>
         </div>
       </div>
 
@@ -109,24 +116,61 @@ export function ClassDetailPage() {
           <div className="space-y-4">
             <div className="flex justify-between"><div className="text-sm text-slate-500">Danh sách buổi học</div>{canManage && <Button onClick={() => setLessonOpen(true)}>+ Tạo buổi học</Button>}</div>
             {lessons.data?.length === 0 && <div className="text-slate-500 text-sm">Lớp này chưa có buổi học nào.</div>}
-            {lessons.data?.map(l => (
-              <Card key={l.id} className="flex justify-between items-center p-4">
-                <div><div className="font-medium">{l.title}</div><div className="text-xs text-slate-500">#{l.orderIndex} • {l.status}</div></div>
-                {canManage && <button onClick={() => setConfirmLesson(l.id)} className="text-red-600 text-sm">Xóa</button>}
-              </Card>
-            ))}
+            <div className="grid gap-4">
+              {lessons.data?.sort((a, b) => a.orderIndex - b.orderIndex).map(l => (
+                <Card key={l.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-lg">Buổi {String(l.orderIndex).padStart(2, '0')}: {l.title}</span>
+                      <span className={`px-2 py-0.5 text-xs rounded-full ${l.status === 'PUBLISHED' ? 'bg-green-100 text-green-800' : l.status === 'DRAFT' ? 'bg-slate-100 text-slate-800' : 'bg-gray-100 text-gray-800'}`}>{l.status}</span>
+                    </div>
+                    {l.description && <div className="text-sm text-slate-600 mt-1">{l.description}</div>}
+                    {l.lessonDate && <div className="text-xs text-slate-500 mt-1">Ngày học: {new Date(l.lessonDate).toLocaleDateString('vi-VN')}</div>}
+                  </div>
+                  {canManage && (
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => {
+                        editLessonForm.reset({ title: l.title, description: l.description || '', lessonDate: l.lessonDate || '', orderIndex: l.orderIndex, status: l.status })
+                        setEditLessonOpen(l)
+                      }}>Sửa</Button>
+                      <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setConfirmLesson(l.id)}>Xóa</Button>
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
           </div>
         )}
         {tab === 'materials' && (
           <div className="space-y-4">
             <div className="flex justify-between"><div className="text-sm text-slate-500">Tài liệu lớp</div>{canManage && <Button onClick={() => setMatOpen(true)}>+ Thêm tài liệu</Button>}</div>
-            {materials.data?.length === 0 && <div className="text-slate-500 text-sm">Chưa có tài liệu.</div>}
-            {materials.data?.map(m => (
-              <Card key={m.id} className="flex justify-between p-4">
-                <div><div className="font-medium">{m.title}</div><div className="text-xs text-slate-500">{m.externalUrl || '—'} {m.visible ? '' : '(ẩn)'}</div></div>
-                {canManage && <button onClick={() => setConfirmMat(m.id)} className="text-red-600 text-sm">Xóa</button>}
-              </Card>
-            ))}
+            {materials.data?.length === 0 && <div className="text-slate-500 text-sm">Lớp này chưa có tài liệu nào.</div>}
+            <div className="grid gap-4">
+              {materials.data?.map(m => (
+                <Card key={m.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-lg">{m.title}</span>
+                      {!m.visible && <span className="px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-800">Đang ẩn</span>}
+                    </div>
+                    {m.description && <div className="text-sm text-slate-600 mt-1">{m.description}</div>}
+                    {m.externalUrl && <a href={m.externalUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline mt-1 block">{m.externalUrl}</a>}
+                  </div>
+                  {canManage && (
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => toggleVisibility.mutate({ id: m.id, visible: !m.visible })}>
+                        {m.visible ? 'Ẩn' : 'Hiện'}
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => {
+                        editMatForm.reset({ title: m.title, description: m.description || '', externalUrl: m.externalUrl || '', visible: m.visible })
+                        setEditMatOpen(m)
+                      }}>Sửa</Button>
+                      <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setConfirmMat(m.id)}>Xóa</Button>
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
           </div>
         )}
         {tab === 'assignments' && (
@@ -274,20 +318,86 @@ export function ClassDetailPage() {
 
       <Dialog open={lessonOpen} onClose={() => setLessonOpen(false)} title="Thêm buổi học">
         <FormProvider {...lessonForm}>
-          <form onSubmit={lessonForm.handleSubmit(v => { createLesson.mutateAsync(v as any); setLessonOpen(false); lessonForm.reset() })} className="space-y-4">
+          <form onSubmit={lessonForm.handleSubmit(v => { createLesson.mutateAsync(v as any).then(() => { setLessonOpen(false); lessonForm.reset() }) })} className="space-y-4">
             <FormField name="title" label="Tiêu đề" />
             <FormField name="description" label="Mô tả" />
-            <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setLessonOpen(false)}>Hủy</Button><Button type="submit">Thêm</Button></div>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField name="orderIndex" label="Thứ tự (Buổi số)">
+                <input type="number" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" {...lessonForm.register('orderIndex', { valueAsNumber: true })} />
+              </FormField>
+              <FormField name="lessonDate" label="Ngày học">
+                <input type="date" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" {...lessonForm.register('lessonDate')} />
+              </FormField>
+            </div>
+            <FormField name="status" label="Trạng thái">
+              <Select {...lessonForm.register('status')}>
+                <option value="PUBLISHED">Đã xuất bản</option>
+                <option value="DRAFT">Bản nháp</option>
+                <option value="ARCHIVED">Đã lưu trữ</option>
+              </Select>
+            </FormField>
+            <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setLessonOpen(false)}>Hủy</Button><Button type="submit" disabled={createLesson.isPending}>Thêm</Button></div>
+          </form>
+        </FormProvider>
+      </Dialog>
+
+      <Dialog open={!!editLessonOpen} onClose={() => setEditLessonOpen(null)} title="Sửa buổi học">
+        <FormProvider {...editLessonForm}>
+          <form onSubmit={editLessonForm.handleSubmit(v => { updateLesson.mutateAsync({ id: editLessonOpen.id, req: v as any }).then(() => setEditLessonOpen(null)) })} className="space-y-4">
+            <FormField name="title" label="Tiêu đề" />
+            <FormField name="description" label="Mô tả" />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField name="orderIndex" label="Thứ tự (Buổi số)">
+                <input type="number" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" {...editLessonForm.register('orderIndex', { valueAsNumber: true })} />
+              </FormField>
+              <FormField name="lessonDate" label="Ngày học">
+                <input type="date" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" {...editLessonForm.register('lessonDate')} />
+              </FormField>
+            </div>
+            <FormField name="status" label="Trạng thái">
+              <Select {...editLessonForm.register('status')}>
+                <option value="PUBLISHED">Đã xuất bản</option>
+                <option value="DRAFT">Bản nháp</option>
+                <option value="ARCHIVED">Đã lưu trữ</option>
+              </Select>
+            </FormField>
+            <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setEditLessonOpen(null)}>Hủy</Button><Button type="submit" disabled={updateLesson.isPending}>Lưu thay đổi</Button></div>
           </form>
         </FormProvider>
       </Dialog>
 
       <Dialog open={matOpen} onClose={() => setMatOpen(false)} title="Thêm tài liệu">
         <FormProvider {...matForm}>
-          <form onSubmit={matForm.handleSubmit(v => { createMaterial.mutateAsync(v as any); setMatOpen(false); matForm.reset() })} className="space-y-4">
+          <form onSubmit={matForm.handleSubmit(v => { createMaterial.mutateAsync(v as any).then(() => { setMatOpen(false); matForm.reset() }) })} className="space-y-4">
             <FormField name="title" label="Tiêu đề" />
+            <FormField name="description" label="Mô tả" />
             <FormField name="externalUrl" label="URL (nếu có)" />
-            <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setMatOpen(false)}>Hủy</Button><Button type="submit">Thêm</Button></div>
+            <FormField name="visible" label="Hiển thị với học viên">
+              <Select {...matForm.register('visible', { setValueAs: v => v === 'true' })}>
+                <option value="true">Có</option>
+                <option value="false">Không</option>
+              </Select>
+            </FormField>
+            <div className="text-sm text-slate-500 italic">Tải tệp sẽ được bật ở Sprint Files.</div>
+            <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setMatOpen(false)}>Hủy</Button><Button type="submit" disabled={createMaterial.isPending}>Thêm</Button></div>
+          </form>
+        </FormProvider>
+      </Dialog>
+
+      <Dialog open={!!editMatOpen} onClose={() => setEditMatOpen(null)} title="Sửa tài liệu">
+        <FormProvider {...editMatForm}>
+          <form onSubmit={editMatForm.handleSubmit(v => { updateMaterial.mutateAsync({ id: editMatOpen.id, req: v as any }).then(() => setEditMatOpen(null)) })} className="space-y-4">
+            <FormField name="title" label="Tiêu đề" />
+            <FormField name="description" label="Mô tả" />
+            <FormField name="externalUrl" label="URL (nếu có)" />
+            <FormField name="visible" label="Hiển thị với học viên">
+              <Select {...editMatForm.register('visible', { setValueAs: v => v === 'true' })}>
+                <option value="true">Có</option>
+                <option value="false">Không</option>
+              </Select>
+            </FormField>
+            <div className="text-sm text-slate-500 italic">Tải tệp sẽ được bật ở Sprint Files.</div>
+            <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setEditMatOpen(null)}>Hủy</Button><Button type="submit" disabled={updateMaterial.isPending}>Lưu thay đổi</Button></div>
           </form>
         </FormProvider>
       </Dialog>
