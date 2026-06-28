@@ -1,0 +1,2 @@
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS created_by UUID;
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS updated_by UUID;

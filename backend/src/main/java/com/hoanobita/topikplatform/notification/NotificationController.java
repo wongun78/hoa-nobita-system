@@ -1,0 +1,38 @@
+package com.hoanobita.topikplatform.notification;
+
+import com.hoanobita.topikplatform.common.ApiResponse;
+import com.hoanobita.topikplatform.notification.dto.NotificationRequest;
+import com.hoanobita.topikplatform.notification.dto.NotificationResponse;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/v1/notifications")
+public class NotificationController {
+    private final NotificationService service;
+
+    public NotificationController(NotificationService service) {
+        this.service = service;
+    }
+
+    @GetMapping
+    public ApiResponse<List<NotificationResponse>> list() {
+        return ApiResponse.ok(service.list());
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<NotificationResponse> create(@Valid @RequestBody NotificationRequest req) {
+        return ApiResponse.created(service.create(req));
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(@PathVariable UUID id) {
+        service.delete(id);
+        return ApiResponse.ok(null);
+    }
+}

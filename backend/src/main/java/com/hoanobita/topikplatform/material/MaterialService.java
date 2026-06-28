@@ -1,0 +1,116 @@
+package com.hoanobita.topikplatform.material;
+
+import com.hoanobita.topikplatform.common.BusinessException;
+import com.hoanobita.topikplatform.common.PermissionService;
+import com.hoanobita.topikplatform.material.dto.*;
+import com.hoanobita.topikplatform.material.entity.Material;
+import com.hoanobita.topikplatform.material.repository.MaterialRepository;
+import com.hoanobita.topikplatform.user.entity.User;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.UUID;
+
+@Service
+public class MaterialService {
+
+    private final MaterialRepository materialRepo;
+    private final PermissionService permissionService;
+
+    public MaterialService(MaterialRepository materialRepo, PermissionService permissionService) {
+        this.materialRepo = materialRepo;
+        this.permissionService = permissionService;
+    }
+
+    public List<MaterialResponse> listByClass(UUID classId, User user) {
+        permissionService.requireAccessClass(user, classId);
+        List<Material> materials;
+        if (user.isStudent()) {
+            materials = materialRepo.findVisibleByClassId(classId);
+        } else {
+            materials = materialRepo.findByClassId(classId);
+        }
+        return materials.stream().map(this::toResponse).toList();
+    }
+
+    @Transactional
+    public MaterialResponse create(UUID classId, MaterialRequest request, User user) {
+        permissionService.requireManageClass(user, classId);
+
+        // Validation: must have either fileId or externalUrl
+        if (request.fileId() == null && (request.externalUrl() == null || request.externalUrl().isBlank())) {
+            throw BusinessException.badRequest("Material must have either fileId or externalUrl");
+        }
+
+        var material = new Material();
+        material.setClassId(classId);
+        material.setTitle(request.title());
+        material.setDescription(request.description());
+        material.setExternalUrl(request.externalUrl());
+        material.setFileId(request.fileId());
+        material.setVisible(request.visible() != null ? request.visible() : true);
+        material.setCreatedBy(user.getId());
+
+        material = materialRepo.save(material);
+        return toResponse(material);
+    }
+
+    public MaterialResponse getById(UUID materialId, User user) {
+        var material = materialRepo.findActiveById(materialId)
+                .orElseThrow(() -> BusinessException.notFound("Material not found"));
+        permissionService.requireAccessClass(user, material.getClassId());
+
+        // Students can only see visible materials
+        if (user.isStudent() && !material.isVisible()) {
+            throw BusinessException.notFound("Material not found");
+        }
+
+        return toResponse(material);
+    }
+
+    @Transactional
+    public MaterialResponse update(UUID materialId, MaterialRequest request, User user) {
+        var material = materialRepo.findActiveById(materialId)
+                .orElseThrow(() -> BusinessException.notFound("Material not found"));
+        permissionService.requireManageClass(user, material.getClassId());
+
+        if (request.title() != null) material.setTitle(request.title());
+        if (request.description() != null) material.setDescription(request.description());
+        if (request.externalUrl() != null) material.setExternalUrl(request.externalUrl());
+        if (request.fileId() != null) material.setFileId(request.fileId());
+        if (request.visible() != null) material.setVisible(request.visible());
+        material.setUpdatedBy(user.getId());
+
+        material = materialRepo.save(material);
+        return toResponse(material);
+    }
+
+    @Transactional
+    public void delete(UUID materialId, User user) {
+        var material = materialRepo.findActiveById(materialId)
+                .orElseThrow(() -> BusinessException.notFound("Material not found"));
+        permissionService.requireManageClass(user, material.getClassId());
+        material.softDelete();
+        materialRepo.save(material);
+    }
+
+    @Transactional
+    public MaterialResponse updateVisibility(UUID materialId, boolean visible, User user) {
+        var material = materialRepo.findActiveById(materialId)
+                .orElseThrow(() -> BusinessException.notFound("Material not found"));
+        permissionService.requireManageClass(user, material.getClassId());
+        material.setVisible(visible);
+        material.setUpdatedBy(user.getId());
+        material = materialRepo.save(material);
+        return toResponse(material);
+    }
+
+    private MaterialResponse toResponse(Material m) {
+        return new MaterialResponse(
+                m.getId(), m.getClassId(), m.getLessonId(), m.getFileId(),
+                m.getTitle(), m.getDescription(), m.getExternalUrl(),
+                m.isVisible(), m.getCreatedAt()
+        );
+    }
+}

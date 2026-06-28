@@ -1,0 +1,8 @@
+-- V2__seed_roles.sql
+-- Seed the three mandatory roles
+
+INSERT INTO roles (id, name) VALUES
+    ('a0000000-0000-0000-0000-000000000001', 'TEACHER_OWNER'),
+    ('a0000000-0000-0000-0000-000000000002', 'CLASS_ADMIN'),
+    ('a0000000-0000-0000-0000-000000000003', 'STUDENT')
+ON CONFLICT (name) DO NOTHING;
