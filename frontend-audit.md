@@ -13,6 +13,7 @@
 - `/grading`: Working, split-view grading center.
 - `/notifications`: Working, role-aware feed and creation.
 - `/change-password`: Working.
+- `/reports`: Working (TEACHER only), system KPIs and performance tables.
 
 ## 2. Module Coverage
 - **Auth**: JWT, 401 interceptor, role guards.
@@ -25,6 +26,7 @@
 - **Grading**: Score, feedback, request resubmit.
 - **Notifications**: Target ALL/CLASS/USER, role-based policies.
 - **Activity**: ActivityLog backend, RecentActivityTimeline frontend component.
+- **Reports**: System KPIs, class performance, top students aggregation.
 
 ## 3. Dead Button Audit
 - `onClick={() => {}}`: 0 found.
