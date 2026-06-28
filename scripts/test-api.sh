@@ -48,11 +48,22 @@ R=$(api_post /classes/$CLASS_ID/admins "$TEACHER" "{\"userId\":\"$ADMIN_ID\"}");
 R=$(api_post /classes/$CLASS_ID/students "$TEACHER" "{\"userId\":\"$STUDENT1_ID\"}"); assert_status 'Teacher adds student to class success' "$(extract_status "$R")" 200
 R=$(api_get /classes "$STUDENT1"); assert_status 'Student sees own classes' "$(extract_status "$R")" 200
 R=$(api_get /classes/$CLASS_ID "$ADMIN"); assert_status 'Admin can access assigned class' "$(extract_status "$R")" 200
+# Files
+echo "TOPIK test material" > /tmp/topik-test-file.txt
+R=$(curl -s -w '\n%{http_code}' -X POST "$BASE_URL/files/upload" -H "Authorization: Bearer $TEACHER" -F "file=@/tmp/topik-test-file.txt")
+assert_status 'Teacher uploads file success' "$(extract_status "$R")" 201
+FILE_ID=$(extract_body "$R"|jq -r '.data.id // empty')
+R=$(api_get /files/$FILE_ID/download "$TEACHER")
+assert_status 'Teacher downloads file success' "$(extract_status "$R")" 200
+R=$(curl -s -w '\n%{http_code}' -X POST "$BASE_URL/files/upload" -H "Authorization: Bearer $STUDENT1" -F "file=@/tmp/topik-test-file.txt")
+assert_status 'Student uploads file success' "$(extract_status "$R")" 201
+STUDENT_FILE_ID=$(extract_body "$R"|jq -r '.data.id // empty')
+
 # Lessons/materials/assignments
 R=$(api_post /classes/$CLASS_ID/lessons "$TEACHER" '{"title":"Buổi 1: Tổng quan TOPIK","description":"Làm quen cấu trúc đề","orderIndex":1,"status":"PUBLISHED"}'); assert_status 'Teacher creates lesson success' "$(extract_status "$R")" 201
 R=$(api_post /classes/$CLASS_ID/lessons "$ADMIN" '{"title":"Buổi 2: Ngữ pháp","description":"Luyện mẫu câu","orderIndex":2,"status":"PUBLISHED"}'); assert_status 'Admin creates lesson in assigned class success' "$(extract_status "$R")" 201
 R=$(api_post /classes/$CLASS_ID/lessons "$STUDENT1" '{"title":"Bad"}'); assert_status 'Student creates lesson returns 403' "$(extract_status "$R")" 403
-R=$(api_post /classes/$CLASS_ID/materials "$TEACHER" '{"title":"Từ vựng chủ đề trường học","description":"Tài liệu PDF","externalUrl":"https://example.com/topik.pdf","visible":true}'); assert_status 'Teacher creates material success' "$(extract_status "$R")" 201; MAT_ID=$(extract_body "$R"|jq -r '.data.id // empty')
+R=$(api_post /classes/$CLASS_ID/materials "$TEACHER" "{\"title\":\"Từ vựng chủ đề trường học\",\"description\":\"Tài liệu PDF\",\"fileId\":\"$FILE_ID\",\"visible\":true}"); assert_status 'Teacher creates material with file success' "$(extract_status "$R")" 201; MAT_ID=$(extract_body "$R"|jq -r '.data.id // empty')
 R=$(api_get /classes/$CLASS_ID/materials "$STUDENT1"); assert_status 'Student sees visible material in own class' "$(extract_status "$R")" 200
 R=$(api_patch /materials/$MAT_ID/visibility "$TEACHER" '{"visible":false}'); assert_status 'Teacher hides material success' "$(extract_status "$R")" 200
 R=$(api_post /classes/$CLASS_ID/assignments "$TEACHER" '{"title":"Viết đoạn văn giới thiệu bản thân","instruction":"Viết 200 chữ bằng tiếng Hàn.","maxScore":10,"status":"DRAFT","allowResubmit":true}'); assert_status 'Teacher creates DRAFT assignment success' "$(extract_status "$R")" 201; ASSIGN_ID=$(extract_body "$R"|jq -r '.data.id // empty')
