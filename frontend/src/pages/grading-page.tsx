@@ -1,0 +1,175 @@
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { useGradingQueue, useGradeSubmission, useRequestResubmit } from '../features/grading/hooks'
+import { useClasses } from '../features/classes/hooks'
+import { Card } from '../components/ui/card'
+import { Button } from '../components/ui/button'
+import { Badge } from '../components/ui/badge'
+import { Input } from '../components/ui/input'
+import { Textarea } from '../components/ui/textarea'
+import type { Submission } from '../features/submissions/types'
+
+const gradeSchema = z.object({
+  score: z.coerce.number().min(0, 'Điểm phải lớn hơn hoặc bằng 0'),
+  feedback: z.string().max(1000, 'Nhận xét quá dài').optional(),
+})
+
+export function GradingPage() {
+  const { data: classes } = useClasses()
+  const [classId, setClassId] = useState<string>('')
+  const [statusFilter, setStatusFilter] = useState<string>('ALL')
+  const [selectedSub, setSelectedSub] = useState<Submission | null>(null)
+
+  const { data: queue, isLoading } = useGradingQueue(classId)
+  const gradeMut = useGradeSubmission(classId)
+  const resubmitMut = useRequestResubmit(classId)
+
+  const form = useForm({
+    resolver: zodResolver(gradeSchema),
+    defaultValues: { score: 0, feedback: '' },
+  })
+
+  const filteredQueue = queue?.filter(s => statusFilter === 'ALL' || s.status === statusFilter) || []
+
+  const kpi = {
+    needGrading: queue?.filter(s => s.status === 'SUBMITTED').length || 0,
+    graded: queue?.filter(s => s.status === 'GRADED').length || 0,
+    resubmit: queue?.filter(s => s.status === 'RESUBMIT_REQUESTED').length || 0,
+    avgScore: (queue?.filter(s => s.status === 'GRADED' && s.score != null).reduce((acc, s) => acc + (s.score || 0), 0) || 0) / (queue?.filter(s => s.status === 'GRADED').length || 1)
+  }
+
+  const handleSelect = (sub: Submission) => {
+    setSelectedSub(sub)
+    form.reset({ score: sub.score || 0, feedback: sub.feedback || '' })
+  }
+
+  const onGrade = async (v: any) => {
+    if (!selectedSub) return
+    await gradeMut.mutateAsync({ submissionId: selectedSub.id, req: v })
+    setSelectedSub(prev => prev ? { ...prev, status: 'GRADED', score: v.score, feedback: v.feedback } : null)
+  }
+
+  const onRequestResubmit = async () => {
+    if (!selectedSub) return
+    await resubmitMut.mutateAsync(selectedSub.id)
+    setSelectedSub(prev => prev ? { ...prev, status: 'RESUBMIT_REQUESTED' } : null)
+  }
+
+  return (
+    <div className="space-y-6 h-[calc(100vh-8rem)] flex flex-col">
+      <div className="flex justify-between items-center shrink-0">
+        <h1 className="text-2xl font-bold text-[#1E3A8A]">Chấm bài</h1>
+        <div className="flex gap-3">
+          <select className="border rounded px-3 py-2" value={classId} onChange={e => { setClassId(e.target.value); setSelectedSub(null) }}>
+            <option value="">-- Chọn lớp --</option>
+            {classes?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <select className="border rounded px-3 py-2" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <option value="ALL">Tất cả trạng thái</option>
+            <option value="SUBMITTED">Đã nộp</option>
+            <option value="GRADED">Đã chấm</option>
+            <option value="RESUBMIT_REQUESTED">Cần nộp lại</option>
+          </select>
+        </div>
+      </div>
+
+      {classId && (
+        <div className="grid grid-cols-4 gap-4 shrink-0">
+          <Card className="p-4 text-center"><div className="text-2xl font-bold text-[#F59E0B]">{kpi.needGrading}</div><div className="text-sm text-slate-500">Cần chấm</div></Card>
+          <Card className="p-4 text-center"><div className="text-2xl font-bold text-[#16A34A]">{kpi.graded}</div><div className="text-sm text-slate-500">Đã chấm</div></Card>
+          <Card className="p-4 text-center"><div className="text-2xl font-bold text-[#EF4444]">{kpi.resubmit}</div><div className="text-sm text-slate-500">Cần nộp lại</div></Card>
+          <Card className="p-4 text-center"><div className="text-2xl font-bold text-[#3B82F6]">{kpi.avgScore.toFixed(1)}</div><div className="text-sm text-slate-500">Điểm TB</div></Card>
+        </div>
+      )}
+
+      {!classId && <div className="text-slate-500 text-center py-12">Vui lòng chọn lớp để bắt đầu chấm bài.</div>}
+
+      {classId && (
+        <div className="flex gap-6 flex-1 min-h-0">
+          {/* Left: Queue */}
+          <div className="w-1/3 flex flex-col border rounded-lg bg-white overflow-hidden">
+            <div className="p-3 border-b bg-slate-50 font-medium text-sm">Danh sách bài nộp ({filteredQueue.length})</div>
+            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+              {isLoading && <div className="p-4 text-slate-500 text-center">Đang tải...</div>}
+              {!isLoading && filteredQueue.length === 0 && <div className="p-4 text-slate-500 text-center">Không có bài nộp nào.</div>}
+              {filteredQueue.map(s => (
+                <div 
+                  key={s.id} 
+                  onClick={() => handleSelect(s)}
+                  className={`p-3 border rounded cursor-pointer hover:border-[#3B82F6] transition-colors ${selectedSub?.id === s.id ? 'border-[#3B82F6] bg-blue-50' : ''}`}
+                >
+                  <div className="font-medium text-sm truncate">{s.studentId}</div>
+                  <div className="text-xs text-slate-500 mt-1 truncate">Bài tập: {s.assignmentId}</div>
+                  <div className="flex justify-between items-center mt-2">
+                    <Badge variant={s.status === 'GRADED' ? 'default' : s.status === 'RESUBMIT_REQUESTED' ? 'destructive' : 'outline'}>{s.status}</Badge>
+                    {s.score != null && <span className="text-sm font-semibold text-[#16A34A]">{s.score}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: Grading Panel */}
+          <div className="w-2/3 flex flex-col border rounded-lg bg-white overflow-hidden">
+            {!selectedSub ? (
+              <div className="flex-1 flex items-center justify-center text-slate-500">Chọn một bài nộp để chấm</div>
+            ) : (
+              <div className="flex flex-col h-full">
+                <div className="p-4 border-b bg-slate-50">
+                  <div className="font-bold text-lg">{selectedSub.studentId}</div>
+                  <div className="text-sm text-slate-500">Bài tập: {selectedSub.assignmentId} • Nộp lúc: {selectedSub.submittedAt}</div>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-6">
+                  <div className="mb-6">
+                    <div className="font-semibold mb-2">Nội dung bài nộp:</div>
+                    <div className="p-4 bg-slate-50 rounded border whitespace-pre-wrap min-h-[100px]">
+                      {selectedSub.contentText || <span className="text-slate-400 italic">Không có nội dung văn bản</span>}
+                    </div>
+                    {selectedSub.fileId && (
+                      <div className="mt-3">
+                        <Button variant="outline" size="sm" disabled title="Tải tệp sẽ được bật sau khi module Files hoàn tất.">
+                          Tải file đính kèm ({selectedSub.fileId})
+                        </Button>
+                        <div className="text-xs text-slate-500 mt-1">Tải tệp sẽ được bật sau khi module Files hoàn tất.</div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="border-t pt-6">
+                    <div className="font-semibold mb-4">Chấm điểm & Nhận xét</div>
+                    <form onSubmit={form.handleSubmit(onGrade)} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Điểm số</label>
+                        <Input type="number" step="0.1" {...form.register('score')} className="w-32" />
+                        {form.formState.errors.score && <div className="text-red-500 text-xs mt-1">{form.formState.errors.score.message as string}</div>}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Nhận xét</label>
+                        <Textarea rows={4} {...form.register('feedback')} placeholder="Nhập nhận xét cho học viên..." />
+                        {form.formState.errors.feedback && <div className="text-red-500 text-xs mt-1">{form.formState.errors.feedback.message as string}</div>}
+                      </div>
+                      
+                      {gradeMut.isError && <div className="text-red-500 text-sm">Lỗi: {(gradeMut.error as any)?.response?.data?.message || 'Không thể lưu điểm'}</div>}
+                      
+                      <div className="flex gap-3 pt-2">
+                        <Button type="submit" disabled={gradeMut.isPending}>
+                          {gradeMut.isPending ? 'Đang lưu...' : 'Lưu điểm'}
+                        </Button>
+                        <Button type="button" variant="destructive" onClick={onRequestResubmit} disabled={resubmitMut.isPending}>
+                          {resubmitMut.isPending ? 'Đang xử lý...' : 'Yêu cầu nộp lại'}
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

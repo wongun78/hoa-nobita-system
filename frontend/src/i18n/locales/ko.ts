@@ -1,0 +1,3 @@
+export const ko = {
+  appTitle: '호아 노비타 한국어 플랫폼', login: '로그인', dashboard: '대시보드', classes: '수업', myClasses: '내 수업', managedClasses: '담당 수업', assignments: '과제', submissions: '내 제출', users: '사용자', notifications: '알림', changePassword: '비밀번호 변경', materials: '자료', forbidden: '접근 권한이 없습니다', notFound: '페이지를 찾을 수 없습니다', loading: '불러오는 중...', empty: '데이터가 없습니다', error: '데이터를 불러올 수 없습니다.', detail: '자세히 보기', submit: '제출', submissionContent: '제출 내용', viewSubmissions: '제출 보기', status: '상태', role: '역할', logout: '로그아웃', emailOrPhone: '이메일 또는 전화번호', password: '비밀번호', loginFailed: '로그인 실패', cleanSystem: '깨끗한 블루 한국어 학습 시스템', ready: '실제 API 연결, 로딩/빈/오류 상태가 준비된 화면입니다.', classDetail: '수업 상세', newNotifications: '새 알림', openAssignments: '진행 중 과제', gradingQueue: '채점 대기'
+}

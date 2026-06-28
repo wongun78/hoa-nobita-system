@@ -1,0 +1,12 @@
+@import "tailwindcss";
+:root {
+  --font-vi: "Be Vietnam Pro", "Inter", system-ui, sans-serif;
+  --font-ko: "Noto Sans KR", "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-ui: "Be Vietnam Pro", "Inter", "Noto Sans KR", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: var(--font-ui); background: #F5FAFF; color: #0F172A; }
+:lang(ko), .font-ko { font-family: var(--font-ko); word-break: keep-all; }
+:lang(vi), .font-vi { font-family: var(--font-vi); }
+button, input, textarea { font: inherit; }
+a { text-decoration: none; }
