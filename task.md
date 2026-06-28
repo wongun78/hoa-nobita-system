@@ -100,10 +100,6 @@
 | /dashboard/student | ✅ DONE | Own classes, assignments, submissions, feedback |
 | ActivityLog entity | ✅ DONE | Implemented in Sprint 10 |
 | Additional dashboard queries | ✅ DONE | Extended repositories for dashboard calculations |
-| /dashboard/admin | ✅ DONE | Scoped to assigned classes only |
-| /dashboard/student | ✅ DONE | Own classes, assignments, submissions, feedback |
-| ActivityLog entity | DEFERRED | Using derived activity from submissions/grades for now |
-| Additional dashboard queries | ✅ DONE | Extended repositories for dashboard calculations |
 
 ## FRONTEND GAPS (from audit)
 
