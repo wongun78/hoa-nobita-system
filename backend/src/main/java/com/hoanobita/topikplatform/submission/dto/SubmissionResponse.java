@@ -16,6 +16,7 @@ public record SubmissionResponse(
         UUID fileId,
         String status,
         Instant submittedAt,
+        UUID gradeId,
         BigDecimal score,
         BigDecimal maxScore,
         String feedback

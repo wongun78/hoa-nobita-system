@@ -54,6 +54,7 @@ public class GradingService {
         Submission s = submissions.findActiveById(submissionId).orElseThrow(() -> BusinessException.notFound("Submission not found"));
         Assignment a = assignments.findActiveById(s.getAssignmentId()).orElseThrow(() -> BusinessException.notFound("Assignment not found"));
         permissions.requireManageClass(security.currentUser(), a.getClassId());
+        if (req.score().signum() < 0) throw BusinessException.badRequest("Score cannot be negative");
         if (req.score().compareTo(a.getMaxScore()) > 0) throw BusinessException.badRequest("Score cannot exceed assignment max score");
         Grade g = grades.findBySubmissionId(submissionId).orElseGet(Grade::new);
         g.setSubmissionId(submissionId);
@@ -73,6 +74,7 @@ public class GradingService {
         Submission s = submissions.findActiveById(g.getSubmissionId()).orElseThrow(() -> BusinessException.notFound("Submission not found"));
         Assignment a = assignments.findActiveById(s.getAssignmentId()).orElseThrow(() -> BusinessException.notFound("Assignment not found"));
         permissions.requireManageClass(security.currentUser(), a.getClassId());
+        if (req.score().signum() < 0) throw BusinessException.badRequest("Score cannot be negative");
         if (req.score().compareTo(a.getMaxScore()) > 0) throw BusinessException.badRequest("Score cannot exceed assignment max score");
         g.setScore(req.score());
         g.setFeedback(req.feedback());

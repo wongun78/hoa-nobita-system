@@ -6,6 +6,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.stream.Collectors;
@@ -36,6 +37,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleMaxUpload(MaxUploadSizeExceededException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error("File size exceeds maximum allowed size"));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAccessDenied(AccessDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error("Access Denied"));
     }
 
     @ExceptionHandler(Exception.class)

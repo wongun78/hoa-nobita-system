@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 set -u
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BASE_URL="${BASE_URL:-http://localhost:8080/api/v1}"
 TOTAL=0; PASSED=0; FAILED=0
+cleanup(){
+  if [[ "${SKIP_TEST_CLEANUP:-0}" != "1" ]]; then
+    echo "[INFO] Restoring deterministic demo data after API tests..."
+    bash "$ROOT_DIR/scripts/seed-demo-data.sh" >/dev/null || true
+  fi
+}
+trap cleanup EXIT
 RED='\033[0;31m'; GREEN='\033[0;32m'; BLUE='\033[0;34m'; NC='\033[0m'
 log_info(){ echo -e "${BLUE}[INFO]${NC} $*"; }
 log_success(){ echo -e "${GREEN}[PASS]${NC} $*"; }
@@ -18,7 +26,7 @@ login(){ local id="$1" pass="$2"; local r; r=$(api_post /auth/login '' "{\"ident
 need(){ command -v "$1" >/dev/null || { echo "$1 is required"; exit 1; }; }
 need curl; need jq
 log_info "Testing $BASE_URL"
-TEACHER=$(login teacher@hoanobita.com Password123!); ADMIN=$(login admin@hoanobita.com Password123!); STUDENT1=$(login student1@hoanobita.com Password123!); STUDENT2=$(login student2@hoanobita.com Password123!)
+TEACHER=$(login teacher@hoanobita.com Password123!); ADMIN=$(login admin.chieu@hoanobita.com Password123!); STUDENT1=$(login student.chieu1@hoanobita.com Password123!); STUDENT2=$(login student.chieu2@hoanobita.com Password123!)
 [[ -z "$TEACHER" ]] && { log_error "Teacher login failed; is backend running?"; exit 1; }
 # Auth
 for item in "teacher:$TEACHER" "admin:$ADMIN" "student1:$STUDENT1" "student2:$STUDENT2"; do [[ -n "${item#*:}" ]] && { TOTAL=$((TOTAL+1)); PASSED=$((PASSED+1)); log_success "Login ${item%%:*} success"; } || { TOTAL=$((TOTAL+1)); FAILED=$((FAILED+1)); log_error "Login ${item%%:*}"; }; done
@@ -32,17 +40,18 @@ R=$(api_get /dashboard/student "$STUDENT1"); assert_status 'Student dashboard re
 R=$(api_get /dashboard/teacher "$STUDENT1"); assert_status 'Student cannot access teacher dashboard' "$(extract_status "$R")" 403
 R=$(api_get /dashboard/teacher "$ADMIN"); assert_status 'Admin cannot access teacher dashboard' "$(extract_status "$R")" 403
 # Users
-SUFFIX=$(date +%s)
-R=$(api_post /users "$TEACHER" "{\"fullName\":\"Học viên API $SUFFIX\",\"email\":\"api$SUFFIX@hoanobita.com\",\"phone\":\"098$SUFFIX\",\"role\":\"STUDENT\"}"); assert_status 'Teacher creates student success' "$(extract_status "$R")" 201; NEW_STUDENT_ID=$(extract_body "$R"|jq -r '.data.id // empty'); TMP_PASS=$(extract_body "$R"|jq -r '.data.temporaryPassword // empty')
-R=$(api_post /users "$ADMIN" "{\"fullName\":\"Học viên Admin $SUFFIX\",\"email\":\"adminapi$SUFFIX@hoanobita.com\",\"phone\":\"099$SUFFIX\",\"role\":\"STUDENT\"}"); assert_status 'Admin creates student success' "$(extract_status "$R")" 201
-R=$(api_post /users "$STUDENT1" "{\"fullName\":\"Bad\",\"email\":\"bad$SUFFIX@x.com\",\"role\":\"STUDENT\"}"); assert_status 'Student creates user returns 403' "$(extract_status "$R")" 403
+RUN_ID=$(date +%s)
+SUFFIX="TEST_API_$RUN_ID"
+R=$(api_post /users "$TEACHER" "{\"fullName\":\"TEST_API Học viên $RUN_ID\",\"email\":\"test.api.$RUN_ID@hoanobita.com\",\"phone\":\"098$RUN_ID\",\"role\":\"STUDENT\"}"); assert_status 'Teacher creates student success' "$(extract_status "$R")" 201; NEW_STUDENT_ID=$(extract_body "$R"|jq -r '.data.id // empty'); TMP_PASS=$(extract_body "$R"|jq -r '.data.temporaryPassword // empty')
+R=$(api_post /users "$ADMIN" "{\"fullName\":\"TEST_API Học viên Admin $RUN_ID\",\"email\":\"test.api.admin.$RUN_ID@hoanobita.com\",\"phone\":\"099$RUN_ID\",\"role\":\"STUDENT\"}"); assert_status 'Admin creates student success' "$(extract_status "$R")" 201
+R=$(api_post /users "$STUDENT1" "{\"fullName\":\"Bad\",\"email\":\"bad.$RUN_ID@x.com\",\"role\":\"STUDENT\"}"); assert_status 'Student creates user returns 403' "$(extract_status "$R")" 403
 R=$(api_get /users "$TEACHER"); assert_status 'Teacher list users returns 200' "$(extract_status "$R")" 200
 R=$(api_get /users "$STUDENT1"); assert_status 'Student list users returns 403' "$(extract_status "$R")" 403
 R=$(api_patch /users/$NEW_STUDENT_ID/status "$TEACHER" '{"status":"SUSPENDED"}'); assert_status 'Teacher suspends user success' "$(extract_status "$R")" 200
-if [[ -n "$TMP_PASS" ]]; then R=$(api_post /auth/login '' "{\"identifier\":\"api$SUFFIX@hoanobita.com\",\"password\":\"$TMP_PASS\"}"); assert_status 'Suspended user cannot login' "$(extract_status "$R")" 401; fi
+if [[ -n "$TMP_PASS" ]]; then R=$(api_post /auth/login '' "{\"identifier\":\"test.api.$RUN_ID@hoanobita.com\",\"password\":\"$TMP_PASS\"}"); assert_status 'Suspended user cannot login' "$(extract_status "$R")" 401; fi
 # Classes
-R=$(api_post /classes "$TEACHER" "{\"name\":\"API TOPIK $SUFFIX\",\"code\":\"API-$SUFFIX\",\"description\":\"Lớp kiểm thử API\",\"levelFrom\":2,\"levelTo\":4,\"status\":\"ACTIVE\"}"); assert_status 'Teacher creates class success' "$(extract_status "$R")" 201; CLASS_ID=$(extract_body "$R"|jq -r '.data.id // empty')
-R=$(api_post /classes "$STUDENT1" "{\"name\":\"Bad\",\"code\":\"BAD-$SUFFIX\",\"levelFrom\":1,\"levelTo\":2}"); assert_status 'Student creates class returns 403' "$(extract_status "$R")" 403
+R=$(api_post /classes "$TEACHER" "{\"name\":\"TEST_API TOPIK $RUN_ID\",\"code\":\"TESTAPI$RUN_ID\",\"description\":\"Lớp kiểm thử API cô lập\",\"levelFrom\":2,\"levelTo\":4,\"status\":\"ACTIVE\"}"); assert_status 'Teacher creates class success' "$(extract_status "$R")" 201; CLASS_ID=$(extract_body "$R"|jq -r '.data.id // empty')
+R=$(api_post /classes "$STUDENT1" "{\"name\":\"Bad\",\"code\":\"BAD$RUN_ID\",\"levelFrom\":1,\"levelTo\":2}"); assert_status 'Student creates class returns 403' "$(extract_status "$R")" 403
 ADMIN_ID=$(api_get /auth/me "$ADMIN"|sed '$d'|jq -r '.data.id'); STUDENT1_ID=$(api_get /auth/me "$STUDENT1"|sed '$d'|jq -r '.data.id')
 R=$(api_post /classes/$CLASS_ID/admins "$TEACHER" "{\"userId\":\"$ADMIN_ID\"}"); assert_status 'Teacher assigns admin to class success' "$(extract_status "$R")" 200
 R=$(api_post /classes/$CLASS_ID/students "$TEACHER" "{\"userId\":\"$STUDENT1_ID\"}"); assert_status 'Teacher adds student to class success' "$(extract_status "$R")" 200
@@ -85,7 +94,7 @@ R=$(api_get /users/$ADMIN_ID/progress "$STUDENT1"); assert_status 'Student canno
 R=$(api_get /users/$STUDENT1_ID/progress "$ADMIN"); assert_status 'Admin sees progress of student in assigned class' "$(extract_status "$R")" 200
 
 # Create a student not in admin's class
-R=$(api_post /users "$TEACHER" "{\"fullName\":\"Học viên ngoài lớp $SUFFIX\",\"email\":\"out$SUFFIX@hoanobita.com\",\"phone\":\"097$SUFFIX\",\"role\":\"STUDENT\"}"); assert_status 'Teacher creates outside student success' "$(extract_status "$R")" 201; OUT_STUDENT_ID=$(extract_body "$R"|jq -r '.data.id // empty')
+R=$(api_post /users "$TEACHER" "{\"fullName\":\"TEST_API Học viên ngoài lớp $RUN_ID\",\"email\":\"test.api.out.$RUN_ID@hoanobita.com\",\"phone\":\"097$RUN_ID\",\"role\":\"STUDENT\"}"); assert_status 'Teacher creates outside student success' "$(extract_status "$R")" 201; OUT_STUDENT_ID=$(extract_body "$R"|jq -r '.data.id // empty')
 R=$(api_get /users/$OUT_STUDENT_ID/progress "$ADMIN"); assert_status 'Admin cannot see progress of student outside assigned class' "$(extract_status "$R")" 403
 
 # Notifications and validation/soft delete
@@ -103,13 +112,10 @@ R=$(api_post /notifications "$ADMIN" '{"title":"Admin System Update","content":"
 R=$(api_post /notifications "$ADMIN" "{\"title\":\"Class Update\",\"content\":\"No class tomorrow\",\"targetType\":\"CLASS\",\"targetId\":\"$CLASS_ID\"}"); assert_status 'Admin creates CLASS notification for assigned class' "$(extract_status "$R")" 201; NOTIF_CLASS_ID=$(extract_body "$R"|jq -r '.data.id // empty')
 
 # 4. Admin tries to create CLASS notification for unassigned class (should fail)
-# Get a class NOT assigned to admin (assuming teacher has one)
-UNASSIGNED_CLASS_ID=$(api_get /classes "$TEACHER" | sed '$d' | jq -r "[.data[] | select(.id != \"$CLASS_ID\")][0].id")
-if [[ "$UNASSIGNED_CLASS_ID" == "null" || -z "$UNASSIGNED_CLASS_ID" ]]; then
-  # Create one if it doesn't exist
-  R_NEW_CLASS=$(api_post /classes "$TEACHER" "{\"name\":\"Unassigned Class\",\"code\":\"UNASSIGNED\",\"levelFrom\":1,\"levelTo\":2,\"status\":\"ACTIVE\"}")
-  UNASSIGNED_CLASS_ID=$(extract_body "$R_NEW_CLASS"|jq -r '.data.id // empty')
-fi
+# Always create a new class to ensure it is unassigned
+R_NEW_CLASS=$(api_post /classes "$TEACHER" "{\"name\":\"TEST_API Unassigned Class $RUN_ID\",\"code\":\"TESTUN$RUN_ID\",\"levelFrom\":1,\"levelTo\":2,\"status\":\"ACTIVE\"}")
+UNASSIGNED_CLASS_ID=$(extract_body "$R_NEW_CLASS"|jq -r '.data.id // empty')
+
 R=$(api_post /notifications "$ADMIN" "{\"title\":\"Class Update\",\"content\":\"No class tomorrow\",\"targetType\":\"CLASS\",\"targetId\":\"$UNASSIGNED_CLASS_ID\"}"); assert_status 'Admin creates CLASS notification for unassigned class returns 403' "$(extract_status "$R")" 403
 
 # 5. Student tries to create notification (should fail)
@@ -138,6 +144,24 @@ R=$(api_post /users "$TEACHER" '{"fullName":"Bad","email":"not-email","role":"ST
 R=$(api_post /classes "$TEACHER" '{"name":"Bad","code":"BADLEVEL","levelFrom":5,"levelTo":1}'); assert_status 'Create class with level_from > level_to returns 400' "$(extract_status "$R")" 400
 R=$(api_post /classes/$CLASS_ID/assignments "$TEACHER" '{"title":"Bad","maxScore":-1}'); assert_status 'Create assignment with negative maxScore returns 400' "$(extract_status "$R")" 400
 R=$(api_post /classes/$CLASS_ID/materials "$TEACHER" '{"title":"Bad"}'); assert_status 'Create material without fileId and externalUrl returns 400' "$(extract_status "$R")" 400
+# Reports
+R=$(api_get /reports/system "$TEACHER"); assert_status 'Teacher system report returns 200' "$(extract_status "$R")" 200
+R=$(api_get /reports/system "$ADMIN"); assert_status 'Admin system report returns 403' "$(extract_status "$R")" 403
+R=$(api_get /reports/system "$STUDENT1"); assert_status 'Student system report returns 403' "$(extract_status "$R")" 403
+R=$(api_get /reports/classes/$CLASS_ID "$TEACHER"); assert_status 'Teacher class report returns 200' "$(extract_status "$R")" 200
+R=$(api_get /reports/classes/$CLASS_ID "$ADMIN"); assert_status 'Admin class report returns 200' "$(extract_status "$R")" 200
+R=$(api_get /reports/classes/$UNASSIGNED_CLASS_ID "$ADMIN"); assert_status 'Admin unassigned class report returns 403' "$(extract_status "$R")" 403
+R=$(api_get /reports/classes/$CLASS_ID "$STUDENT1"); assert_status 'Student class report returns 403' "$(extract_status "$R")" 403
+
+# Activity
+R=$(api_get /activity/recent "$TEACHER"); assert_status 'Teacher activity returns 200' "$(extract_status "$R")" 200
+R=$(api_get /activity/recent "$ADMIN"); assert_status 'Admin activity returns 200' "$(extract_status "$R")" 200
+R=$(api_get /activity/recent "$STUDENT1"); assert_status 'Student activity returns 200' "$(extract_status "$R")" 200
+R=$(api_get /classes/$CLASS_ID/activity "$TEACHER"); assert_status 'Teacher class activity returns 200' "$(extract_status "$R")" 200
+R=$(api_get /classes/$CLASS_ID/activity "$ADMIN"); assert_status 'Admin class activity returns 200' "$(extract_status "$R")" 200
+R=$(api_get /classes/$UNASSIGNED_CLASS_ID/activity "$ADMIN"); assert_status 'Admin unassigned class activity returns 403' "$(extract_status "$R")" 403
+R=$(api_get /classes/$UNASSIGNED_CLASS_ID/activity "$STUDENT1"); assert_status 'Student unassigned class activity returns 403' "$(extract_status "$R")" 403
+
 # pad named coverage up to 65+ with read checks
 for i in {1..25}; do R=$(api_get /classes "$TEACHER"); assert_status "Regression scoped list $i" "$(extract_status "$R")" 200; done
 echo "Total tests: $TOTAL"; echo "Passed: $PASSED"; echo "Failed: $FAILED"

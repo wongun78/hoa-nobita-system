@@ -180,7 +180,7 @@ function StudentProgressPanel({ userId }: { userId: string }) {
   const getRiskLabel = (level: string) => {
     switch(level) {
       case 'HIGH': return 'Nguy cơ cao'
-      case 'MEDIUM': return 'Cần chú ý'
+      case 'MEDIUM': return 'Needs Attention'
       case 'LOW': return 'Tốt'
       default: return 'Chưa xác định'
     }

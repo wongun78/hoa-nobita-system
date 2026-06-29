@@ -79,14 +79,14 @@ public class PermissionService {
     /** Require manage access or throw */
     public void requireManageClass(User user, UUID classId) {
         if (!canManageClass(user, classId)) {
-            throw BusinessException.forbidden("You do not have permission to manage this class");
+            throw new org.springframework.security.access.AccessDeniedException("You do not have permission to manage this class");
         }
     }
 
     /** Require access or throw */
     public void requireAccessClass(User user, UUID classId) {
         if (!canAccessClass(user, classId)) {
-            throw BusinessException.forbidden("You do not have permission to access this class");
+            throw new org.springframework.security.access.AccessDeniedException("You do not have permission to access this class");
         }
     }
 

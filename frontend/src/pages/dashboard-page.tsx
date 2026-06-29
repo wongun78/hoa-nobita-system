@@ -35,8 +35,8 @@ export function DashboardPage() {
               <div className="text-sm opacity-80">{d.currentDate}</div>
               <h1 className="text-4xl font-bold mt-2">Chào {d.greetingName}, hôm nay có {d.todayActionCount} việc cần xử lý</h1>
               <div className="mt-4 flex gap-6 text-sm">
-                <div><span className="opacity-70">Lớp active:</span> <span className="font-semibold">{d.activeClassCount}</span></div>
-                <div><span className="opacity-70">Học viên active:</span> <span className="font-semibold">{d.activeStudentCount}</span></div>
+                <div><span className="opacity-70">Lớp đang hoạt động:</span> <span className="font-semibold">{d.activeClassCount}</span></div>
+                <div><span className="opacity-70">Học viên đang học:</span> <span className="font-semibold">{d.activeStudentCount}</span></div>
                 <div><span className="opacity-70">Cần chấm:</span> <span className="font-semibold">{d.needGradingCount}</span></div>
                 <div><span className="opacity-70">Quá hạn/chưa nộp:</span> <span className="font-semibold">{d.overdueMissingSubmissionCount}</span></div>
               </div>
@@ -50,13 +50,13 @@ export function DashboardPage() {
 
         {/* KPI Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-          <KpiCard icon={<BookOpen className="w-4 h-4" />} label="Lớp học" value={d.kpi.classes.total} sub={`${d.kpi.classes.active} active`} />
-          <KpiCard icon={<Users className="w-4 h-4" />} label="Học viên" value={d.kpi.students.total} sub={`${d.kpi.students.newLast7Days} mới 7d`} />
+          <KpiCard icon={<BookOpen className="w-4 h-4" />} label="Lớp học" value={d.kpi.classes.total} sub={`${d.kpi.classes.active} đang hoạt động`} />
+          <KpiCard icon={<Users className="w-4 h-4" />} label="Học viên" value={d.kpi.students.total} sub={`${d.kpi.students.newLast7Days} mới trong 7 ngày`} />
           <KpiCard icon={<Clock className="w-4 h-4" />} label="Bài tập" value={d.kpi.assignments.total} sub={`${d.kpi.assignments.dueSoon48h} sắp hạn`} />
           <KpiCard icon={<AlertCircle className="w-4 h-4" />} label="Cần chấm" value={d.kpi.submissions.needGrading} sub={`${d.kpi.submissions.late} nộp trễ`} />
-          <KpiCard icon={<Award className="w-4 h-4" />} label="Điểm TB" value={d.kpi.grading.averageScore.toFixed(1)} sub={`${d.kpi.grading.passRate}% pass`} />
+          <KpiCard icon={<Award className="w-4 h-4" />} label="Điểm TB" value={d.kpi.grading.averageScore.toFixed(1)} sub={`${d.kpi.grading.passRate}% đạt yêu cầu`} />
           <KpiCard icon={<BookOpen className="w-4 h-4" />} label="Tài liệu" value={d.kpi.materials.total} sub={`${d.kpi.materials.hidden} ẩn`} />
-          <KpiCard icon={<TrendingUp className="w-4 h-4" />} label="Thông báo" value={d.kpi.notifications.sentLast7Days} sub={`${d.kpi.notifications.globalCount} global`} />
+          <KpiCard icon={<TrendingUp className="w-4 h-4" />} label="Thông báo" value={d.kpi.notifications.sentLast7Days} sub={`${d.kpi.notifications.globalCount} toàn hệ thống`} />
         </div>
 
         {/* Charts Row */}
@@ -185,8 +185,8 @@ export function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <KpiCard label="Lớp phụ trách" value={d.kpi.classes.assignedTotal} sub={`${d.kpi.classes.active} active`} />
-          <KpiCard label="Học viên" value={d.kpi.students.totalInAssignedClasses} sub={`${d.kpi.students.suspended} suspended`} />
+          <KpiCard label="Lớp phụ trách" value={d.kpi.classes.assignedTotal} sub={`${d.kpi.classes.active} đang hoạt động`} />
+          <KpiCard label="Học viên" value={d.kpi.students.totalInAssignedClasses} sub={`${d.kpi.students.suspended} tạm dừng`} />
           <KpiCard label="Bài tập" value={d.kpi.assignments.published} sub={`${d.kpi.assignments.dueSoon48h} sắp hạn`} />
           <KpiCard label="Cần chấm" value={d.kpi.submissions.needGrading} sub={`${d.kpi.submissions.late} nộp trễ`} />
         </div>

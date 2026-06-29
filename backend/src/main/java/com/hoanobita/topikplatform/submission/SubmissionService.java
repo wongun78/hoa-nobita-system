@@ -102,12 +102,15 @@ public class SubmissionService {
         User user = security.currentUser();
         if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Cannot edit this submission");
         if (s.getStatus() == SubmissionStatus.GRADED) throw BusinessException.badRequest("Graded submission cannot be edited");
+        Assignment a = assignment(s.getAssignmentId());
+        if (a.getStatus() != AssignmentStatus.PUBLISHED) throw BusinessException.badRequest("Assignment is not open for submission updates");
         if (blank(req.contentText()) && blank(req.contentUrl()) && req.fileId() == null) throw BusinessException.badRequest("Submission must include text, URL, or file");
         s.setContentText(req.contentText());
         s.setContentUrl(req.contentUrl());
         s.setFileId(req.fileId());
+        s.setSubmittedAt(Instant.now());
+        s.setStatus(a.getDueAt() != null && Instant.now().isAfter(a.getDueAt()) ? SubmissionStatus.LATE : SubmissionStatus.SUBMITTED);
         repo.save(s);
-        Assignment a = assignment(s.getAssignmentId());
         activityService.log("SUBMISSION_UPDATED", "SUBMISSION", s.getId(), "Bài nộp của " + user.getFullName(), a.getClassId(), "Học viên " + user.getFullName() + " đã cập nhật bài nộp cho bài tập: " + a.getTitle());
         return toResponse(s);
     }
@@ -117,9 +120,11 @@ public class SubmissionService {
         Submission s = find(id);
         User user = security.currentUser();
         if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Cannot delete this submission");
+        if (s.getStatus() == SubmissionStatus.GRADED) throw BusinessException.badRequest("Graded submission cannot be deleted");
+        Assignment a = assignment(s.getAssignmentId());
+        if (a.getStatus() != AssignmentStatus.PUBLISHED) throw BusinessException.badRequest("Assignment is not open for submission changes");
         s.setDeletedAt(Instant.now());
         repo.save(s);
-        Assignment a = assignment(s.getAssignmentId());
         activityService.log("SUBMISSION_DELETED", "SUBMISSION", s.getId(), "Bài nộp của " + user.getFullName(), a.getClassId(), "Học viên " + user.getFullName() + " đã xóa bài nộp cho bài tập: " + a.getTitle());
     }
 
@@ -150,7 +155,8 @@ public class SubmissionService {
                 s.getContentUrl(), 
                 s.getFileId(), 
                 s.getStatus().name(), 
-                s.getSubmittedAt(), 
+                s.getSubmittedAt(),
+                grade == null ? null : grade.getId(),
                 grade == null ? null : grade.getScore(), 
                 assignment != null ? assignment.getMaxScore() : null,
                 grade == null ? null : grade.getFeedback()

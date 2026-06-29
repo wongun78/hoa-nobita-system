@@ -9,6 +9,7 @@ export interface Submission {
   contentUrl?: string
   fileId?: string
   status: 'SUBMITTED' | 'GRADED' | 'RESUBMIT_REQUESTED' | 'LATE'
+  gradeId?: string
   score?: number
   maxScore?: number
   feedback?: string

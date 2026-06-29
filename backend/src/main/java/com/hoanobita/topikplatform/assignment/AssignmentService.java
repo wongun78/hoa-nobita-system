@@ -5,6 +5,7 @@ import com.hoanobita.topikplatform.assignment.dto.AssignmentRequest;
 import com.hoanobita.topikplatform.assignment.dto.AssignmentResponse;
 import com.hoanobita.topikplatform.assignment.entity.Assignment;
 import com.hoanobita.topikplatform.assignment.repository.AssignmentRepository;
+import com.hoanobita.topikplatform.classroom.repository.KlassRepository;
 import com.hoanobita.topikplatform.common.BusinessException;
 import com.hoanobita.topikplatform.common.Enums.AssignmentStatus;
 import com.hoanobita.topikplatform.common.PermissionService;
@@ -21,12 +22,14 @@ import java.util.UUID;
 @Service
 public class AssignmentService {
     private final AssignmentRepository repo;
+    private final KlassRepository klasses;
     private final PermissionService permissions;
     private final SecurityUtils security;
     private final ActivityService activityService;
 
-    public AssignmentService(AssignmentRepository repo, PermissionService permissions, SecurityUtils security, ActivityService activityService) {
+    public AssignmentService(AssignmentRepository repo, KlassRepository klasses, PermissionService permissions, SecurityUtils security, ActivityService activityService) {
         this.repo = repo;
+        this.klasses = klasses;
         this.permissions = permissions;
         this.security = security;
         this.activityService = activityService;
@@ -123,8 +126,11 @@ public class AssignmentService {
         a.setInstruction(src.getInstruction());
         a.setMaxScore(src.getMaxScore());
         a.setAllowResubmit(src.isAllowResubmit());
+        a.setDueAt(src.getDueAt());
         a.setStatus(AssignmentStatus.DRAFT);
-        return toResponse(repo.save(a));
+        repo.save(a);
+        activityService.log("ASSIGNMENT_COPIED", "ASSIGNMENT", a.getId(), a.getTitle(), a.getClassId(), "Đã sao chép bài tập: " + src.getTitle());
+        return toResponse(a);
     }
 
     public Assignment find(UUID id) {
@@ -146,6 +152,7 @@ public class AssignmentService {
     }
 
     public AssignmentResponse toResponse(Assignment a) {
-        return new AssignmentResponse(a.getId(), a.getClassId(), null, a.getLessonId(), a.getTitle(), a.getDescription(), a.getInstruction(), a.getDueAt(), a.getMaxScore(), a.getStatus().name(), a.isAllowResubmit(), a.getCreatedAt());
+        String className = klasses.findById(a.getClassId()).map(k -> k.getName()).orElse(null);
+        return new AssignmentResponse(a.getId(), a.getClassId(), className, a.getLessonId(), a.getTitle(), a.getDescription(), a.getInstruction(), a.getDueAt(), a.getMaxScore(), a.getStatus().name(), a.isAllowResubmit(), a.getCreatedAt());
     }
 }

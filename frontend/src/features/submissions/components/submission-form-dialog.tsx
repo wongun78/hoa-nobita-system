@@ -56,7 +56,7 @@ export function SubmissionFormDialog({ open, onClose, submission, assignmentId }
           <label className="block text-sm font-medium text-slate-700 mb-1">Nội dung</label>
           <Textarea 
             {...form.register('contentText')} 
-            placeholder="Nhập nội dung bài làm..." 
+            placeholder="Nhập nội dung bài nộp..." 
             className="min-h-[150px]"
           />
           {form.formState.errors.contentText && (

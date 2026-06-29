@@ -23,6 +23,133 @@ import { useDownloadFile } from '../features/files/hooks'
 
 import { useClassActivity } from '../features/activity/hooks'
 import { RecentActivityTimeline } from '../features/activity/components/recent-activity-timeline'
+import { useClassReport } from '../features/reports/hooks'
+import { Users, FileText, TrendingUp, CheckCircle } from 'lucide-react'
+
+function ClassReportTab({ classId }: { classId: string }) {
+  const { data: report, isLoading, error } = useClassReport(classId)
+
+  if (isLoading) return <div className="text-slate-500 text-sm">Đang tải báo cáo...</div>
+  if (error || !report) return <div className="text-red-500 text-sm">Lỗi khi tải báo cáo.</div>
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <h3 className="text-sm font-medium">Học viên</h3>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div>
+            <div className="text-2xl font-bold">{report.totalStudents}</div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <h3 className="text-sm font-medium">Bài tập</h3>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div>
+            <div className="text-2xl font-bold">{report.totalAssignments}</div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <h3 className="text-sm font-medium">Tỷ lệ nộp bài</h3>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div>
+            <div className="text-2xl font-bold">{report.submissionRate.toFixed(1)}%</div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <h3 className="text-sm font-medium">Điểm trung bình</h3>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div>
+            <div className="text-2xl font-bold">{report.averageScore.toFixed(2)}</div>
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <div className="mb-4">
+            <h2 className="font-semibold">Hiệu suất học viên</h2>
+          </div>
+          <div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-muted-foreground">
+                  <th className="py-2 font-medium">Học viên</th>
+                  <th className="py-2 text-right font-medium">Bài nộp</th>
+                  <th className="py-2 text-right font-medium">Điểm TB</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.studentPerformances.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="py-6 text-center text-muted-foreground">
+                      Chưa có dữ liệu
+                    </td>
+                  </tr>
+                ) : (
+                  report.studentPerformances.map((student) => (
+                    <tr key={student.userId} className="border-b last:border-0">
+                      <td className="py-3">
+                        <div className="font-medium">{student.fullName}</div>
+                        <div className="text-xs text-muted-foreground">{student.email}</div>
+                      </td>
+                      <td className="py-3 text-right">{student.submissionCount}</td>
+                      <td className="py-3 text-right font-bold text-primary">
+                        {student.averageScore.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="mb-4">
+            <h2 className="font-semibold">Hiệu suất bài tập</h2>
+          </div>
+          <div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-muted-foreground">
+                  <th className="py-2 font-medium">Bài tập</th>
+                  <th className="py-2 text-right font-medium">Bài nộp</th>
+                  <th className="py-2 text-right font-medium">Điểm TB</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.assignmentPerformances.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="py-6 text-center text-muted-foreground">
+                      Chưa có dữ liệu
+                    </td>
+                  </tr>
+                ) : (
+                  report.assignmentPerformances.map((assignment) => (
+                    <tr key={assignment.assignmentId} className="border-b last:border-0">
+                      <td className="py-3 font-medium">{assignment.title}</td>
+                      <td className="py-3 text-right">{assignment.submissionCount}</td>
+                      <td className="py-3 text-right">{assignment.averageScore.toFixed(2)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
+    </div>
+  )
+}
 
 function ClassActivityTab({ classId }: { classId: string }) {
   const { data, isLoading } = useClassActivity(classId)
@@ -107,6 +234,7 @@ export function ClassDetailPage() {
     { id: 'grading', label: 'Chấm bài' },
     { id: 'notifications', label: 'Thông báo' },
     { id: 'activity', label: 'Hoạt động' },
+    { id: 'reports', label: 'Báo cáo' },
     ...(canManage ? [{ id: 'students', label: 'Học viên' }, { id: 'settings', label: 'Cài đặt' }] : []),
   ]
 
@@ -259,6 +387,11 @@ export function ClassDetailPage() {
           <div className="space-y-4">
             <div className="text-sm text-slate-500">Hoạt động gần đây của lớp</div>
             <ClassActivityTab classId={id} />
+          </div>
+        )}
+        {tab === 'reports' && (
+          <div className="space-y-4">
+            <ClassReportTab classId={id} />
           </div>
         )}
         {tab === 'students' && canManage && (

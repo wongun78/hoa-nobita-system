@@ -41,13 +41,13 @@ public class NotificationService {
     @Transactional
     public NotificationResponse create(NotificationRequest req) {
         User user = security.currentUser();
-        if (user.isStudent()) throw BusinessException.forbidden("Students cannot create notifications");
+        if (user.isStudent()) throw new org.springframework.security.access.AccessDeniedException("Students cannot create notifications");
         if (req.targetType() == TargetType.ALL) permissions.requireTeacher(user);
         if (req.targetType() == TargetType.CLASS) {
             if (req.targetId() == null) throw BusinessException.badRequest("Class target is required");
             permissions.requireManageClass(user, req.targetId());
         }
-        if (req.targetType() == TargetType.USER && !user.isTeacher()) throw BusinessException.forbidden("Only teacher can target users directly");
+        if (req.targetType() == TargetType.USER && !user.isTeacher()) throw new org.springframework.security.access.AccessDeniedException("Only teacher can target users directly");
         Notification n = new Notification();
         n.setTitle(req.title());
         n.setContent(req.content());

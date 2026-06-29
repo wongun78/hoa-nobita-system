@@ -20,8 +20,8 @@ export function ChangePasswordPage() {
     <Card className="max-w-md">
       <h1 className="text-xl font-bold mb-4">Đổi mật khẩu</h1>
       <div className="space-y-3">
-        <Input type="password" placeholder="Mật khẩu hiện tại" value={current} onChange={e => setCurrent(e.target.value)} />
-        <Input type="password" placeholder="Mật khẩu mới" value={next} onChange={e => setNext(e.target.value)} />
+        <Input type="password" placeholder="Current Password" value={current} onChange={e => setCurrent(e.target.value)} />
+        <Input type="password" placeholder="New Password" value={next} onChange={e => setNext(e.target.value)} />
         <Button onClick={() => mut.mutate()} disabled={mut.isPending}>Đổi mật khẩu</Button>
         {msg && <p className="text-sm text-emerald-600">{msg}</p>}
       </div>

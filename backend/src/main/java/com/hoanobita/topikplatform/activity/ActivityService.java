@@ -65,17 +65,12 @@ public class ActivityService {
             return List.of();
         }
         
-        return repo.findRecentByClassIds(classIds).stream().map(this::toResponse).toList();
+        return repo.findTop50ByClassIdInOrderByCreatedAtDesc(classIds).stream().map(this::toResponse).toList();
     }
 
     public List<ActivityResponse> recentForClass(UUID classId) {
         User user = security.currentUser();
-        if (!user.isTeacher()) {
-            List<UUID> classIds = permissions.getAccessibleClassIds(user);
-            if (classIds == null || !classIds.contains(classId)) {
-                throw BusinessException.forbidden("Cannot access activity for this class");
-            }
-        }
+        permissions.requireAccessClass(user, classId);
         return repo.findTop50ByClassIdOrderByCreatedAtDesc(classId).stream().map(this::toResponse).toList();
     }
 

@@ -14,8 +14,7 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, UUID> 
 
     List<ActivityLog> findTop50ByOrderByCreatedAtDesc();
 
-    @Query("SELECT a FROM ActivityLog a WHERE a.classId IN :classIds ORDER BY a.createdAt DESC LIMIT 50")
-    List<ActivityLog> findRecentByClassIds(@Param("classIds") List<UUID> classIds);
+    List<ActivityLog> findTop50ByClassIdInOrderByCreatedAtDesc(List<UUID> classIds);
 
     List<ActivityLog> findTop50ByClassIdOrderByCreatedAtDesc(UUID classId);
 }
