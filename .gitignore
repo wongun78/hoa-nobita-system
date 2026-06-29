@@ -3,6 +3,30 @@
 
 # Log file
 *.log
+logs/
+tmp/
+temp/
+
+# OS/editor files
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Java/Maven build output
+backend/target/
+target/
+
+# Runtime uploads/local files
+backend/uploads/
+uploads/
+
+# Frontend dependencies/build output
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+*.local
 
 # BlueJ files
 *.ctxt
