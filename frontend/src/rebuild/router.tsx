@@ -3,6 +3,7 @@ import { RequireAuth, RequireRole } from './auth/guards'
 import { AppShell } from './layout/app-shell'
 import { AssignmentsPage } from './pages/assignments-page'
 import { AssignmentsV2Page } from './pages/assignments-v2'
+import { AttendanceMarkingPage } from './pages/attendance-marking-page'
 import { ChangePasswordPage } from './pages/change-password-page'
 import { ClassDetailV2Page } from './pages/class-detail-v2'
 import { ClassDetailPage } from './pages/class-detail-page'
@@ -53,7 +54,7 @@ export function NewAppRouter() {
       <Route path="/teacher/grading" element={<RoleFrame roles={['TEACHER_OWNER']}><GradingV2Page /></RoleFrame>} />
       <Route path="/teacher/materials" element={<RoleFrame roles={['TEACHER_OWNER']}><MaterialsLibraryPage /></RoleFrame>} />
       <Route path="/teacher/notifications" element={<RoleFrame roles={['TEACHER_OWNER']}><NotificationsInboxPage /></RoleFrame>} />
-      <Route path="/teacher/attendance" element={<RoleFrame roles={['TEACHER_OWNER']}><AttendancePage /></RoleFrame>} />
+      <Route path="/teacher/attendance" element={<RoleFrame roles={['TEACHER_OWNER']}><AttendanceMarkingPage /></RoleFrame>} />
       <Route path="/teacher/calendar" element={<RoleFrame roles={['TEACHER_OWNER']}><CalendarPage /></RoleFrame>} />
       <Route path="/teacher/reports" element={<RoleFrame roles={['TEACHER_OWNER']}><ReportsPage /></RoleFrame>} />
 
@@ -64,7 +65,7 @@ export function NewAppRouter() {
       <Route path="/admin/grading" element={<RoleFrame roles={['CLASS_ADMIN']}><GradingV2Page /></RoleFrame>} />
       <Route path="/admin/materials" element={<RoleFrame roles={['CLASS_ADMIN']}><MaterialsLibraryPage /></RoleFrame>} />
       <Route path="/admin/notifications" element={<RoleFrame roles={['CLASS_ADMIN']}><NotificationsInboxPage /></RoleFrame>} />
-      <Route path="/admin/attendance" element={<RoleFrame roles={['CLASS_ADMIN']}><AttendancePage /></RoleFrame>} />
+      <Route path="/admin/attendance" element={<RoleFrame roles={['CLASS_ADMIN']}><AttendanceMarkingPage /></RoleFrame>} />
       <Route path="/admin/calendar" element={<RoleFrame roles={['CLASS_ADMIN']}><CalendarPage /></RoleFrame>} />
       <Route path="/admin/reports" element={<RoleFrame roles={['CLASS_ADMIN']}><ReportsPage /></RoleFrame>} />
 
