@@ -1,4 +1,4 @@
-import { deleteApi, getApi, patchApi, postApi } from './http'
+import { API_BASE_URL, deleteApi, downloadBlobToFile, getApi, patchApi, postApi } from './http'
 import type {
   ActivityItem,
   AssignmentItem,
@@ -125,7 +125,8 @@ export const api = {
   addClassAdmin: (id: string, payload: { adminId?: string; userId?: string }) => postApi<string>(`/classes/${id}/admins`, payload),
   removeClassAdmin: (id: string, adminId: string) => deleteApi<string>(`/classes/${id}/admins/${adminId}`),
   classStats: (id: string) => getApi<ClassStats>(`/classes/${id}/stats`),
-  exportClassStudentsUrl: (id: string) => `${import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1'}/classes/${id}/students/export?format=csv`,
+  exportClassStudentsUrl: (id: string) => `${API_BASE_URL}/classes/${id}/students/export?format=csv`,
+  downloadClassStudentsCsv: (id: string) => downloadBlobToFile(`/classes/${id}/students/export`, `students-${id}.csv`, { format: 'csv' }),
 
   lessonsByClassPage: (classId: string, params?: QueryParams) => getApi<PageResponse<LessonItem> | LessonItem[]>(`/classes/${classId}/lessons`, params),
   lessonsByClass: async (classId: string, params?: QueryParams) => normalizeList(await api.lessonsByClassPage(classId, params)),
@@ -187,8 +188,10 @@ export const api = {
 
   reportSystem: () => getApi<Record<string, unknown>>('/reports/system'),
   reportClass: (classId: string) => getApi<Record<string, unknown>>(`/reports/classes/${classId}`),
-  exportSystemReportUrl: () => `${import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1'}/reports/system/export?format=csv`,
-  exportClassReportUrl: (classId: string) => `${import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1'}/reports/classes/${classId}/export?format=csv`,
+  exportSystemReportUrl: () => `${API_BASE_URL}/reports/system/export?format=csv`,
+  exportClassReportUrl: (classId: string) => `${API_BASE_URL}/reports/classes/${classId}/export?format=csv`,
+  downloadSystemReportCsv: () => downloadBlobToFile('/reports/system/export', 'system-report.csv', { format: 'csv' }),
+  downloadClassReportCsv: (classId: string) => downloadBlobToFile(`/reports/classes/${classId}/export`, `class-report-${classId}.csv`, { format: 'csv' }),
 
   uploadFile: async (file: File) => {
     const form = new FormData()
@@ -196,7 +199,8 @@ export const api = {
     return postApi<FileItem>('/files/upload', form)
   },
   fileMetadata: (fileId: string) => getApi<FileItem>(`/files/${fileId}`),
-  downloadFileUrl: (fileId: string) => `${import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1'}/files/${fileId}/download`,
+  downloadFileUrl: (fileId: string) => `${API_BASE_URL}/files/${fileId}/download`,
+  downloadFile: (fileId: string, filename = `file-${fileId}`) => downloadBlobToFile(`/files/${fileId}/download`, filename),
 
   attendanceSummary: (classId: string) => getApi<AttendanceSummary>(`/classes/${classId}/attendance/summary`),
   markLessonAttendance: (lessonId: string, records: Array<{ studentId: string; status: AttendanceStatus; note?: string }>) => postApi<AttendanceItem[]>(`/lessons/${lessonId}/attendance`, { records }),

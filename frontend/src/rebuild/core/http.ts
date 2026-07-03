@@ -1,9 +1,27 @@
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import { clearToken, getToken } from './token'
-import type { ApiEnvelope } from './types'
+import type { ApiEnvelope, ApiError as BackendApiError } from './types'
+
+export const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1'
+
+export class ApiClientError extends Error {
+  status?: number
+  errors: BackendApiError[]
+
+  constructor(message: string, status?: number, errors: BackendApiError[] = []) {
+    super(message)
+    this.name = 'ApiClientError'
+    this.status = status
+    this.errors = errors
+  }
+
+  get fieldErrors() {
+    return this.errors.filter((error) => error.field)
+  }
+}
 
 export const http = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1',
+  baseURL: API_BASE_URL,
 })
 
 http.interceptors.request.use((config) => {
@@ -14,25 +32,65 @@ http.interceptors.request.use((config) => {
   return config
 })
 
+function redirectToLogin() {
+  if (globalThis.window === undefined) return
+  const current = globalThis.window.location.pathname
+  if (current !== '/dang-nhap' && current !== '/login') {
+    globalThis.window.location.href = `/dang-nhap?from=${encodeURIComponent(current)}`
+  }
+}
+
+function redirectToForbidden() {
+  if (globalThis.window === undefined) return
+  if (globalThis.window.location.pathname !== '/khong-co-quyen') {
+    globalThis.window.history.pushState(null, '', '/khong-co-quyen')
+    globalThis.window.dispatchEvent(new PopStateEvent('popstate'))
+  }
+}
+
+function toApiClientError(error: unknown): ApiClientError {
+  if (error instanceof ApiClientError) return error
+
+  if (axios.isAxiosError(error)) {
+    const axiosError = error as AxiosError<ApiEnvelope<unknown>>
+    const status = axiosError.response?.status
+    const envelope = axiosError.response?.data
+    const message = envelope?.message || axiosError.message || 'Không thể kết nối máy chủ.'
+    return new ApiClientError(message, status, envelope?.errors ?? [])
+  }
+
+  if (error instanceof Error) return new ApiClientError(error.message)
+  return new ApiClientError('Đã có lỗi không xác định.')
+}
+
 http.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const clientError = toApiClientError(error)
+
+    if (clientError.status === 401) {
       clearToken()
-      if (globalThis.window !== undefined && globalThis.window.location.pathname !== '/dang-nhap') {
-        globalThis.window.location.href = '/dang-nhap'
-      }
+      redirectToLogin()
     }
-    return Promise.reject(error)
+
+    if (clientError.status === 403) {
+      redirectToForbidden()
+    }
+
+    return Promise.reject(clientError)
   }
 )
 
 async function unwrap<T>(promise: Promise<{ data: ApiEnvelope<T> }>): Promise<T> {
-  const res = await promise
-  if (!res.data.success) {
-    throw new Error(res.data.message || 'API Error')
+  try {
+    const res = await promise
+    if (!res.data.success) {
+      throw new ApiClientError(res.data.message || 'API Error', undefined, res.data.errors ?? [])
+    }
+    return res.data.data
+  } catch (error) {
+    throw toApiClientError(error)
   }
-  return res.data.data
 }
 
 export function getApi<T>(url: string, params?: Record<string, unknown>) {
@@ -49,4 +107,31 @@ export function patchApi<T>(url: string, body?: unknown) {
 
 export function deleteApi<T>(url: string) {
   return unwrap<T>(http.delete(url))
+}
+
+export async function downloadBlobApi(url: string, params?: Record<string, unknown>) {
+  try {
+    const response = await http.get<Blob>(url, { params, responseType: 'blob' })
+    const disposition = response.headers['content-disposition']
+    const match = typeof disposition === 'string' ? /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition) : null
+    return {
+      blob: response.data,
+      filename: match?.[1] ? decodeURIComponent(match[1]) : undefined,
+      contentType: response.headers['content-type'],
+    }
+  } catch (error) {
+    throw toApiClientError(error)
+  }
+}
+
+export async function downloadBlobToFile(url: string, fallbackFilename: string, params?: Record<string, unknown>) {
+  const { blob, filename } = await downloadBlobApi(url, params)
+  const objectUrl = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = objectUrl
+  anchor.download = filename ?? fallbackFilename
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(objectUrl)
 }

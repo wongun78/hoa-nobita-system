@@ -29,6 +29,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     const payload = await api.login(identifier, password)
     setToken(payload.accessToken)
     setUser(payload.user)
+    return payload.user
   }, [])
 
   const logout = useCallback(() => {
