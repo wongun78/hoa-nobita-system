@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { Activity, BarChart3, BookOpenCheck, GraduationCap, Percent, Users } from 'lucide-react'
+import { Activity, BarChart3, BookOpenCheck, Download, GraduationCap, Percent, Users } from 'lucide-react'
 import { api } from '../core/api'
 import { EmptyState, ErrorState, FilterBar, MetricCard, PageHeader, SkeletonCard } from '../components/foundation'
 import { Button, Card, FieldLabel } from '../layout/ui'
@@ -85,6 +85,8 @@ export function ReportsPage() {
   const role = primaryRole(user?.roles)
   const isTeacherOwner = role === 'TEACHER_OWNER'
   const [classId, setClassId] = useState('')
+  const [exporting, setExporting] = useState<'system' | 'class' | null>(null)
+  const [exportError, setExportError] = useState('')
 
   const classesQuery = useQuery({ queryKey: ['classes', 'reports'], queryFn: () => api.classesPage({ page: 0, size: 100 }), staleTime: 60_000 })
   const classesPage = asPage(classesQuery.data, 0, 100)
@@ -107,12 +109,43 @@ export function ReportsPage() {
   const loadingClassReport = classReportQuery.isLoading || classStatsQuery.isLoading || attendanceQuery.isLoading
   const classReportError = classReportQuery.isError || classStatsQuery.isError || attendanceQuery.isError
 
+  const exportSystemCsv = async () => {
+    setExportError('')
+    setExporting('system')
+    try {
+      await api.downloadSystemReportCsv()
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : 'Không thể xuất CSV hệ thống.')
+    } finally {
+      setExporting(null)
+    }
+  }
+
+  const exportClassCsv = async () => {
+    if (!classId) return
+    setExportError('')
+    setExporting('class')
+    try {
+      await api.downloadClassReportCsv(classId)
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : 'Không thể xuất CSV lớp.')
+    } finally {
+      setExporting(null)
+    }
+  }
+
   return (
     <div className="space-y-5 pb-20 md:pb-0">
       <PageHeader
         eyebrow="리포트 센터"
         title="Báo cáo học tập"
         description="Tổng hợp báo cáo theo lớp từ backend Reports API, bổ sung class stats và attendance summary theo đúng quyền truy cập lớp."
+        actions={(
+          <>
+            {isTeacherOwner && <Button type="button" variant="secondary" className="min-h-11" disabled={exporting === 'system'} onClick={() => void exportSystemCsv()}><Download size={16} />CSV hệ thống</Button>}
+            <Button type="button" className="min-h-11" disabled={!classId || exporting === 'class'} onClick={() => void exportClassCsv()}><Download size={16} />CSV lớp</Button>
+          </>
+        )}
       />
 
       <FilterBar>
@@ -136,6 +169,7 @@ export function ReportsPage() {
         </div>
       </FilterBar>
 
+      {exportError && <ErrorState title="Không xuất được CSV" description={exportError} />}
       {classesQuery.isLoading && <SkeletonCard lines={3} />}
       {classesQuery.isError && <ErrorState title="Không tải được danh sách lớp" description="Vui lòng kiểm tra quyền quản trị lớp và thử lại." onRetry={() => classesQuery.refetch()} />}
       {!classesQuery.isLoading && !classesQuery.isError && !classesPage.items.length && <EmptyState title="Chưa có lớp để báo cáo" description="CLASS_ADMIN chỉ thấy lớp được gán; Teacher Owner thấy toàn bộ lớp active." />}
