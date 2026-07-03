@@ -14,6 +14,7 @@ import { NotificationsPage } from './pages/notifications-page'
 import { AttendancePage, CalendarPage, MaterialsPage, ProfilePage, StudentAssignmentSubmitPage, StudentSubmissionsPage } from './pages/operations-pages'
 import { ReportsPage } from './pages/reports-page'
 import { ForbiddenPage, NotFoundPage } from './pages/simple-pages'
+import { StudentClassDetailPage } from './pages/student-class-detail-page'
 import { StudentClassesPage } from './pages/student-classes-page'
 import { StudentHomePage } from './pages/student-home-page'
 import { UserDetailPage, UsersPage } from './pages/users-page'
@@ -63,7 +64,7 @@ export function NewAppRouter() {
 
       <Route path="/student/home" element={<RoleFrame roles={['STUDENT']}><StudentHomePage /></RoleFrame>} />
       <Route path="/student/classes" element={<RoleFrame roles={['STUDENT']}><StudentClassesPage /></RoleFrame>} />
-      <Route path="/student/classes/:classId" element={<RoleFrame roles={['STUDENT']}><ClassDetailPage /></RoleFrame>} />
+      <Route path="/student/classes/:classId" element={<RoleFrame roles={['STUDENT']}><StudentClassDetailPage /></RoleFrame>} />
       <Route path="/student/assignments" element={<RoleFrame roles={['STUDENT']}><AssignmentsPage /></RoleFrame>} />
       <Route path="/student/submissions" element={<RoleFrame roles={['STUDENT']}><StudentSubmissionsPage /></RoleFrame>} />
       <Route path="/student/materials" element={<RoleFrame roles={['STUDENT']}><MaterialsPage /></RoleFrame>} />
