@@ -11,7 +11,7 @@ import { DashboardPage } from './pages/dashboard-page'
 import { GradingV2Page } from './pages/grading-v2'
 import { LoginPage } from './pages/login-page'
 import { MaterialsLibraryPage } from './pages/materials-library-page'
-import { NotificationsPage } from './pages/notifications-page'
+import { NotificationsInboxPage } from './pages/notifications-inbox-page'
 import { AttendancePage, CalendarPage, MaterialsPage, ProfilePage, StudentAssignmentSubmitPage } from './pages/operations-pages'
 import { ReportsPage } from './pages/reports-page'
 import { ForbiddenPage, NotFoundPage } from './pages/simple-pages'
@@ -52,7 +52,7 @@ export function NewAppRouter() {
       <Route path="/teacher/assignments" element={<RoleFrame roles={['TEACHER_OWNER']}><AssignmentsV2Page /></RoleFrame>} />
       <Route path="/teacher/grading" element={<RoleFrame roles={['TEACHER_OWNER']}><GradingV2Page /></RoleFrame>} />
       <Route path="/teacher/materials" element={<RoleFrame roles={['TEACHER_OWNER']}><MaterialsLibraryPage /></RoleFrame>} />
-      <Route path="/teacher/notifications" element={<RoleFrame roles={['TEACHER_OWNER']}><NotificationsPage /></RoleFrame>} />
+      <Route path="/teacher/notifications" element={<RoleFrame roles={['TEACHER_OWNER']}><NotificationsInboxPage /></RoleFrame>} />
       <Route path="/teacher/attendance" element={<RoleFrame roles={['TEACHER_OWNER']}><AttendancePage /></RoleFrame>} />
       <Route path="/teacher/calendar" element={<RoleFrame roles={['TEACHER_OWNER']}><CalendarPage /></RoleFrame>} />
       <Route path="/teacher/reports" element={<RoleFrame roles={['TEACHER_OWNER']}><ReportsPage /></RoleFrame>} />
@@ -63,7 +63,7 @@ export function NewAppRouter() {
       <Route path="/admin/assignments" element={<RoleFrame roles={['CLASS_ADMIN']}><AssignmentsV2Page /></RoleFrame>} />
       <Route path="/admin/grading" element={<RoleFrame roles={['CLASS_ADMIN']}><GradingV2Page /></RoleFrame>} />
       <Route path="/admin/materials" element={<RoleFrame roles={['CLASS_ADMIN']}><MaterialsLibraryPage /></RoleFrame>} />
-      <Route path="/admin/notifications" element={<RoleFrame roles={['CLASS_ADMIN']}><NotificationsPage /></RoleFrame>} />
+      <Route path="/admin/notifications" element={<RoleFrame roles={['CLASS_ADMIN']}><NotificationsInboxPage /></RoleFrame>} />
       <Route path="/admin/attendance" element={<RoleFrame roles={['CLASS_ADMIN']}><AttendancePage /></RoleFrame>} />
       <Route path="/admin/calendar" element={<RoleFrame roles={['CLASS_ADMIN']}><CalendarPage /></RoleFrame>} />
       <Route path="/admin/reports" element={<RoleFrame roles={['CLASS_ADMIN']}><ReportsPage /></RoleFrame>} />
@@ -79,7 +79,7 @@ export function NewAppRouter() {
       <Route path="/student/attendance" element={<RoleFrame roles={['STUDENT']}><StudentAttendancePage /></RoleFrame>} />
       <Route path="/student/materials" element={<RoleFrame roles={['STUDENT']}><MaterialsPage /></RoleFrame>} />
       <Route path="/student/calendar" element={<RoleFrame roles={['STUDENT']}><CalendarPage /></RoleFrame>} />
-      <Route path="/student/notifications" element={<RoleFrame roles={['STUDENT']}><NotificationsPage /></RoleFrame>} />
+      <Route path="/student/notifications" element={<RoleFrame roles={['STUDENT']}><NotificationsInboxPage /></RoleFrame>} />
       <Route path="/student/profile" element={<RoleFrame roles={['STUDENT']}><ProfilePage /></RoleFrame>} />
       <Route path="/student/submit" element={<RoleFrame roles={['STUDENT']}><StudentAssignmentSubmitPage /></RoleFrame>} />
 
@@ -88,7 +88,8 @@ export function NewAppRouter() {
       <Route path="/lop-hoc/:classId" element={<AppFrame><ClassDetailPage /></AppFrame>} />
       <Route path="/bai-tap" element={<AppFrame><AssignmentsPage /></AppFrame>} />
       <Route path="/tai-lieu" element={<AppFrame><MaterialsPage /></AppFrame>} />
-      <Route path="/thong-bao" element={<AppFrame><NotificationsPage /></AppFrame>} />
+      <Route path="/thong-bao" element={<AppFrame><NotificationsInboxPage /></AppFrame>} />
+      <Route path="/notifications" element={<AppFrame><NotificationsInboxPage /></AppFrame>} />
       <Route path="/diem-danh" element={<AppFrame><AttendancePage /></AppFrame>} />
       <Route path="/lich-hoc" element={<AppFrame><CalendarPage /></AppFrame>} />
       <Route path="/nguoi-dung" element={<RoleFrame roles={['TEACHER_OWNER']}><UsersPage /></RoleFrame>} />
@@ -101,7 +102,6 @@ export function NewAppRouter() {
       <Route path="/classes" element={<Navigate to="/lop-hoc" replace />} />
       <Route path="/assignments" element={<Navigate to="/bai-tap" replace />} />
       <Route path="/users" element={<Navigate to="/nguoi-dung" replace />} />
-      <Route path="/notifications" element={<Navigate to="/thong-bao" replace />} />
       <Route path="/reports" element={<Navigate to="/bao-cao" replace />} />
       <Route path="/materials" element={<Navigate to="/tai-lieu" replace />} />
       <Route path="/grading" element={<Navigate to="/cham-bai" replace />} />
