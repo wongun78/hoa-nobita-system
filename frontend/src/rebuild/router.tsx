@@ -11,14 +11,17 @@ import { DashboardPage } from './pages/dashboard-page'
 import { GradingV2Page } from './pages/grading-v2'
 import { LoginPage } from './pages/login-page'
 import { NotificationsPage } from './pages/notifications-page'
-import { AttendancePage, CalendarPage, MaterialsPage, ProfilePage, StudentAssignmentSubmitPage, StudentSubmissionsPage } from './pages/operations-pages'
+import { AttendancePage, CalendarPage, MaterialsPage, ProfilePage, StudentAssignmentSubmitPage } from './pages/operations-pages'
 import { ReportsPage } from './pages/reports-page'
 import { ForbiddenPage, NotFoundPage } from './pages/simple-pages'
 import { StudentAssignmentDetailPage } from './pages/student-assignment-detail-page'
 import { StudentAssignmentsPage } from './pages/student-assignments-page'
+import { StudentAttendancePage } from './pages/student-attendance-page'
 import { StudentClassDetailPage } from './pages/student-class-detail-page'
 import { StudentClassesPage } from './pages/student-classes-page'
+import { StudentGradesPage } from './pages/student-grades-page'
 import { StudentHomePage } from './pages/student-home-page'
+import { StudentSubmissionsPage } from './pages/student-submissions-page'
 import { UserDetailPage, UsersPage } from './pages/users-page'
 import type { RoleName } from './core/types'
 
@@ -70,8 +73,10 @@ export function NewAppRouter() {
       <Route path="/student/assignments" element={<RoleFrame roles={['STUDENT']}><StudentAssignmentsPage /></RoleFrame>} />
       <Route path="/student/assignments/:assignmentId" element={<RoleFrame roles={['STUDENT']}><StudentAssignmentDetailPage /></RoleFrame>} />
       <Route path="/student/submissions" element={<RoleFrame roles={['STUDENT']}><StudentSubmissionsPage /></RoleFrame>} />
+      <Route path="/student/submissions/:submissionId" element={<RoleFrame roles={['STUDENT']}><StudentSubmissionsPage /></RoleFrame>} />
+      <Route path="/student/grades" element={<RoleFrame roles={['STUDENT']}><StudentGradesPage /></RoleFrame>} />
+      <Route path="/student/attendance" element={<RoleFrame roles={['STUDENT']}><StudentAttendancePage /></RoleFrame>} />
       <Route path="/student/materials" element={<RoleFrame roles={['STUDENT']}><MaterialsPage /></RoleFrame>} />
-      <Route path="/student/attendance" element={<RoleFrame roles={['STUDENT']}><AttendancePage /></RoleFrame>} />
       <Route path="/student/calendar" element={<RoleFrame roles={['STUDENT']}><CalendarPage /></RoleFrame>} />
       <Route path="/student/notifications" element={<RoleFrame roles={['STUDENT']}><NotificationsPage /></RoleFrame>} />
       <Route path="/student/profile" element={<RoleFrame roles={['STUDENT']}><ProfilePage /></RoleFrame>} />

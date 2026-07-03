@@ -39,14 +39,15 @@ const menuItems: MenuItem[] = [
   { to: '/student/classes', label: 'My Classes', roles: ['STUDENT'] },
   { to: '/student/assignments', label: 'Assignments', roles: ['STUDENT'] },
   { to: '/student/submissions', label: 'My Submissions', roles: ['STUDENT'] },
-  { to: '/student/materials', label: 'Materials', roles: ['STUDENT'] },
+  { to: '/student/grades', label: 'Grades', roles: ['STUDENT'] },
   { to: '/student/attendance', label: 'Attendance', roles: ['STUDENT'] },
+  { to: '/student/materials', label: 'Materials', roles: ['STUDENT'] },
   { to: '/student/calendar', label: 'Calendar', roles: ['STUDENT'] },
   { to: '/student/notifications', label: 'Notifications', roles: ['STUDENT'] },
   { to: '/student/profile', label: 'Profile', roles: ['STUDENT'] },
 ]
 
-const mobileStudentItems = menuItems.filter((item) => ['Home', 'My Classes', 'Assignments', 'Calendar', 'Notifications'].includes(item.label) && item.roles?.includes('STUDENT'))
+const mobileStudentItems = menuItems.filter((item) => ['Home', 'My Classes', 'Assignments', 'Grades', 'Attendance'].includes(item.label) && item.roles?.includes('STUDENT'))
 
 type AppShellProps = Readonly<{ children: React.ReactNode }>
 
