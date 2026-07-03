@@ -1,5 +1,5 @@
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { useAssignment, usePublishAssignment, useCloseAssignment, useDeleteAssignment, useCopyAssignment, useUpdateAssignment } from '../features/assignments/hooks'
+import { useAssignment, usePublishAssignment, useCloseAssignment, useDeleteAssignment, useCopyAssignment, useUpdateAssignment, useAssignmentMissingStudents, useSendAssignmentReminder } from '../features/assignments/hooks'
 import { useSubmissions } from '../features/submissions/hooks'
 import { useAuth } from '../features/auth/use-auth'
 import { Button } from '../components/ui/button'
@@ -9,6 +9,7 @@ import { AssignmentStatusBadge, DeadlinePill } from '../features/assignments/com
 import { ConfirmDialog } from '../components/ui/confirm-dialog'
 import { AssignmentFormDialog } from '../features/assignments/components/assignment-form-dialog'
 import { SubmissionFormDialog } from '../features/submissions/components/submission-form-dialog'
+import { Toast } from '../components/ui/toast'
 
 export function AssignmentDetailPage() {
   const { id = '' } = useParams()
@@ -20,9 +21,12 @@ export function AssignmentDetailPage() {
   const deleteAssignment = useDeleteAssignment()
   const copyAssignment = useCopyAssignment()
   const updateAssignment = useUpdateAssignment()
-  const { hasRole } = useAuth()
+  const missingStudentsQ = useAssignmentMissingStudents(id)
+  const sendReminder = useSendAssignmentReminder(id)
+  const { hasRole, user } = useAuth()
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   const isTeacher = hasRole('TEACHER_OWNER')
   const isAdmin = hasRole('CLASS_ADMIN')
@@ -31,7 +35,7 @@ export function AssignmentDetailPage() {
   if (isLoading) return <div className="text-slate-500">Đang tải...</div>
   if (!a) return <div className="text-slate-500">Không tìm thấy bài tập.</div>
 
-  const mySubmission = subs.data?.find(s => s.studentId === 'me') // Assuming backend returns 'me' or we filter by current user
+  const mySubmission = subs.data?.find(s => s.studentId === user?.id)
 
   return (
     <div className="space-y-6">
@@ -68,6 +72,70 @@ export function AssignmentDetailPage() {
         <h3 className="font-medium mt-6 mb-2">Hướng dẫn làm bài</h3>
         <p className="text-slate-700 whitespace-pre-wrap">{a.instruction || 'Không có hướng dẫn.'}</p>
       </Card>
+
+      {canManage && (
+        <Card className="p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-medium">Nhắc nhở học viên chưa nộp</h3>
+              <p className="text-sm text-slate-500 mt-1">
+                {missingStudentsQ.data
+                  ? `${missingStudentsQ.data.missingCount}/${missingStudentsQ.data.totalStudents} học viên chưa nộp bài`
+                  : 'Đang tải danh sách học viên chưa nộp...'}
+              </p>
+            </div>
+            <Button
+              disabled={sendReminder.isPending || missingStudentsQ.isLoading || (missingStudentsQ.data?.missingCount ?? 0) === 0}
+              onClick={() => {
+                sendReminder.mutate(
+                  undefined,
+                  {
+                    onSuccess: (result) => {
+                      setToast({ message: `Đã gửi nhắc nhở cho ${result.recipientCount} học viên`, type: 'success' })
+                    },
+                    onError: () => {
+                      setToast({ message: 'Không thể gửi nhắc nhở. Vui lòng thử lại.', type: 'error' })
+                    },
+                  }
+                )
+              }}
+            >
+              {sendReminder.isPending ? 'Đang gửi...' : 'Gửi nhắc nhở'}
+            </Button>
+          </div>
+
+          {missingStudentsQ.isError && (
+            <div className="mt-3 text-sm text-red-600">Không thể tải danh sách học viên chưa nộp.</div>
+          )}
+
+          {missingStudentsQ.data && missingStudentsQ.data.missingStudents.length > 0 && (
+            <div className="mt-4 max-h-52 overflow-auto rounded-lg border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-slate-50 text-left text-slate-500">
+                    <th className="px-3 py-2">Học viên</th>
+                    <th className="px-3 py-2">Email</th>
+                    <th className="px-3 py-2">SĐT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {missingStudentsQ.data.missingStudents.map(student => (
+                    <tr key={student.studentId} className="border-b last:border-0">
+                      <td className="px-3 py-2">{student.fullName}</td>
+                      <td className="px-3 py-2 text-slate-600">{student.email || '-'}</td>
+                      <td className="px-3 py-2 text-slate-600">{student.phone || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {missingStudentsQ.data && missingStudentsQ.data.missingStudents.length === 0 && (
+            <div className="mt-3 text-sm text-emerald-700">Tất cả học viên đã nộp bài.</div>
+          )}
+        </Card>
+      )}
 
       {!canManage && a.status === 'PUBLISHED' && (
         <Card className="p-6">
@@ -135,6 +203,8 @@ export function AssignmentDetailPage() {
           />
         )
       )}
+
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   )
 }

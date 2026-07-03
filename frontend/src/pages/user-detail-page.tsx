@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
@@ -15,7 +15,6 @@ import { Dialog } from '../components/ui/dialog'
 import { ConfirmDialog } from '../components/ui/confirm-dialog'
 import { FormField } from '../components/ui/form'
 import { ErrorState, LoadingState, StatusBadge } from '../components/system/states'
-import { useNavigate } from 'react-router-dom'
 import { useRecentActivity } from '../features/activity/hooks'
 import { RecentActivityTimeline } from '../features/activity/components/recent-activity-timeline'
 
@@ -157,7 +156,7 @@ export function UserDetailPage() {
   )
 }
 
-function StudentProgressPanel({ userId }: { userId: string }) {
+function StudentProgressPanel({ userId }: Readonly<{ userId: string }>) {
   const progressQ = useQuery({ 
     queryKey: ['user-progress', userId], 
     queryFn: async () => (await api.get(`/users/${userId}/progress`)).data.data 
@@ -213,24 +212,31 @@ function StudentProgressPanel({ userId }: { userId: string }) {
       <div className="mt-6">
         <div className="flex justify-between text-sm mb-1">
           <span className="text-slate-500">Tỷ lệ nộp bài</span>
-          <span className="font-medium">
-            {progress?.totalAssignments > 0 
-              ? Math.round((progress.submittedAssignments / progress.totalAssignments) * 100) 
-              : 0}%
-          </span>
+          <span className="font-medium">{Math.round(progress?.submissionRate || 0)}%</span>
         </div>
         <div className="w-full bg-slate-100 rounded-full h-2.5">
           <div 
             className="bg-blue-600 h-2.5 rounded-full" 
-            style={{ width: `${progress?.totalAssignments > 0 ? (progress.submittedAssignments / progress.totalAssignments) * 100 : 0}%` }}
+            style={{ width: `${Math.max(0, Math.min(100, progress?.submissionRate || 0))}%` }}
           ></div>
         </div>
       </div>
+
+      {Array.isArray(progress?.riskReasons) && progress.riskReasons.length > 0 && (
+        <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-amber-700">Lý do cảnh báo</div>
+          <ul className="mt-2 space-y-1 text-sm text-amber-800">
+            {progress.riskReasons.map((reason: string) => (
+              <li key={reason}>• {reason}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </Card>
   )
 }
 
-function UserActivityPanel({ userId: _userId }: { userId: string }) {
+function UserActivityPanel({ userId: _userId }: Readonly<{ userId: string }>) {
   // We can reuse the recent activity hook, but ideally we'd have a user-specific one.
   // For now, we'll just fetch the global recent activity and filter it by actorId if needed,
   // or just show the global one if the backend doesn't support user-specific yet.

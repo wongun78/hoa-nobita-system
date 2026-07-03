@@ -1,6 +1,7 @@
 package com.hoanobita.topikplatform.submission;
 
 import com.hoanobita.topikplatform.common.ApiResponse;
+import com.hoanobita.topikplatform.common.PageResponse;
 import com.hoanobita.topikplatform.submission.dto.SubmissionRequest;
 import com.hoanobita.topikplatform.submission.dto.SubmissionResponse;
 import org.springframework.http.HttpStatus;
@@ -19,8 +20,13 @@ public class SubmissionController {
     }
 
     @GetMapping("/assignments/{assignmentId}/submissions")
-    public ApiResponse<List<SubmissionResponse>> byAssignment(@PathVariable UUID assignmentId) {
-        return ApiResponse.ok(service.byAssignment(assignmentId));
+    public ApiResponse<PageResponse<SubmissionResponse>> byAssignment(@PathVariable UUID assignmentId,
+                                                                      @RequestParam(required = false) Integer page,
+                                                                      @RequestParam(required = false) Integer size,
+                                                                      @RequestParam(required = false) String sort,
+                                                                      @RequestParam(required = false) String search,
+                                                                      @RequestParam(required = false) String status) {
+        return ApiResponse.ok(service.byAssignment(assignmentId, page, size, sort, search, status));
     }
 
     @PostMapping("/assignments/{assignmentId}/submissions")
@@ -46,7 +52,11 @@ public class SubmissionController {
     }
 
     @GetMapping("/me/submissions")
-    public ApiResponse<List<SubmissionResponse>> mine() {
-        return ApiResponse.ok(service.mySubmissions());
+    public ApiResponse<PageResponse<SubmissionResponse>> mine(@RequestParam(required = false) Integer page,
+                                                              @RequestParam(required = false) Integer size,
+                                                              @RequestParam(required = false) String sort,
+                                                              @RequestParam(required = false) String search,
+                                                              @RequestParam(required = false) String status) {
+        return ApiResponse.ok(service.mySubmissions(page, size, sort, search, status));
     }
 }

@@ -1,12 +1,35 @@
 @import "tailwindcss";
+
 :root {
-  --font-vi: "Be Vietnam Pro", "Inter", system-ui, sans-serif;
-  --font-ko: "Noto Sans KR", "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-  --font-ui: "Be Vietnam Pro", "Inter", "Noto Sans KR", system-ui, sans-serif;
+  --bg: #fafcff;
+  --surface: #ffffff;
+  --surface-soft: #f6fbff;
+  --line: #d9efff;
+  --line-strong: #bae6fd;
+  --text: #0f172a;
+  --text-soft: #475569;
+  --primary: #bae6fd;
+  --primary-strong: #7dd3fc;
+  --font-ui: "Pretendard", "SUIT", "Noto Sans KR", "Be Vietnam Pro", system-ui, sans-serif;
 }
-* { box-sizing: border-box; }
-body { margin: 0; font-family: var(--font-ui); background: #F5FAFF; color: #0F172A; }
-:lang(ko), .font-ko { font-family: var(--font-ko); word-break: keep-all; }
-:lang(vi), .font-vi { font-family: var(--font-vi); }
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg, var(--surface-soft) 0%, var(--bg) 100%);
+  color: var(--text);
+  font-family: var(--font-ui);
+  letter-spacing: -0.01em;
+}
+
 button, input, textarea { font: inherit; }
 a { text-decoration: none; }

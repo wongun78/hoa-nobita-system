@@ -14,6 +14,12 @@ public interface LessonRepository extends JpaRepository<Lesson, UUID> {
     @Query("SELECT l FROM Lesson l WHERE l.classId = :classId AND l.deletedAt IS NULL ORDER BY l.orderIndex")
     List<Lesson> findByClassId(@Param("classId") UUID classId);
 
+    @Query("SELECT l FROM Lesson l WHERE l.deletedAt IS NULL")
+    List<Lesson> findAllActive();
+
+    @Query("SELECT l FROM Lesson l WHERE l.classId IN :classIds AND l.deletedAt IS NULL")
+    List<Lesson> findByClassIdIn(@Param("classIds") List<UUID> classIds);
+
     @Query("SELECT l FROM Lesson l WHERE l.id = :id AND l.deletedAt IS NULL")
     Optional<Lesson> findActiveById(@Param("id") UUID id);
 }

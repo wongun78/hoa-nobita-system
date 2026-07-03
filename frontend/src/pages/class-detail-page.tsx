@@ -7,6 +7,9 @@ import { useClass, useUpdateClass, useDeleteClass, useClassStudents, useAddClass
 import { useLessons, useCreateLesson, useDeleteLesson, useUpdateLesson } from '../features/lessons/hooks'
 import { useMaterials, useCreateMaterial, useDeleteMaterial, useUpdateMaterial, useUpdateVisibility } from '../features/materials/hooks'
 import { useAssignments, useCreateAssignment, useDeleteAssignment, useCopyAssignment, usePublishAssignment, useCloseAssignment, useUpdateAssignment } from '../features/assignments/hooks'
+import type { Lesson } from '../features/lessons/types'
+import type { Material } from '../features/materials/types'
+import type { Assignment } from '../features/assignments/types'
 import { useUsers } from '../features/users/hooks'
 import { useAuth } from '../features/auth/use-auth'
 import { Tabs } from '../components/ui/tabs'
@@ -18,6 +21,7 @@ import { ConfirmDialog } from '../components/ui/confirm-dialog'
 import { Select } from '../components/ui/select'
 import { AssignmentStatusBadge, DeadlinePill } from '../features/assignments/components/assignment-badges'
 import { AssignmentFormDialog } from '../features/assignments/components/assignment-form-dialog'
+import { AssignmentReminderAction } from '../features/assignments/components/assignment-reminder-action'
 import { FileUploadField } from '../features/files/components/file-upload-field'
 import { useDownloadFile } from '../features/files/hooks'
 
@@ -26,7 +30,7 @@ import { RecentActivityTimeline } from '../features/activity/components/recent-a
 import { useClassReport } from '../features/reports/hooks'
 import { Users, FileText, TrendingUp, CheckCircle } from 'lucide-react'
 
-function ClassReportTab({ classId }: { classId: string }) {
+function ClassReportTab({ classId }: Readonly<{ classId: string }>) {
   const { data: report, isLoading, error } = useClassReport(classId)
 
   if (isLoading) return <div className="text-slate-500 text-sm">Đang tải báo cáo...</div>
@@ -151,7 +155,7 @@ function ClassReportTab({ classId }: { classId: string }) {
   )
 }
 
-function ClassActivityTab({ classId }: { classId: string }) {
+function ClassActivityTab({ classId }: Readonly<{ classId: string }>) {
   const { data, isLoading } = useClassActivity(classId)
   
   if (isLoading) return <div className="text-slate-500 text-sm">Đang tải hoạt động...</div>
@@ -160,9 +164,15 @@ function ClassActivityTab({ classId }: { classId: string }) {
   return <RecentActivityTimeline activities={data} />
 }
 const lessonSchema = z.object({ title: z.string().min(2), description: z.string().optional(), lessonDate: z.string().optional(), orderIndex: z.number().min(0).default(1), status: z.enum(['DRAFT','PUBLISHED','ARCHIVED']).default('PUBLISHED') })
-const materialSchema = z.object({ title: z.string().min(2), description: z.string().optional(), externalUrl: z.string().url("URL không hợp lệ").optional().or(z.literal('')), fileId: z.string().optional(), visible: z.boolean().default(true) }).refine(data => data.externalUrl || data.fileId, { message: "Vui lòng cung cấp URL hoặc tải tệp lên", path: ["externalUrl"] })
+const materialSchema = z.object({ title: z.string().min(2), description: z.string().optional(), externalUrl: z.url({ message: "URL không hợp lệ" }).optional().or(z.literal('')), fileId: z.string().optional(), visible: z.boolean().default(true) }).refine(data => data.externalUrl || data.fileId, { message: "Vui lòng cung cấp URL hoặc tải tệp lên", path: ["externalUrl"] })
 const classSchema = z.object({ name: z.string().min(2), code: z.string().min(2), description: z.string().optional(), levelFrom: z.number().min(1).max(6), levelTo: z.number().min(1).max(6), status: z.enum(['ACTIVE','ARCHIVED']).default('ACTIVE'), startDate: z.string().optional(), endDate: z.string().optional() }).refine(data => data.levelFrom <= data.levelTo, { message: "Level from must be <= level to", path: ["levelFrom"] })
 const addMemberSchema = z.object({ userId: z.string().min(1, "Vui lòng chọn người dùng") })
+
+function lessonStatusClass(status: Lesson['status']) {
+  if (status === 'PUBLISHED') return 'bg-green-100 text-green-800'
+  if (status === 'DRAFT') return 'bg-slate-100 text-slate-800'
+  return 'bg-gray-100 text-gray-800'
+}
 
 export function ClassDetailPage() {
   const { id = '' } = useParams()
@@ -199,13 +209,13 @@ export function ClassDetailPage() {
 
   const [tab, setTab] = useState('lessons')
   const [lessonOpen, setLessonOpen] = useState(false)
-  const [editLessonOpen, setEditLessonOpen] = useState<any | null>(null)
+  const [editLessonOpen, setEditLessonOpen] = useState<Lesson | null>(null)
   const [matOpen, setMatOpen] = useState(false)
   const [matMode, setMatMode] = useState<'url' | 'file'>('url')
-  const [editMatOpen, setEditMatOpen] = useState<any | null>(null)
+  const [editMatOpen, setEditMatOpen] = useState<Material | null>(null)
   const [editMatMode, setEditMatMode] = useState<'url' | 'file'>('url')
   const [assignOpen, setAssignOpen] = useState(false)
-  const [editAssignOpen, setEditAssignOpen] = useState<any | null>(null)
+  const [editAssignOpen, setEditAssignOpen] = useState<Assignment | null>(null)
   const [studentOpen, setStudentOpen] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
   const [confirmLesson, setConfirmLesson] = useState<string|null>(null)
@@ -268,7 +278,7 @@ export function ClassDetailPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-lg">Buổi {String(l.orderIndex).padStart(2, '0')}: {l.title}</span>
-                      <span className={`px-2 py-0.5 text-xs rounded-full ${l.status === 'PUBLISHED' ? 'bg-green-100 text-green-800' : l.status === 'DRAFT' ? 'bg-slate-100 text-slate-800' : 'bg-gray-100 text-gray-800'}`}>{l.status}</span>
+                      <span className={`px-2 py-0.5 text-xs rounded-full ${lessonStatusClass(l.status)}`}>{l.status}</span>
                     </div>
                     {l.description && <div className="text-sm text-slate-600 mt-1">{l.description}</div>}
                     {l.lessonDate && <div className="text-xs text-slate-500 mt-1">Ngày học: {new Date(l.lessonDate).toLocaleDateString('vi-VN')}</div>}
@@ -352,6 +362,7 @@ export function ClassDetailPage() {
                         {a.status === 'PUBLISHED' && <Button variant="outline" size="sm" onClick={() => closeAssignment.mutateAsync(a.id)}>Đóng</Button>}
                         <Button variant="outline" size="sm" onClick={() => copyAssignment.mutateAsync(a.id).then(res => navigate(`/assignments/${res.id}`))}>Sao chép</Button>
                         <Link to={`/assignments/${a.id}/submissions`}><Button variant="outline" size="sm">Xem bài nộp</Button></Link>
+                        {a.status === 'PUBLISHED' && <AssignmentReminderAction assignmentId={a.id} compact />}
                         <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setConfirmAssign(a.id)}>Xóa</Button>
                       </>
                     )}
@@ -516,7 +527,7 @@ export function ClassDetailPage() {
 
       <Dialog open={!!editLessonOpen} onClose={() => setEditLessonOpen(null)} title="Sửa buổi học">
         <FormProvider {...editLessonForm}>
-          <form onSubmit={editLessonForm.handleSubmit(v => { updateLesson.mutateAsync({ id: editLessonOpen.id, req: v as any }).then(() => setEditLessonOpen(null)) })} className="space-y-4">
+          <form onSubmit={editLessonForm.handleSubmit(v => { updateLesson.mutateAsync({ id: editLessonOpen!.id, req: v as any }).then(() => setEditLessonOpen(null)) })} className="space-y-4">
             <FormField name="title" label="Tiêu đề" />
             <FormField name="description" label="Mô tả" />
             <div className="grid grid-cols-2 gap-4">
@@ -553,8 +564,10 @@ export function ClassDetailPage() {
               <FormField name="externalUrl" label="URL" />
             ) : (
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Tệp đính kèm</label>
+                <p className="block text-sm font-medium text-gray-700">Tệp đính kèm</p>
+                <div id="create-material-file">
                 <FileUploadField onUploadSuccess={(id) => matForm.setValue('fileId', id, { shouldValidate: true })} />
+                </div>
                 {matForm.formState.errors.externalUrl && <p className="text-sm text-red-600">{matForm.formState.errors.externalUrl.message as string}</p>}
               </div>
             )}
@@ -576,7 +589,7 @@ export function ClassDetailPage() {
           <button className={`pb-2 px-2 ${editMatMode === 'file' ? 'border-b-2 border-blue-600 font-medium text-blue-600' : 'text-slate-500'}`} onClick={() => { setEditMatMode('file'); editMatForm.setValue('externalUrl', ''); }}>Tệp tải lên</button>
         </div>
         <FormProvider {...editMatForm}>
-          <form onSubmit={editMatForm.handleSubmit(v => { updateMaterial.mutateAsync({ id: editMatOpen.id, req: v as any }).then(() => setEditMatOpen(null)) })} className="space-y-4">
+          <form onSubmit={editMatForm.handleSubmit(v => { updateMaterial.mutateAsync({ id: editMatOpen!.id, req: v as any }).then(() => setEditMatOpen(null)) })} className="space-y-4">
             <FormField name="title" label="Tiêu đề" />
             <FormField name="description" label="Mô tả" />
             
@@ -584,7 +597,8 @@ export function ClassDetailPage() {
               <FormField name="externalUrl" label="URL" />
             ) : (
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Tệp đính kèm</label>
+                <p className="block text-sm font-medium text-gray-700">Tệp đính kèm</p>
+                <div id="edit-material-file">
                 {editMatForm.watch('fileId') ? (
                   <div className="flex items-center justify-between p-3 border rounded-lg bg-slate-50">
                     <span className="text-sm text-slate-600">Đã có tệp đính kèm</span>
@@ -593,6 +607,7 @@ export function ClassDetailPage() {
                 ) : (
                   <FileUploadField onUploadSuccess={(id) => editMatForm.setValue('fileId', id, { shouldValidate: true })} />
                 )}
+                </div>
                 {editMatForm.formState.errors.externalUrl && <p className="text-sm text-red-600">{editMatForm.formState.errors.externalUrl.message as string}</p>}
               </div>
             )}

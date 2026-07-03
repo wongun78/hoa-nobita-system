@@ -7,6 +7,7 @@ public class Enums {
     public enum LessonStatus { DRAFT, PUBLISHED }
     public enum AssignmentStatus { DRAFT, PUBLISHED, CLOSED }
     public enum SubmissionStatus { SUBMITTED, LATE, GRADED, RESUBMIT_REQUESTED }
+    public enum AttendanceStatus { PRESENT, ABSENT, LATE }
     public enum TargetType { CLASS, USER, ALL }
     public enum MemberStatus { ACTIVE, PAUSED, REMOVED }
 }

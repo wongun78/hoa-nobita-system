@@ -7,8 +7,11 @@ import com.hoanobita.topikplatform.activity.ActivityService;
 import com.hoanobita.topikplatform.common.BusinessException;
 import com.hoanobita.topikplatform.common.Enums.RoleName;
 import com.hoanobita.topikplatform.common.Enums.UserStatus;
+import com.hoanobita.topikplatform.common.PageResponse;
+import com.hoanobita.topikplatform.common.PaginationUtil;
 import com.hoanobita.topikplatform.grading.entity.Grade;
 import com.hoanobita.topikplatform.grading.repository.GradeRepository;
+import com.hoanobita.topikplatform.risk.RiskDetectionService;
 import com.hoanobita.topikplatform.submission.entity.Submission;
 import com.hoanobita.topikplatform.submission.repository.SubmissionRepository;
 import com.hoanobita.topikplatform.user.dto.*;
@@ -21,11 +24,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
 public class UserService {
+    private static final String USER_NOT_FOUND = "User not found";
+
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -34,11 +41,13 @@ public class UserService {
     private final AssignmentRepository assignmentRepository;
     private final SubmissionRepository submissionRepository;
     private final GradeRepository gradeRepository;
+    private final RiskDetectionService riskDetectionService;
     private final ActivityService activityService;
 
     public UserService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder,
                        ClassMemberRepository classMemberRepository, AssignmentRepository assignmentRepository,
-                       SubmissionRepository submissionRepository, GradeRepository gradeRepository, ActivityService activityService) {
+                       SubmissionRepository submissionRepository, GradeRepository gradeRepository,
+                       RiskDetectionService riskDetectionService, ActivityService activityService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
@@ -46,22 +55,46 @@ public class UserService {
         this.assignmentRepository = assignmentRepository;
         this.submissionRepository = submissionRepository;
         this.gradeRepository = gradeRepository;
+        this.riskDetectionService = riskDetectionService;
         this.activityService = activityService;
     }
 
-    public List<UserResponse> listUsers() {
-        return userRepository.findAllActive().stream()
-                .map(this::toResponse)
-                .toList();
+        public PageResponse<UserResponse> listUsers(Integer page, Integer size, String sort, String search, String status) {
+        int normalizedPage = PaginationUtil.normalizePage(page);
+        int normalizedSize = PaginationUtil.normalizeSize(size);
+
+        List<UserResponse> filtered = userRepository.findAllActive().stream()
+            .map(this::toResponse)
+            .filter(user -> status == null || status.isBlank() || user.status().equalsIgnoreCase(status))
+            .filter(user -> {
+                if (search == null || search.isBlank()) return true;
+                String keyword = search.toLowerCase();
+                return containsIgnoreCase(user.fullName(), keyword)
+                    || containsIgnoreCase(user.email(), keyword)
+                    || containsIgnoreCase(user.phone(), keyword);
+            })
+            .toList();
+
+        Comparator<UserResponse> defaultSort = Comparator.comparing(UserResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
+        Comparator<UserResponse> comparator = PaginationUtil.resolveSort(sort, Map.of(
+            "createdAt", Comparator.comparing(UserResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())),
+            "fullName", Comparator.comparing(UserResponse::fullName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
+            "email", Comparator.comparing(UserResponse::email, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
+            "status", Comparator.comparing(UserResponse::status, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+        ), defaultSort);
+
+        List<UserResponse> sorted = filtered.stream().sorted(comparator).toList();
+        return PaginationUtil.paginate(sorted, normalizedPage, normalizedSize);
     }
 
     public UserResponse getUserById(UUID id) {
         var user = userRepository.findActiveById(id)
-                .orElseThrow(() -> BusinessException.notFound("User not found"));
+                .orElseThrow(() -> BusinessException.notFound(USER_NOT_FOUND));
         return toResponse(user);
     }
 
     @Transactional
+    @SuppressWarnings({"java:S3776"})
     public UserResponse createUser(CreateUserRequest request, User currentUser) {
         // Validate email or phone required
         if ((request.email() == null || request.email().isBlank()) &&
@@ -80,10 +113,8 @@ public class UserService {
         }
 
         // Validate phone uniqueness if provided
-        if (request.phone() != null && !request.phone().isBlank()) {
-            if (userRepository.existsByPhone(request.phone())) {
-                throw BusinessException.conflict("Phone already exists");
-            }
+        if (request.phone() != null && !request.phone().isBlank() && userRepository.existsByPhone(request.phone())) {
+            throw BusinessException.conflict("Phone already exists");
         }
 
         // Parse role
@@ -131,7 +162,7 @@ public class UserService {
     @Transactional
     public UserResponse updateUser(UUID id, UpdateUserRequest request) {
         var user = userRepository.findActiveById(id)
-                .orElseThrow(() -> BusinessException.notFound("User not found"));
+            .orElseThrow(() -> BusinessException.notFound(USER_NOT_FOUND));
 
         if (request.fullName() != null) user.setFullName(request.fullName());
         if (request.email() != null) {
@@ -154,9 +185,28 @@ public class UserService {
     }
 
     @Transactional
+    public UserResponse updateMyProfile(UUID id, UpdateProfileRequest request) {
+        var user = userRepository.findActiveById(id)
+            .orElseThrow(() -> BusinessException.notFound(USER_NOT_FOUND));
+
+        if (request.fullName() != null) user.setFullName(request.fullName());
+        if (request.phone() != null) {
+            if (!request.phone().equals(user.getPhone()) && userRepository.existsByPhone(request.phone())) {
+                throw BusinessException.conflict("Phone already exists");
+            }
+            user.setPhone(request.phone());
+        }
+        if (request.avatarUrl() != null) user.setAvatarUrl(request.avatarUrl());
+
+        user = userRepository.save(user);
+        activityService.log("USER_PROFILE_UPDATED", "USER", user.getId(), user.getFullName(), null, "Đã cập nhật hồ sơ cá nhân: " + user.getFullName());
+        return toResponse(user);
+    }
+
+    @Transactional
     public UserResponse updateStatus(UUID id, StatusRequest request) {
         var user = userRepository.findActiveById(id)
-                .orElseThrow(() -> BusinessException.notFound("User not found"));
+            .orElseThrow(() -> BusinessException.notFound(USER_NOT_FOUND));
 
         UserStatus status;
         try {
@@ -174,7 +224,7 @@ public class UserService {
     @Transactional
     public void deleteUser(UUID id) {
         var user = userRepository.findActiveById(id)
-                .orElseThrow(() -> BusinessException.notFound("User not found"));
+            .orElseThrow(() -> BusinessException.notFound(USER_NOT_FOUND));
         user.softDelete();
         userRepository.save(user);
         activityService.log("USER_DELETED", "USER", user.getId(), user.getFullName(), null, "Đã xóa người dùng: " + user.getFullName());
@@ -182,7 +232,7 @@ public class UserService {
 
     public StudentProgressResponse getStudentProgress(UUID studentId) {
         var user = userRepository.findActiveById(studentId)
-                .orElseThrow(() -> BusinessException.notFound("User not found"));
+            .orElseThrow(() -> BusinessException.notFound(USER_NOT_FOUND));
         
         if (!user.isStudent()) {
             throw BusinessException.badRequest("User is not a student");
@@ -192,7 +242,7 @@ public class UserService {
         List<UUID> classIds = classMemberRepository.findClassIdsByStudentId(studentId);
         
         if (classIds.isEmpty()) {
-            return new StudentProgressResponse(0, 0, 0, BigDecimal.ZERO, "LOW");
+            return new StudentProgressResponse(0, 0, 0, BigDecimal.ZERO, BigDecimal.ZERO, "LOW", List.of());
         }
 
         // 2. Find all assignments for those classes
@@ -200,7 +250,7 @@ public class UserService {
         int totalAssignments = assignments.size();
 
         if (totalAssignments == 0) {
-            return new StudentProgressResponse(0, 0, 0, BigDecimal.ZERO, "LOW");
+            return new StudentProgressResponse(0, 0, 0, BigDecimal.ZERO, BigDecimal.ZERO, "LOW", List.of());
         }
 
         // 3. Find all submissions by the student
@@ -239,27 +289,16 @@ public class UserService {
             averageScore = totalPercentage.divide(new BigDecimal(gradedAssignments), 2, RoundingMode.HALF_UP);
         }
 
-        // 6. Determine risk level
-        // HIGH: < 50% submission rate OR < 50% average score
-        // MEDIUM: 50-75% submission rate OR 50-70% average score
-        // LOW: > 75% submission rate AND > 70% average score
-        String riskLevel = "LOW";
-        
-        double submissionRate = (double) submittedAssignments / totalAssignments;
-        double avgScoreDouble = averageScore.doubleValue();
-        
-        if (submissionRate < 0.5 || (gradedAssignments > 0 && avgScoreDouble < 50.0)) {
-            riskLevel = "HIGH";
-        } else if (submissionRate <= 0.75 || (gradedAssignments > 0 && avgScoreDouble <= 70.0)) {
-            riskLevel = "MEDIUM";
-        }
+        var risk = riskDetectionService.evaluateStudentAcrossClasses(studentId, classIds);
 
         return new StudentProgressResponse(
                 totalAssignments,
                 submittedAssignments,
                 gradedAssignments,
                 averageScore,
-                riskLevel
+                risk.submissionRatePercent(),
+                risk.riskLevel(),
+                risk.reasons()
         );
     }
 
@@ -270,5 +309,9 @@ public class UserService {
                 user.getStatus().name(), user.isFirstLogin(), user.getAvatarUrl(),
                 user.getNote(), roles, user.getCreatedAt()
         );
+    }
+
+    private boolean containsIgnoreCase(String value, String keyword) {
+        return value != null && value.toLowerCase().contains(keyword);
     }
 }

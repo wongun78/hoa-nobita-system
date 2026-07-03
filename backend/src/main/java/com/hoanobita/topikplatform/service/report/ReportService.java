@@ -74,6 +74,36 @@ public class ReportService {
     }
 
     @Transactional(readOnly = true)
+    public String exportSystemReportCsv() {
+        SystemReportResponse report = getSystemReport();
+        StringBuilder csv = new StringBuilder();
+        csv.append("metric,value\n");
+        csv.append("totalUsers,").append(report.getTotalUsers()).append('\n');
+        csv.append("totalClasses,").append(report.getTotalClasses()).append('\n');
+        csv.append("totalAssignments,").append(report.getTotalAssignments()).append('\n');
+        csv.append("totalSubmissions,").append(report.getTotalSubmissions()).append('\n');
+        csv.append("averageScore,").append(report.getAverageScore()).append('\n');
+        csv.append('\n').append("classId,className,studentCount,assignmentCount,averageScore,submissionRate\n");
+        for (ClassPerformanceDto item : report.getClassPerformances()) {
+            csv.append(item.getClassId()).append(',')
+                    .append(csv(item.getClassName())).append(',')
+                    .append(item.getStudentCount()).append(',')
+                    .append(item.getAssignmentCount()).append(',')
+                    .append(item.getAverageScore()).append(',')
+                    .append(item.getSubmissionRate()).append('\n');
+        }
+        csv.append('\n').append("userId,fullName,email,submissionCount,averageScore\n");
+        for (StudentPerformanceDto item : report.getTopStudents()) {
+            csv.append(item.getUserId()).append(',')
+                    .append(csv(item.getFullName())).append(',')
+                    .append(csv(item.getEmail())).append(',')
+                    .append(item.getSubmissionCount()).append(',')
+                    .append(item.getAverageScore()).append('\n');
+        }
+        return csv.toString();
+    }
+
+    @Transactional(readOnly = true)
     public ClassReportResponse getClassReport(UUID classId) {
         User currentUser = securityUtils.currentUser();
         permissionService.requireAccessClass(currentUser, classId);
@@ -134,6 +164,36 @@ public class ReportService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
+    public String exportClassReportCsv(UUID classId) {
+        ClassReportResponse report = getClassReport(classId);
+        StringBuilder csv = new StringBuilder();
+        csv.append("metric,value\n");
+        csv.append("classId,").append(report.getClassId()).append('\n');
+        csv.append("className,").append(csv(report.getClassName())).append('\n');
+        csv.append("totalStudents,").append(report.getTotalStudents()).append('\n');
+        csv.append("totalAssignments,").append(report.getTotalAssignments()).append('\n');
+        csv.append("averageScore,").append(report.getAverageScore()).append('\n');
+        csv.append("submissionRate,").append(report.getSubmissionRate()).append('\n');
+        csv.append('\n').append("userId,fullName,email,submissionCount,averageScore\n");
+        for (StudentPerformanceDto item : report.getStudentPerformances()) {
+            csv.append(item.getUserId()).append(',')
+                    .append(csv(item.getFullName())).append(',')
+                    .append(csv(item.getEmail())).append(',')
+                    .append(item.getSubmissionCount()).append(',')
+                    .append(item.getAverageScore()).append('\n');
+        }
+        csv.append('\n').append("assignmentId,title,submissionCount,averageScore,passRate\n");
+        for (AssignmentPerformanceDto item : report.getAssignmentPerformances()) {
+            csv.append(item.getAssignmentId()).append(',')
+                    .append(csv(item.getTitle())).append(',')
+                    .append(item.getSubmissionCount()).append(',')
+                    .append(item.getAverageScore()).append(',')
+                    .append(item.getPassRate()).append('\n');
+        }
+        return csv.toString();
+    }
+
     private ClassPerformanceDto calculateClassPerformance(Klass klass) {
         long studentCount = classMemberRepository.countByClassId(klass.getId());
         long assignmentCount = assignmentRepository.findByClassId(klass.getId()).size();
@@ -155,6 +215,11 @@ public class ReportService {
                 .averageScore(averageScore)
                 .submissionRate(submissionRate)
                 .build();
+    }
+
+    private String csv(String value) {
+        if (value == null) return "";
+        return "\"" + value.replace("\"", "\"\"") + "\"";
     }
 
     private StudentPerformanceDto calculateStudentPerformance(User student) {

@@ -41,3 +41,23 @@ export interface StudentMemberResponse {
   status: 'ACTIVE' | 'PAUSED' | 'REMOVED'
   joinedAt: string
 }
+
+export interface BulkAddStudentsResult {
+  added: number
+  reactivated: number
+  skipped: number
+  errors: string[]
+}
+
+export interface ClassStats {
+  classId: string
+  totalStudents: number
+  totalAssignments: number
+  totalSubmissions: number
+  missingSubmissions: number
+  lateSubmissions: number
+  gradedSubmissions: number
+  needGrading: number
+  submissionRate: number
+  averageScore: number
+}

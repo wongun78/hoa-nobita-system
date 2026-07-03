@@ -10,6 +10,7 @@ import { Select } from '../components/ui/select'
 import { ConfirmDialog } from '../components/ui/confirm-dialog'
 import { AssignmentStatusBadge, DeadlinePill } from '../features/assignments/components/assignment-badges'
 import { AssignmentFormDialog } from '../features/assignments/components/assignment-form-dialog'
+import { AssignmentReminderAction } from '../features/assignments/components/assignment-reminder-action'
 import type { Assignment } from '../features/assignments/types'
 
 export function AssignmentsPage() {
@@ -147,6 +148,7 @@ export function AssignmentsPage() {
                   {a.status === 'PUBLISHED' && <Button variant="outline" size="sm" onClick={() => closeAssignment.mutate(a.id)} disabled={closeAssignment.isPending}>Đóng</Button>}
                   <Button variant="outline" size="sm" onClick={() => copyAssignment.mutate(a.id)} disabled={copyAssignment.isPending}>Sao chép</Button>
                   <Link to={`/assignments/${a.id}/submissions`}><Button variant="outline" size="sm">Xem bài nộp</Button></Link>
+                  {a.status === 'PUBLISHED' && <AssignmentReminderAction assignmentId={a.id} compact />}
                   <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setConfirmDelete(a.id)} disabled={deleteAssignment.isPending}>Xóa</Button>
                 </>
               )}

@@ -1,5 +1,5 @@
 import { api } from '../../lib/api'
-import type { Assignment, AssignmentRequest } from './types'
+import type { Assignment, AssignmentReminderDispatch, AssignmentReminderPreview, AssignmentReminderRequest, AssignmentRequest, BatchAssignmentReminderDispatch, BatchAssignmentReminderRequest } from './types'
 
 export async function listAssignments(classId?: string): Promise<Assignment[]> {
   const path = classId ? `/classes/${classId}/assignments` : '/assignments'
@@ -39,4 +39,19 @@ export async function copyAssignment(id: string): Promise<Assignment> {
 
 export async function deleteAssignment(id: string): Promise<void> {
   await api.delete(`/assignments/${id}`)
+}
+
+export async function previewMissingStudents(id: string): Promise<AssignmentReminderPreview> {
+  const res = await api.get(`/assignments/${id}/missing-students`)
+  return res.data.data
+}
+
+export async function sendAssignmentReminder(id: string, req?: AssignmentReminderRequest): Promise<AssignmentReminderDispatch> {
+  const res = await api.post(`/assignments/${id}/send-reminder`, req ?? {})
+  return res.data.data
+}
+
+export async function sendBatchAssignmentReminders(classId: string, req?: BatchAssignmentReminderRequest): Promise<BatchAssignmentReminderDispatch> {
+  const res = await api.post(`/classes/${classId}/assignments/send-reminders`, req ?? {})
+  return res.data.data
 }

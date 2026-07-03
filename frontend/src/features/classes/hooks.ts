@@ -56,8 +56,16 @@ export function useRemoveClassAdmin(classId: string) {
 
 export function useClassStudents(classId: string) {
   return useQuery({
-    queryKey: [...qk.class(classId), 'students'],
+    queryKey: qk.classStudents(classId),
     queryFn: () => api.listStudents(classId),
+    enabled: !!classId,
+  })
+}
+
+export function useClassStats(classId: string) {
+  return useQuery({
+    queryKey: qk.classStats(classId),
+    queryFn: () => api.getClassStats(classId),
     enabled: !!classId,
   })
 }
@@ -66,7 +74,21 @@ export function useAddClassStudent(classId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (req: { userId: string }) => api.addStudent(classId, req),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [...qk.class(classId), 'students'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.classStudents(classId) })
+      qc.invalidateQueries({ queryKey: qk.classStats(classId) })
+    },
+  })
+}
+
+export function useAddClassStudentsBulk(classId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (studentIds: string[]) => api.addStudentsBulk(classId, studentIds),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.classStudents(classId) })
+      qc.invalidateQueries({ queryKey: qk.classStats(classId) })
+    },
   })
 }
 
@@ -74,7 +96,10 @@ export function useRemoveClassStudent(classId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (studentId: string) => api.removeStudent(classId, studentId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [...qk.class(classId), 'students'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.classStudents(classId) })
+      qc.invalidateQueries({ queryKey: qk.classStats(classId) })
+    },
   })
 }
 
@@ -82,6 +107,9 @@ export function useUpdateClassStudentStatus(classId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ studentId, status }: { studentId: string; status: 'ACTIVE' | 'PAUSED' | 'REMOVED' }) => api.updateStudentStatus(classId, studentId, status),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [...qk.class(classId), 'students'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.classStudents(classId) })
+      qc.invalidateQueries({ queryKey: qk.classStats(classId) })
+    },
   })
 }

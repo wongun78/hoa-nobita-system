@@ -1,5 +1,6 @@
 package com.hoanobita.topikplatform.user;
 
+import com.hoanobita.topikplatform.activity.ActivityService;
 import com.hoanobita.topikplatform.common.ApiResponse;
 import com.hoanobita.topikplatform.common.PermissionService;
 import com.hoanobita.topikplatform.common.SecurityUtils;
@@ -18,24 +19,31 @@ public class UserController {
     private final UserService userService;
     private final SecurityUtils securityUtils;
     private final PermissionService permissionService;
+    private final ActivityService activityService;
 
-    public UserController(UserService userService, SecurityUtils securityUtils, PermissionService permissionService) {
+    public UserController(UserService userService, SecurityUtils securityUtils, PermissionService permissionService,
+                          ActivityService activityService) {
         this.userService = userService;
         this.securityUtils = securityUtils;
         this.permissionService = permissionService;
+        this.activityService = activityService;
     }
 
     @GetMapping
-    public ResponseEntity<?> listUsers() {
+    public ResponseEntity<?> listUsers(@RequestParam(required = false) Integer page,
+                                       @RequestParam(required = false) Integer size,
+                                       @RequestParam(required = false) String sort,
+                                       @RequestParam(required = false) String search,
+                                       @RequestParam(required = false) String status) {
         var currentUser = securityUtils.getCurrentUser();
-        permissionService.requireTeacherOrAdmin(currentUser);
-        return ResponseEntity.ok(ApiResponse.ok(userService.listUsers()));
+        permissionService.requireTeacher(currentUser);
+        return ResponseEntity.ok(ApiResponse.ok(userService.listUsers(page, size, sort, search, status)));
     }
 
     @PostMapping
     public ResponseEntity<?> createUser(@Valid @RequestBody CreateUserRequest request) {
         var currentUser = securityUtils.getCurrentUser();
-        permissionService.requireTeacherOrAdmin(currentUser);
+        permissionService.requireTeacher(currentUser);
         var result = userService.createUser(request, currentUser);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(result));
     }
@@ -43,8 +51,17 @@ public class UserController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getUser(@PathVariable UUID id) {
         var currentUser = securityUtils.getCurrentUser();
-        permissionService.requireTeacherOrAdmin(currentUser);
+        permissionService.requireTeacher(currentUser);
         return ResponseEntity.ok(ApiResponse.ok(userService.getUserById(id)));
+    }
+
+    @GetMapping("/{id}/activity-logs")
+    public ResponseEntity<?> getUserActivityLogs(@PathVariable UUID id,
+                                                 @RequestParam(required = false) Integer page,
+                                                 @RequestParam(required = false) Integer size,
+                                                 @RequestParam(required = false) String sort,
+                                                 @RequestParam(required = false) String search) {
+        return ResponseEntity.ok(ApiResponse.ok(activityService.userActivity(id, page, size, sort, search)));
     }
 
     @GetMapping("/{id}/progress")

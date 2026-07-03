@@ -1,5 +1,5 @@
 import { api } from '../../lib/api'
-import type { ClassItem, CreateClassRequest, UpdateClassRequest, AddMemberRequest } from './types'
+import type { ClassItem, CreateClassRequest, UpdateClassRequest, AddMemberRequest, ClassStats, BulkAddStudentsResult } from './types'
 
 export async function listClasses(): Promise<ClassItem[]> {
   const res = await api.get('/classes')
@@ -42,10 +42,20 @@ export async function addStudent(classId: string, req: AddMemberRequest): Promis
   await api.post(`/classes/${classId}/students`, req)
 }
 
+export async function addStudentsBulk(classId: string, studentIds: string[]): Promise<BulkAddStudentsResult> {
+  const res = await api.post(`/classes/${classId}/students/bulk`, studentIds)
+  return res.data.data
+}
+
 export async function removeStudent(classId: string, studentId: string): Promise<void> {
   await api.delete(`/classes/${classId}/students/${studentId}`)
 }
 
 export async function updateStudentStatus(classId: string, studentId: string, status: 'ACTIVE' | 'PAUSED' | 'REMOVED'): Promise<void> {
   await api.patch(`/classes/${classId}/students/${studentId}/status`, { status })
+}
+
+export async function getClassStats(classId: string): Promise<ClassStats> {
+  const res = await api.get(`/classes/${classId}/stats`)
+  return res.data.data
 }

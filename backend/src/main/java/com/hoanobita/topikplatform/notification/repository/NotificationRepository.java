@@ -20,6 +20,11 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
            "ORDER BY n.createdAt DESC")
     List<Notification> findForUser(@Param("userId") UUID userId, @Param("classIds") List<UUID> classIds);
 
+        @Query("SELECT n FROM Notification n WHERE n.targetType = 'ALL' OR " +
+            "(n.targetType = 'USER' AND n.targetId = :userId) " +
+            "ORDER BY n.createdAt DESC")
+        List<Notification> findForUserWithoutClass(@Param("userId") UUID userId);
+
     @Query("SELECT n FROM Notification n")
     List<Notification> findAllActive();
 }

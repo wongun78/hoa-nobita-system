@@ -22,3 +22,11 @@ export function useDeleteNotification() {
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.notifications }),
   })
 }
+
+export function useMarkNotificationRead() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.markNotificationRead(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.notifications }),
+  })
+}

@@ -14,3 +14,8 @@ export async function createNotification(req: NotificationRequest): Promise<Noti
 export async function deleteNotification(id: string): Promise<void> {
   await api.delete(`/notifications/${id}`)
 }
+
+export async function markNotificationRead(id: string): Promise<Notification> {
+  const res = await api.post(`/notifications/${id}/read`)
+  return res.data.data
+}

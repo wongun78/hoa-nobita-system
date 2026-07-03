@@ -17,4 +17,6 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, UUID> 
     List<ActivityLog> findTop50ByClassIdInOrderByCreatedAtDesc(List<UUID> classIds);
 
     List<ActivityLog> findTop50ByClassIdOrderByCreatedAtDesc(UUID classId);
+
+    List<ActivityLog> findByActorIdOrderByCreatedAtDesc(UUID actorId);
 }

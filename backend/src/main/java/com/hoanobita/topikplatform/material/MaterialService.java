@@ -2,6 +2,8 @@ package com.hoanobita.topikplatform.material;
 
 import com.hoanobita.topikplatform.activity.ActivityService;
 import com.hoanobita.topikplatform.common.BusinessException;
+import com.hoanobita.topikplatform.common.PageResponse;
+import com.hoanobita.topikplatform.common.PaginationUtil;
 import com.hoanobita.topikplatform.common.PermissionService;
 import com.hoanobita.topikplatform.material.dto.*;
 import com.hoanobita.topikplatform.material.entity.Material;
@@ -10,7 +12,9 @@ import com.hoanobita.topikplatform.user.entity.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -26,7 +30,10 @@ public class MaterialService {
         this.activityService = activityService;
     }
 
-    public List<MaterialResponse> listByClass(UUID classId, User user) {
+    public PageResponse<MaterialResponse> listByClass(UUID classId, User user, Integer page, Integer size, String sort, String search) {
+        int normalizedPage = PaginationUtil.normalizePage(page);
+        int normalizedSize = PaginationUtil.normalizeSize(size);
+
         permissionService.requireAccessClass(user, classId);
         List<Material> materials;
         if (user.isStudent()) {
@@ -34,7 +41,25 @@ public class MaterialService {
         } else {
             materials = materialRepo.findByClassId(classId);
         }
-        return materials.stream().map(this::toResponse).toList();
+
+        List<MaterialResponse> filtered = materials.stream()
+                .map(this::toResponse)
+                .filter(item -> {
+                    if (search == null || search.isBlank()) return true;
+                    String keyword = search.toLowerCase();
+                    return containsIgnoreCase(item.title(), keyword)
+                            || containsIgnoreCase(item.description(), keyword);
+                })
+                .toList();
+
+        Comparator<MaterialResponse> defaultSort = Comparator.comparing(MaterialResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
+        Comparator<MaterialResponse> comparator = PaginationUtil.resolveSort(sort, Map.of(
+                "createdAt", Comparator.comparing(MaterialResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())),
+                "title", Comparator.comparing(MaterialResponse::title, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+        ), defaultSort);
+
+        List<MaterialResponse> sorted = filtered.stream().sorted(comparator).toList();
+        return PaginationUtil.paginate(sorted, normalizedPage, normalizedSize);
     }
 
     @Transactional
@@ -118,5 +143,9 @@ public class MaterialService {
                 m.getTitle(), m.getDescription(), m.getExternalUrl(),
                 m.isVisible(), m.getCreatedAt()
         );
+    }
+
+    private boolean containsIgnoreCase(String value, String keyword) {
+        return value != null && value.toLowerCase().contains(keyword);
     }
 }

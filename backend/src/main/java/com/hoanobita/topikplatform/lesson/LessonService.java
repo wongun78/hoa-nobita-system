@@ -3,6 +3,8 @@ package com.hoanobita.topikplatform.lesson;
 import com.hoanobita.topikplatform.activity.ActivityService;
 import com.hoanobita.topikplatform.common.BusinessException;
 import com.hoanobita.topikplatform.common.Enums.LessonStatus;
+import com.hoanobita.topikplatform.common.PageResponse;
+import com.hoanobita.topikplatform.common.PaginationUtil;
 import com.hoanobita.topikplatform.common.PermissionService;
 import com.hoanobita.topikplatform.lesson.dto.*;
 import com.hoanobita.topikplatform.lesson.entity.Lesson;
@@ -12,7 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -28,14 +32,39 @@ public class LessonService {
         this.activityService = activityService;
     }
 
-    public List<LessonResponse> listByClass(UUID classId, User user) {
+    public PageResponse<LessonResponse> listByClass(UUID classId, User user, Integer page, Integer size, String sort, String search, String status) {
+        int normalizedPage = PaginationUtil.normalizePage(page);
+        int normalizedSize = PaginationUtil.normalizeSize(size);
+
         permissionService.requireAccessClass(user, classId);
         var lessons = lessonRepo.findByClassId(classId);
         // Students only see published lessons
         if (user.isStudent()) {
             lessons = lessons.stream().filter(l -> l.getStatus() == LessonStatus.PUBLISHED).toList();
         }
-        return lessons.stream().map(this::toResponse).toList();
+
+        List<LessonResponse> filtered = lessons.stream()
+                .map(this::toResponse)
+                .filter(item -> status == null || status.isBlank() || item.status().equalsIgnoreCase(status))
+                .filter(item -> {
+                    if (search == null || search.isBlank()) return true;
+                    String keyword = search.toLowerCase();
+                    return containsIgnoreCase(item.title(), keyword)
+                            || containsIgnoreCase(item.description(), keyword);
+                })
+                .toList();
+
+        Comparator<LessonResponse> defaultSort = Comparator.comparing(LessonResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
+        Comparator<LessonResponse> comparator = PaginationUtil.resolveSort(sort, Map.of(
+                "createdAt", Comparator.comparing(LessonResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())),
+                "title", Comparator.comparing(LessonResponse::title, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
+                "lessonDate", Comparator.comparing(LessonResponse::lessonDate, Comparator.nullsLast(Comparator.naturalOrder())),
+                "orderIndex", Comparator.comparingInt(LessonResponse::orderIndex),
+                "status", Comparator.comparing(LessonResponse::status, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+        ), defaultSort);
+
+        List<LessonResponse> sorted = filtered.stream().sorted(comparator).toList();
+        return PaginationUtil.paginate(sorted, normalizedPage, normalizedSize);
     }
 
     @Transactional
@@ -104,5 +133,9 @@ public class LessonService {
                 lesson.getOrderIndex() != null ? lesson.getOrderIndex() : 0,
                 lesson.getStatus().name(), lesson.getCreatedAt()
         );
+    }
+
+    private boolean containsIgnoreCase(String value, String keyword) {
+        return value != null && value.toLowerCase().contains(keyword);
     }
 }

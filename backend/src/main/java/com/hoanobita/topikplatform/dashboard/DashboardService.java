@@ -19,6 +19,7 @@ import com.hoanobita.topikplatform.material.entity.Material;
 import com.hoanobita.topikplatform.material.repository.MaterialRepository;
 import com.hoanobita.topikplatform.notification.entity.Notification;
 import com.hoanobita.topikplatform.notification.repository.NotificationRepository;
+import com.hoanobita.topikplatform.risk.RiskDetectionService;
 import com.hoanobita.topikplatform.submission.entity.Submission;
 import com.hoanobita.topikplatform.submission.repository.SubmissionRepository;
 import com.hoanobita.topikplatform.user.entity.User;
@@ -29,12 +30,16 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class DashboardService {
+        private static final String ROUTE_CLASSES = "/classes";
+        private static final String ROUTE_ASSIGNMENTS = "/assignments";
+
 
     private final KlassRepository klassRepo;
     private final ClassAdminRepository classAdminRepo;
@@ -46,12 +51,14 @@ public class DashboardService {
     private final MaterialRepository materialRepo;
     private final NotificationRepository notificationRepo;
     private final ActivityService activityService;
+        private final RiskDetectionService riskDetectionService;
 
     public DashboardService(KlassRepository klassRepo, ClassAdminRepository classAdminRepo,
                             ClassMemberRepository classMemberRepo, UserRepository userRepo,
                             AssignmentRepository assignmentRepo, SubmissionRepository submissionRepo,
                             GradeRepository gradeRepo, MaterialRepository materialRepo,
-                            NotificationRepository notificationRepo, ActivityService activityService) {
+                            NotificationRepository notificationRepo, ActivityService activityService,
+                            RiskDetectionService riskDetectionService) {
         this.klassRepo = klassRepo;
         this.classAdminRepo = classAdminRepo;
         this.classMemberRepo = classMemberRepo;
@@ -62,21 +69,35 @@ public class DashboardService {
         this.materialRepo = materialRepo;
         this.notificationRepo = notificationRepo;
         this.activityService = activityService;
+        this.riskDetectionService = riskDetectionService;
     }
 
     // ==================== TEACHER DASHBOARD ====================
+        @SuppressWarnings({"java:S3776", "java:S6541", "java:S1192", "java:S135"})
     public TeacherDashboardResponse getTeacherDashboard(User teacher) {
         if (!teacher.isTeacher()) {
             throw BusinessException.forbidden("Only TEACHER_OWNER can access teacher dashboard");
         }
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(ZoneId.systemDefault());
         List<Klass> allClasses = klassRepo.findAllActive();
         List<Assignment> allAssignments = assignmentRepo.findAllActive();
         List<Submission> allSubmissions = submissionRepo.findAllActive();
         List<Grade> allGrades = gradeRepo.findAllActive();
         List<Material> allMaterials = materialRepo.findAllActive();
         List<Notification> allNotifications = notificationRepo.findAllActive();
+        Instant now = Instant.now();
+
+        Map<UUID, List<Assignment>> assignmentsByClass = allAssignments.stream()
+                .collect(Collectors.groupingBy(Assignment::getClassId));
+        Map<UUID, List<Submission>> submissionsByAssignment = allSubmissions.stream()
+                .collect(Collectors.groupingBy(Submission::getAssignmentId));
+
+        Map<UUID, Integer> activeStudentCountByClass = new HashMap<>();
+        for (Klass klass : allClasses) {
+            int activeCount = classMemberRepo.findByClassIdAndStatus(klass.getId(), MemberStatus.ACTIVE).size();
+            activeStudentCountByClass.put(klass.getId(), activeCount);
+        }
 
         // KPI calculations
         long activeClasses = allClasses.stream().filter(k -> k.getStatus() == ClassStatus.ACTIVE).count();
@@ -104,19 +125,27 @@ public class DashboardService {
         long publishedAssignments = allAssignments.stream().filter(a -> a.getStatus() == AssignmentStatus.PUBLISHED).count();
         long closedAssignments = allAssignments.stream().filter(a -> a.getStatus() == AssignmentStatus.CLOSED).count();
 
-        Instant dueSoonThreshold = Instant.now().plus(48, ChronoUnit.HOURS);
+        Instant dueSoonThreshold = now.plus(48, ChronoUnit.HOURS);
         long dueSoon48h = allAssignments.stream()
-                .filter(a -> a.getStatus() == AssignmentStatus.PUBLISHED && a.getDueAt() != null && a.getDueAt().isBefore(dueSoonThreshold))
+                .filter(a -> a.getStatus() == AssignmentStatus.PUBLISHED && a.getDueAt() != null && a.getDueAt().isAfter(now) && a.getDueAt().isBefore(dueSoonThreshold))
                 .count();
         long overdueAssignments = allAssignments.stream()
-                .filter(a -> a.getStatus() == AssignmentStatus.PUBLISHED && a.getDueAt() != null && a.getDueAt().isBefore(Instant.now()))
+                .filter(a -> a.getStatus() == AssignmentStatus.PUBLISHED && a.getDueAt() != null && a.getDueAt().isBefore(now))
                 .count();
 
-        long submittedSubs = allSubmissions.stream().filter(s -> s.getStatus() == SubmissionStatus.SUBMITTED || s.getStatus() == SubmissionStatus.GRADED).count();
+        long submittedSubs = allSubmissions.stream().filter(s -> s.getStatus() == SubmissionStatus.SUBMITTED || s.getStatus() == SubmissionStatus.GRADED || s.getStatus() == SubmissionStatus.LATE || s.getStatus() == SubmissionStatus.RESUBMIT_REQUESTED).count();
         long lateSubs = allSubmissions.stream().filter(s -> s.getStatus() == SubmissionStatus.LATE).count();
         long needGrading = allSubmissions.stream().filter(s -> s.getStatus() == SubmissionStatus.SUBMITTED).count();
         long gradedSubs = allSubmissions.stream().filter(s -> s.getStatus() == SubmissionStatus.GRADED).count();
         long resubmitRequested = allSubmissions.stream().filter(s -> s.getStatus() == SubmissionStatus.RESUBMIT_REQUESTED).count();
+
+        long expectedSubmissions = 0;
+        for (Klass klass : allClasses) {
+            int classStudentCount = activeStudentCountByClass.getOrDefault(klass.getId(), 0);
+            int classAssignmentCount = assignmentsByClass.getOrDefault(klass.getId(), List.of()).size();
+            expectedSubmissions += (long) classStudentCount * classAssignmentCount;
+        }
+        long missingSubs = Math.max(expectedSubmissions - submittedSubs, 0);
 
         long visibleMaterials = allMaterials.stream().filter(m -> m.isVisible()).count();
         long hiddenMaterials = allMaterials.stream().filter(m -> !m.isVisible()).count();
@@ -139,22 +168,27 @@ public class DashboardService {
         List<TeacherDashboardResponse.SubmissionRateByClass> submissionRateByClass = allClasses.stream()
                 .limit(10)
                 .map(k -> {
-                    List<Assignment> classAssignments = assignmentRepo.findByClassId(k.getId());
-                    long classSubs = classAssignments.stream()
-                            .flatMap(a -> submissionRepo.findByAssignmentId(a.getId()).stream())
-                            .filter(s -> s.getStatus() == SubmissionStatus.SUBMITTED || s.getStatus() == SubmissionStatus.GRADED)
+                    List<Assignment> classAssignments = assignmentsByClass.getOrDefault(k.getId(), List.of());
+                    List<Submission> classSubmissions = classAssignments.stream()
+                            .flatMap(a -> submissionsByAssignment.getOrDefault(a.getId(), List.of()).stream())
+                            .toList();
+                    long classSubmitted = classSubmissions.stream()
+                            .filter(s -> s.getStatus() == SubmissionStatus.SUBMITTED || s.getStatus() == SubmissionStatus.GRADED || s.getStatus() == SubmissionStatus.LATE || s.getStatus() == SubmissionStatus.RESUBMIT_REQUESTED)
                             .count();
-                    long classMissing = Math.max(0, classAssignments.size() * classMemberRepo.countByClassId(k.getId()) - classSubs);
-                    return new TeacherDashboardResponse.SubmissionRateByClass(k.getId(), k.getName(), classSubs, classMissing, 0);
+                    long classLate = classSubmissions.stream().filter(s -> s.getStatus() == SubmissionStatus.LATE).count();
+                    int classStudentCount = activeStudentCountByClass.getOrDefault(k.getId(), 0);
+                    long classExpected = (long) classAssignments.size() * classStudentCount;
+                    long classMissing = Math.max(0, classExpected - classSubmitted);
+                    return new TeacherDashboardResponse.SubmissionRateByClass(k.getId(), k.getName(), classSubmitted, classMissing, classLate);
                 })
                 .toList();
 
         List<TeacherDashboardResponse.NeedGradingByClass> needGradingByClass = allClasses.stream()
                 .limit(10)
                 .map(k -> {
-                    List<Assignment> classAssignments = assignmentRepo.findByClassId(k.getId());
+                    List<Assignment> classAssignments = assignmentsByClass.getOrDefault(k.getId(), List.of());
                     long classNeedGrading = classAssignments.stream()
-                            .flatMap(a -> submissionRepo.findByAssignmentId(a.getId()).stream())
+                            .flatMap(a -> submissionsByAssignment.getOrDefault(a.getId(), List.of()).stream())
                             .filter(s -> s.getStatus() == SubmissionStatus.SUBMITTED)
                             .count();
                     return new TeacherDashboardResponse.NeedGradingByClass(k.getId(), k.getName(), classNeedGrading);
@@ -165,7 +199,7 @@ public class DashboardService {
         List<TeacherDashboardResponse.AverageScoreByClass> avgScoreByClass = allClasses.stream()
                 .limit(10)
                 .map(k -> {
-                    List<Assignment> classAssignments = assignmentRepo.findByClassId(k.getId());
+                    List<Assignment> classAssignments = assignmentsByClass.getOrDefault(k.getId(), List.of());
                     List<Grade> classGrades = classAssignments.stream()
                             .flatMap(a -> gradeRepo.findByAssignmentId(a.getId()).stream())
                             .toList();
@@ -198,33 +232,38 @@ public class DashboardService {
         // Today tasks
         List<TeacherDashboardResponse.TodayTask> todayTasks = new ArrayList<>();
         if (needGrading > 0) {
-            todayTasks.add(new TeacherDashboardResponse.TodayTask("t1", "GRADING", needGrading + " bài nộp đang chờ chấm", "Có " + needGrading + " submissions cần chấm điểm", "HIGH", "/classes", "Chấm ngay"));
+                        todayTasks.add(new TeacherDashboardResponse.TodayTask("t1", "GRADING", needGrading + " bài nộp đang chờ chấm", "Có " + needGrading + " submissions cần chấm điểm", "HIGH", ROUTE_CLASSES, "Chấm ngay"));
         }
         if (dueSoon48h > 0) {
-            todayTasks.add(new TeacherDashboardResponse.TodayTask("t2", "DEADLINE", dueSoon48h + " bài tập sắp hết hạn trong 48 giờ", "Kiểm tra và nhắc nhở học viên", "HIGH", "/assignments", "Xem bài tập"));
+                        todayTasks.add(new TeacherDashboardResponse.TodayTask("t2", "DEADLINE", dueSoon48h + " bài tập sắp hết hạn trong 48 giờ", "Kiểm tra và nhắc nhở học viên", "HIGH", ROUTE_ASSIGNMENTS, "Xem bài tập"));
         }
         if (resubmitRequested > 0) {
-            todayTasks.add(new TeacherDashboardResponse.TodayTask("t3", "RESUBMIT", resubmitRequested + " submissions được yêu cầu nộp lại", "Theo dõi học viên nộp lại", "MEDIUM", "/assignments", "Xem chi tiết"));
+                        todayTasks.add(new TeacherDashboardResponse.TodayTask("t3", "RESUBMIT", resubmitRequested + " submissions được yêu cầu nộp lại", "Theo dõi học viên nộp lại", "MEDIUM", ROUTE_ASSIGNMENTS, "Xem chi tiết"));
         }
-        if (hiddenMaterials > 0) {
-            todayTasks.add(new TeacherDashboardResponse.TodayTask("t4", "MATERIAL", hiddenMaterials + " tài liệu đang để ẩn", "Kiểm tra và hiển thị tài liệu cần thiết", "LOW", "/classes", "Xem tài liệu"));
+                if (missingSubs > 0) {
+                                                todayTasks.add(new TeacherDashboardResponse.TodayTask("t4", "MISSING", missingSubs + " lượt chưa nộp bài", "Danh sách học viên thiếu bài nộp cần được nhắc nhở", "HIGH", ROUTE_CLASSES, "Gửi nhắc nhở"));
         }
 
         // Class health (top 8)
         List<TeacherDashboardResponse.ClassHealth> classHealth = allClasses.stream()
                 .limit(8)
                 .map(k -> {
-                    int studentCount = (int) classMemberRepo.countByClassId(k.getId());
+                    int studentCount = activeStudentCountByClass.getOrDefault(k.getId(), 0);
                     List<String> adminNames = classAdminRepo.findByClassId(k.getId()).stream()
                             .map(ca -> userRepo.findById(ca.getAdminId()).map(u -> u.getFullName()).orElse(""))
                             .filter(n -> !n.isEmpty()).limit(2).toList();
-                    List<Assignment> classAssignments = assignmentRepo.findByClassId(k.getId());
+                    List<Assignment> classAssignments = assignmentsByClass.getOrDefault(k.getId(), List.of());
                     int openAssignments = (int) classAssignments.stream().filter(a -> a.getStatus() == AssignmentStatus.PUBLISHED).count();
-                    long classSubs = classAssignments.stream().flatMap(a -> submissionRepo.findByAssignmentId(a.getId()).stream()).count();
+                    List<Submission> classSubmissions = classAssignments.stream()
+                            .flatMap(a -> submissionsByAssignment.getOrDefault(a.getId(), List.of()).stream())
+                            .toList();
+                    long classSubs = classSubmissions.stream()
+                            .filter(s -> s.getStatus() == SubmissionStatus.SUBMITTED || s.getStatus() == SubmissionStatus.GRADED || s.getStatus() == SubmissionStatus.LATE || s.getStatus() == SubmissionStatus.RESUBMIT_REQUESTED)
+                            .count();
                     BigDecimal subRate = studentCount > 0 && !classAssignments.isEmpty() ?
                             BigDecimal.valueOf(classSubs).multiply(BigDecimal.valueOf(100))
                                     .divide(BigDecimal.valueOf((long) classAssignments.size() * studentCount), 0, RoundingMode.HALF_UP) : BigDecimal.ZERO;
-                    long classNeedGrading = classAssignments.stream().flatMap(a -> submissionRepo.findByAssignmentId(a.getId()).stream())
+                    long classNeedGrading = classSubmissions.stream()
                             .filter(s -> s.getStatus() == SubmissionStatus.SUBMITTED).count();
                     List<Grade> classGrades = classAssignments.stream().flatMap(a -> gradeRepo.findByAssignmentId(a.getId()).stream()).toList();
                     BigDecimal avgScore = classGrades.isEmpty() ? BigDecimal.ZERO :
@@ -238,55 +277,73 @@ public class DashboardService {
                 .toList();
 
         // Assignments due soon
+        Instant upcomingThreshold = now.plus(7, ChronoUnit.DAYS);
         List<TeacherDashboardResponse.AssignmentDueSoon> dueSoon = allAssignments.stream()
-                .filter(a -> a.getStatus() == AssignmentStatus.PUBLISHED && a.getDueAt() != null && a.getDueAt().isAfter(Instant.now()))
+                .filter(a -> a.getStatus() == AssignmentStatus.PUBLISHED && a.getDueAt() != null && a.getDueAt().isAfter(now) && a.getDueAt().isBefore(upcomingThreshold))
                 .sorted(Comparator.comparing(Assignment::getDueAt))
                 .limit(8)
                 .map(a -> {
                     Klass k = klassRepo.findActiveById(a.getClassId()).orElse(null);
                     String className = k != null ? k.getName() : "Unknown";
-                    List<Submission> subs = submissionRepo.findByAssignmentId(a.getId());
+                    List<Submission> subs = submissionsByAssignment.getOrDefault(a.getId(), List.of());
                     long submitted = subs.size();
                     long late = subs.stream().filter(s -> s.getStatus() == SubmissionStatus.LATE).count();
                     int needGrade = (int) subs.stream().filter(s -> s.getStatus() == SubmissionStatus.SUBMITTED).count();
-                    int totalStudents = (int) classMemberRepo.countByClassId(a.getClassId());
+                    int totalStudents = activeStudentCountByClass.getOrDefault(a.getClassId(), 0);
                     return new TeacherDashboardResponse.AssignmentDueSoon(a.getId(), a.getTitle(), a.getClassId(), className, a.getDueAt(), a.getStatus().name(), submitted, totalStudents, late, needGrade, "/assignments/" + a.getId() + "/submissions");
                 })
                 .toList();
 
-        // Risk students (students with low submission rate or low scores)
+        // Risk students calculated by rule-based detector.
         List<TeacherDashboardResponse.RiskStudent> riskStudents = allStudents.stream()
-                .limit(10)
                 .map(s -> {
                     List<UUID> classIds = classMemberRepo.findClassIdsByStudentId(s.getId());
-                    if (classIds.isEmpty()) return null;
-                    UUID classId = classIds.get(0);
+                    if (classIds.isEmpty()) {
+                        return null;
+                    }
+
+                    var risk = riskDetectionService.evaluateStudentAcrossClasses(s.getId(), classIds);
+                    if ("LOW".equals(risk.riskLevel())) {
+                        return null;
+                    }
+
+                    UUID classId = classIds.getFirst();
                     Klass k = klassRepo.findActiveById(classId).orElse(null);
                     String className = k != null ? k.getName() : "";
-                    List<Submission> studentSubs = submissionRepo.findByStudentId(s.getId());
-                    long totalPossible = allAssignments.stream().filter(a -> classIds.contains(a.getClassId())).count();
-                    BigDecimal subRate = totalPossible > 0 ? BigDecimal.valueOf(studentSubs.size()).multiply(BigDecimal.valueOf(100)).divide(BigDecimal.valueOf(totalPossible), 0, RoundingMode.HALF_UP) : BigDecimal.ZERO;
-                    List<Grade> studentGrades = studentSubs.stream().flatMap(sub -> gradeRepo.findBySubmissionId(sub.getId()).stream()).toList();
-                    BigDecimal avgScore = studentGrades.isEmpty() ? BigDecimal.ZERO :
-                            studentGrades.stream().map(Grade::getScore).reduce(BigDecimal.ZERO, BigDecimal::add)
-                                    .divide(BigDecimal.valueOf(studentGrades.size()), 2, RoundingMode.HALF_UP);
-                    String issue = "";
-                    String riskLevel = "LOW";
-                    if (subRate.compareTo(new BigDecimal("50")) < 0) { issue = "Nộp bài thấp"; riskLevel = "HIGH"; }
-                    else if (avgScore.compareTo(new BigDecimal("5")) < 0 && avgScore.compareTo(BigDecimal.ZERO) > 0) { issue = "Điểm thấp"; riskLevel = "MEDIUM"; }
-                    if (issue.isEmpty()) return null;
-                    return new TeacherDashboardResponse.RiskStudent(s.getId(), s.getFullName(), s.getEmail(), s.getPhone(), classId, className, subRate, avgScore, issue, riskLevel, "/users/" + s.getId());
+
+                    String issue = String.join("; ", risk.reasons());
+                    return new TeacherDashboardResponse.RiskStudent(
+                            s.getId(),
+                            s.getFullName(),
+                            s.getEmail(),
+                            s.getPhone(),
+                            classId,
+                            className,
+                            risk.submissionRatePercent(),
+                            risk.averageScorePercent(),
+                            issue,
+                            risk.riskLevel(),
+                            "/users/" + s.getId()
+                    );
                 })
                 .filter(Objects::nonNull)
                 .limit(6)
                 .toList();
 
+        BigDecimal gradingAverageScore = allGrades.isEmpty() ? BigDecimal.ZERO :
+                allGrades.stream().map(Grade::getScore).reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .divide(BigDecimal.valueOf(allGrades.size()), 2, RoundingMode.HALF_UP);
+        long passCount = allGrades.stream().filter(g -> g.getScore().compareTo(BigDecimal.valueOf(6)) >= 0).count();
+        BigDecimal passRate = allGrades.isEmpty() ? BigDecimal.ZERO : BigDecimal.valueOf(passCount)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(BigDecimal.valueOf(allGrades.size()), 2, RoundingMode.HALF_UP);
+
         TeacherDashboardResponse.KpiSection kpi = new TeacherDashboardResponse.KpiSection(
                 new TeacherDashboardResponse.ClassKpi(allClasses.size(), (int) activeClasses, (int) completedClasses, (int) draftClasses, (int) archivedClasses, (int) draftClasses),
                 new TeacherDashboardResponse.StudentKpi(allStudents.size(), (int) activeStudents, (int) suspendedStudents, (int) inactiveStudents, (int) newStudents7d, (int) newStudents30d, (int) unassignedStudents),
                 new TeacherDashboardResponse.AssignmentKpi(allAssignments.size(), (int) draftAssignments, (int) publishedAssignments, (int) closedAssignments, (int) dueSoon48h, (int) overdueAssignments),
-                new TeacherDashboardResponse.SubmissionKpi((int) submittedSubs, 0, (int) lateSubs, (int) needGrading, (int) gradedSubs, (int) resubmitRequested),
-                new TeacherDashboardResponse.GradingKpi((int) needGrading, BigDecimal.valueOf(7.2), BigDecimal.valueOf(78), BigDecimal.valueOf(12)),
+                new TeacherDashboardResponse.SubmissionKpi((int) submittedSubs, (int) missingSubs, (int) lateSubs, (int) needGrading, (int) gradedSubs, (int) resubmitRequested),
+                new TeacherDashboardResponse.GradingKpi((int) needGrading, gradingAverageScore, passRate, BigDecimal.ZERO),
                 new TeacherDashboardResponse.MaterialKpi(allMaterials.size(), (int) visibleMaterials, (int) hiddenMaterials, (int) newMaterials),
                 new TeacherDashboardResponse.NotificationKpi((int) sentLast7d, (int) globalNotifs, (int) classNotifs)
         );
@@ -295,8 +352,8 @@ public class DashboardService {
                 classStatusChart, submissionRateByClass, needGradingByClass, avgScoreByClass, gradeDist, assignmentWorkflow
         );
 
-        int todayActionCount = todayTasks.size() + (int) needGrading + (int) dueSoon48h;
-        int overdueMissing = (int) overdueAssignments + (int) (allAssignments.size() * activeStudents - submittedSubs);
+        int todayActionCount = todayTasks.size() + (int) needGrading + (int) dueSoon48h + (int) Math.min(missingSubs, Integer.MAX_VALUE);
+        int overdueMissing = (int) Math.min(overdueAssignments + missingSubs, Integer.MAX_VALUE);
 
         // Map ActivityLogResponse to TeacherDashboardResponse.RecentActivity
         List<TeacherDashboardResponse.RecentActivity> mappedRecentActivity = recentActivity.stream()
@@ -315,6 +372,7 @@ public class DashboardService {
     }
 
     // ==================== ADMIN DASHBOARD ====================
+        @SuppressWarnings({"java:S3776", "java:S6541", "java:S135"})
     public AdminDashboardResponse getAdminDashboard(User admin) {
         if (!admin.isAdmin()) {
             throw BusinessException.forbidden("Only CLASS_ADMIN can access admin dashboard");
@@ -325,8 +383,59 @@ public class DashboardService {
                 .filter(k -> assignedClassIds.contains(k.getId()))
                 .toList();
 
-        List<Assignment> assignedAssignments = assignmentRepo.findByClassIdIn(assignedClassIds);
+                if (assignedClassIds.isEmpty()) {
+                        return new AdminDashboardResponse(
+                                        0,
+                                        0,
+                                        0,
+                                        0,
+                                        new AdminDashboardResponse.KpiSection(
+                                                        new AdminDashboardResponse.ClassKpi(0, 0),
+                                                        new AdminDashboardResponse.StudentKpi(0, 0, 0),
+                                                        new AdminDashboardResponse.AssignmentKpi(0, 0, 0, 0),
+                                                        new AdminDashboardResponse.SubmissionKpi(0, 0, 0, 0),
+                                                        new AdminDashboardResponse.ScoreKpi(BigDecimal.ZERO, 0)
+                                        ),
+                                        new AdminDashboardResponse.ChartsSection(List.of(), List.of(), List.of(), List.of(), List.of()),
+                                        List.of(),
+                                        List.of()
+                        );
+                }
+
+                List<Assignment> assignedAssignments = assignmentRepo.findByClassIdIn(assignedClassIds);
         List<Submission> assignedSubmissions = submissionRepo.findByAssignmentIdIn(assignedAssignments.stream().map(Assignment::getId).toList());
+                Map<UUID, List<Assignment>> assignmentsByClass = assignedAssignments.stream()
+                                .collect(Collectors.groupingBy(Assignment::getClassId));
+                Map<UUID, List<Submission>> submissionsByAssignment = assignedSubmissions.stream()
+                                .collect(Collectors.groupingBy(Submission::getAssignmentId));
+
+                Map<UUID, Integer> activeStudentCountByClass = new HashMap<>();
+                for (Klass klass : assignedClasses) {
+                        int count = classMemberRepo.findByClassIdAndStatus(klass.getId(), MemberStatus.ACTIVE).size();
+                        activeStudentCountByClass.put(klass.getId(), count);
+                }
+
+                int totalInAssignedClasses = activeStudentCountByClass.values().stream().mapToInt(Integer::intValue).sum();
+                int activeStudentCount = 0;
+                int suspendedStudentCount = 0;
+                Set<UUID> distinctStudentIds = new HashSet<>();
+                for (Klass klass : assignedClasses) {
+                        var members = classMemberRepo.findByClassIdAndStatus(klass.getId(), MemberStatus.ACTIVE);
+                        for (var member : members) {
+                                if (!distinctStudentIds.add(member.getStudentId())) {
+                                        continue;
+                                }
+                                var student = userRepo.findById(member.getStudentId()).orElse(null);
+                                if (student == null) {
+                                        continue;
+                                }
+                                if (student.getStatus() == UserStatus.ACTIVE) {
+                                        activeStudentCount++;
+                                } else if (student.getStatus() == UserStatus.SUSPENDED) {
+                                        suspendedStudentCount++;
+                                }
+                        }
+                }
 
         long published = assignedAssignments.stream().filter(a -> a.getStatus() == AssignmentStatus.PUBLISHED).count();
         long closed = assignedAssignments.stream().filter(a -> a.getStatus() == AssignmentStatus.CLOSED).count();
@@ -338,8 +447,14 @@ public class DashboardService {
                 .filter(a -> a.getStatus() == AssignmentStatus.PUBLISHED && a.getDueAt() != null && a.getDueAt().isBefore(Instant.now()))
                 .count();
 
-        long submitted = assignedSubmissions.stream().filter(s -> s.getStatus() == SubmissionStatus.SUBMITTED || s.getStatus() == SubmissionStatus.GRADED).count();
-        long missing = Math.max(0, assignedAssignments.size() * 20 - (int) submitted);
+                long submitted = assignedSubmissions.stream().filter(s -> s.getStatus() == SubmissionStatus.SUBMITTED || s.getStatus() == SubmissionStatus.GRADED || s.getStatus() == SubmissionStatus.LATE).count();
+                long expectedSubmissionCount = 0;
+                for (Klass klass : assignedClasses) {
+                        int studentCount = activeStudentCountByClass.getOrDefault(klass.getId(), 0);
+                        int assignmentCount = assignmentsByClass.getOrDefault(klass.getId(), List.of()).size();
+                        expectedSubmissionCount += (long) studentCount * assignmentCount;
+                }
+                long missing = Math.max(expectedSubmissionCount - submitted, 0);
         long needGrading = assignedSubmissions.stream().filter(s -> s.getStatus() == SubmissionStatus.SUBMITTED).count();
         long late = assignedSubmissions.stream().filter(s -> s.getStatus() == SubmissionStatus.LATE).count();
 
@@ -350,42 +465,94 @@ public class DashboardService {
 
         List<AdminDashboardResponse.TodayTask> tasks = new ArrayList<>();
         if (needGrading > 0) {
-            tasks.add(new AdminDashboardResponse.TodayTask("a1", "GRADING", needGrading + " bài cần chấm", "Lớp được phân công", "HIGH", "/classes", "Chấm bài"));
+                        tasks.add(new AdminDashboardResponse.TodayTask("a1", "GRADING", needGrading + " bài cần chấm", "Lớp được phân công", "HIGH", ROUTE_CLASSES, "Chấm bài"));
         }
         if (dueSoon > 0) {
-            tasks.add(new AdminDashboardResponse.TodayTask("a2", "DEADLINE", dueSoon + " bài tập sắp đến hạn", "Nhắc nhở học viên", "HIGH", "/assignments", "Xem"));
+                        tasks.add(new AdminDashboardResponse.TodayTask("a2", "DEADLINE", dueSoon + " bài tập sắp đến hạn", "Nhắc nhở học viên", "HIGH", ROUTE_ASSIGNMENTS, "Xem"));
         }
         if (missing > 5) {
-            tasks.add(new AdminDashboardResponse.TodayTask("a3", "MISSING", missing + " học viên chưa nộp", "Gửi nhắc nhở", "MEDIUM", "/classes", "Xem"));
+                        tasks.add(new AdminDashboardResponse.TodayTask("a3", "MISSING", missing + " học viên chưa nộp", "Gửi nhắc nhở", "MEDIUM", ROUTE_CLASSES, "Xem"));
         }
 
         List<AdminDashboardResponse.SubmissionRateByClass> subRate = assignedClasses.stream()
                 .limit(6)
-                .map(k -> new AdminDashboardResponse.SubmissionRateByClass(k.getId(), k.getName(), submitted, missing, late))
+                .map(k -> {
+                    var classAssignments = assignmentsByClass.getOrDefault(k.getId(), List.of());
+                    long classSubmitted = classAssignments.stream()
+                            .flatMap(a -> submissionsByAssignment.getOrDefault(a.getId(), List.of()).stream())
+                            .filter(s -> s.getStatus() == SubmissionStatus.SUBMITTED || s.getStatus() == SubmissionStatus.GRADED || s.getStatus() == SubmissionStatus.LATE)
+                            .count();
+                    long classLate = classAssignments.stream()
+                            .flatMap(a -> submissionsByAssignment.getOrDefault(a.getId(), List.of()).stream())
+                            .filter(s -> s.getStatus() == SubmissionStatus.LATE)
+                            .count();
+                    int classStudents = activeStudentCountByClass.getOrDefault(k.getId(), 0);
+                    long classExpected = (long) classStudents * classAssignments.size();
+                    long classMissing = Math.max(classExpected - classSubmitted, 0);
+                    return new AdminDashboardResponse.SubmissionRateByClass(k.getId(), k.getName(), classSubmitted, classMissing, classLate);
+                })
                 .toList();
 
         List<AdminDashboardResponse.NeedGradingByClass> needGradeByClass = assignedClasses.stream()
                 .limit(6)
-                .map(k -> new AdminDashboardResponse.NeedGradingByClass(k.getId(), k.getName(), needGrading))
+                .map(k -> {
+                    var classAssignments = assignmentsByClass.getOrDefault(k.getId(), List.of());
+                    long classNeedGrading = classAssignments.stream()
+                            .flatMap(a -> submissionsByAssignment.getOrDefault(a.getId(), List.of()).stream())
+                            .filter(s -> s.getStatus() == SubmissionStatus.SUBMITTED)
+                            .count();
+                    return new AdminDashboardResponse.NeedGradingByClass(k.getId(), k.getName(), classNeedGrading);
+                })
                 .toList();
 
         List<AdminDashboardResponse.AverageScoreByClass> avgByClass = assignedClasses.stream()
                 .limit(6)
-                .map(k -> new AdminDashboardResponse.AverageScoreByClass(k.getId(), k.getName(), avgScore))
+                .map(k -> {
+                    var classAssignments = assignmentsByClass.getOrDefault(k.getId(), List.of());
+                    var classGrades = classAssignments.stream()
+                            .flatMap(a -> gradeRepo.findByAssignmentId(a.getId()).stream())
+                            .toList();
+                    BigDecimal classAvg = classGrades.isEmpty()
+                            ? BigDecimal.ZERO
+                            : classGrades.stream().map(Grade::getScore).reduce(BigDecimal.ZERO, BigDecimal::add)
+                                .divide(BigDecimal.valueOf(classGrades.size()), 2, RoundingMode.HALF_UP);
+                    return new AdminDashboardResponse.AverageScoreByClass(k.getId(), k.getName(), classAvg);
+                })
                 .toList();
+
+        int belowThresholdStudents = 0;
+        for (UUID studentId : distinctStudentIds) {
+            var studentSubmissions = assignedSubmissions.stream().filter(s -> s.getStudentId().equals(studentId)).toList();
+            if (studentSubmissions.isEmpty()) {
+                continue;
+            }
+            var studentGrades = studentSubmissions.stream().flatMap(s -> gradeRepo.findBySubmissionIdList(s.getId()).stream()).toList();
+            if (studentGrades.isEmpty()) {
+                continue;
+            }
+            BigDecimal studentAvg = studentGrades.stream().map(Grade::getScore).reduce(BigDecimal.ZERO, BigDecimal::add)
+                    .divide(BigDecimal.valueOf(studentGrades.size()), 2, RoundingMode.HALF_UP);
+            if (studentAvg.compareTo(BigDecimal.valueOf(6)) < 0) {
+                belowThresholdStudents++;
+            }
+        }
 
         AdminDashboardResponse.KpiSection kpi = new AdminDashboardResponse.KpiSection(
                 new AdminDashboardResponse.ClassKpi(assignedClasses.size(), (int) assignedClasses.stream().filter(k -> k.getStatus() == ClassStatus.ACTIVE).count()),
-                new AdminDashboardResponse.StudentKpi(assignedClasses.size() * 20, 0, 0),
+                new AdminDashboardResponse.StudentKpi(totalInAssignedClasses, activeStudentCount, suspendedStudentCount),
                 new AdminDashboardResponse.AssignmentKpi((int) published, (int) closed, (int) dueSoon, (int) overdue),
                 new AdminDashboardResponse.SubmissionKpi((int) submitted, (int) missing, (int) needGrading, (int) late),
-                new AdminDashboardResponse.ScoreKpi(avgScore, 3)
+                new AdminDashboardResponse.ScoreKpi(avgScore, belowThresholdStudents)
         );
 
         AdminDashboardResponse.ChartsSection charts = new AdminDashboardResponse.ChartsSection(
                 subRate, needGradeByClass, avgByClass,
-                List.of(new AdminDashboardResponse.StatusCount("ACTIVE", 18), new AdminDashboardResponse.StatusCount("SUSPENDED", 2)),
-                List.of(new AdminDashboardResponse.StatusCount("PUBLISHED", published), new AdminDashboardResponse.StatusCount("CLOSED", closed))
+                List.of(new AdminDashboardResponse.StatusCount("ACTIVE", activeStudentCount), new AdminDashboardResponse.StatusCount("SUSPENDED", suspendedStudentCount)),
+                List.of(
+                        new AdminDashboardResponse.StatusCount("DRAFT", assignedAssignments.stream().filter(a -> a.getStatus() == AssignmentStatus.DRAFT).count()),
+                        new AdminDashboardResponse.StatusCount("PUBLISHED", published),
+                        new AdminDashboardResponse.StatusCount("CLOSED", closed)
+                )
         );
 
         // Recent Activity
@@ -406,6 +573,7 @@ public class DashboardService {
     }
 
     // ==================== STUDENT DASHBOARD ====================
+        @SuppressWarnings({"java:S3776"})
     public StudentDashboardResponse getStudentDashboard(User student) {
         if (!student.isStudent()) {
             throw BusinessException.forbidden("Only STUDENT can access student dashboard");
@@ -426,7 +594,7 @@ public class DashboardService {
 
         Instant dueSoonThreshold = Instant.now().plus(48, ChronoUnit.HOURS);
         long dueSoon = openAssignments.stream()
-                .filter(a -> a.getDueAt() != null && a.getDueAt().isBefore(dueSoonThreshold))
+                .filter(a -> a.getDueAt() != null && a.getDueAt().isAfter(Instant.now()) && a.getDueAt().isBefore(dueSoonThreshold))
                 .count();
 
         long graded = mySubmissions.stream().filter(s -> s.getStatus() == SubmissionStatus.GRADED).count();
@@ -464,8 +632,24 @@ public class DashboardService {
         long onTime = mySubmissions.stream().filter(s -> s.getStatus() != SubmissionStatus.LATE).count();
         long late = mySubmissions.stream().filter(s -> s.getStatus() == SubmissionStatus.LATE).count();
 
-        StudentDashboardResponse.LatestFeedback latestFeedback = myGrades.isEmpty() ? null :
-                new StudentDashboardResponse.LatestFeedback(myGrades.get(0).getSubmissionId(), null, "Bài tập gần nhất", myGrades.get(0).getScore(), myGrades.get(0).getFeedback(), myGrades.get(0).getCreatedAt());
+        StudentDashboardResponse.LatestFeedback latestFeedback = myGrades.stream()
+                .max(Comparator.comparing(Grade::getGradedAt))
+                .map(g -> {
+                    Submission submission = mySubmissions.stream()
+                            .filter(s -> s.getId().equals(g.getSubmissionId()))
+                            .findFirst()
+                            .orElse(null);
+                    Assignment assignment = submission == null ? null : assignmentRepo.findActiveById(submission.getAssignmentId()).orElse(null);
+                    return new StudentDashboardResponse.LatestFeedback(
+                            g.getSubmissionId(),
+                            assignment != null ? assignment.getId() : null,
+                            assignment != null ? assignment.getTitle() : "Bài tập gần nhất",
+                            g.getScore(),
+                            g.getFeedback(),
+                            g.getGradedAt()
+                    );
+                })
+                .orElse(null);
 
         StudentDashboardResponse.SubmissionStats stats = new StudentDashboardResponse.SubmissionStats(mySubmissions.size(), (int) onTime, (int) late, avgScore);
 

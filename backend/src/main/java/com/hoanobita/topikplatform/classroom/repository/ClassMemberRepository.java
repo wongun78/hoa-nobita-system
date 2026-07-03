@@ -21,5 +21,7 @@ public interface ClassMemberRepository extends JpaRepository<ClassMember, UUID> 
 
     Optional<ClassMember> findByClassIdAndStudentId(UUID classId, UUID studentId);
 
+    boolean existsByClassIdAndStudentCode(UUID classId, String studentCode);
+
     long countByClassId(UUID classId);
 }

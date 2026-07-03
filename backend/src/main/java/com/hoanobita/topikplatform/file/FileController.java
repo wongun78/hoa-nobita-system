@@ -46,4 +46,10 @@ public class FileController {
                 .header(HttpHeaders.CONTENT_TYPE, storedFile.getContentType())
                 .body(resource);
     }
+
+    @GetMapping("/{fileId}")
+    public ResponseEntity<?> getMetadata(@PathVariable UUID fileId) {
+        securityUtils.getCurrentUser(); // auth check
+        return ResponseEntity.ok(ApiResponse.ok(fileService.getMetadata(fileId)));
+    }
 }

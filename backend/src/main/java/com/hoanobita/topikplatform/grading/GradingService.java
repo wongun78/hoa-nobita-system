@@ -5,8 +5,12 @@ import com.hoanobita.topikplatform.assignment.entity.Assignment;
 import com.hoanobita.topikplatform.assignment.repository.AssignmentRepository;
 import com.hoanobita.topikplatform.common.BusinessException;
 import com.hoanobita.topikplatform.common.Enums.SubmissionStatus;
+import com.hoanobita.topikplatform.common.PageResponse;
+import com.hoanobita.topikplatform.common.PaginationUtil;
 import com.hoanobita.topikplatform.common.PermissionService;
 import com.hoanobita.topikplatform.common.SecurityUtils;
+import com.hoanobita.topikplatform.grading.dto.BulkGradeRequest;
+import com.hoanobita.topikplatform.grading.dto.BulkGradeResponse;
 import com.hoanobita.topikplatform.grading.dto.GradeRequest;
 import com.hoanobita.topikplatform.grading.dto.GradeResponse;
 import com.hoanobita.topikplatform.grading.entity.Grade;
@@ -19,7 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -42,11 +48,80 @@ public class GradingService {
         this.activityService = activityService;
     }
 
-    public List<SubmissionResponse> classSubmissions(UUID classId) {
+    public PageResponse<SubmissionResponse> classSubmissions(UUID classId, Integer page, Integer size, String sort, String search, String status) {
+        int normalizedPage = PaginationUtil.normalizePage(page);
+        int normalizedSize = PaginationUtil.normalizeSize(size);
+
         permissions.requireManageClass(security.currentUser(), classId);
         List<UUID> assignmentIds = assignments.findByClassId(classId).stream().map(Assignment::getId).toList();
-        if (assignmentIds.isEmpty()) return List.of();
-        return submissions.findByAssignmentIdIn(assignmentIds).stream().map(submissionService::toResponse).toList();
+        if (assignmentIds.isEmpty()) return PaginationUtil.paginate(List.of(), normalizedPage, normalizedSize);
+
+        List<SubmissionResponse> filtered = submissions.findByAssignmentIdIn(assignmentIds).stream()
+                .map(submissionService::toResponse)
+                .filter(item -> status == null || status.isBlank() || item.status().equalsIgnoreCase(status))
+                .filter(item -> {
+                    if (search == null || search.isBlank()) return true;
+                    String keyword = search.toLowerCase();
+                    return containsIgnoreCase(item.studentName(), keyword)
+                            || containsIgnoreCase(item.assignmentTitle(), keyword)
+                            || containsIgnoreCase(item.className(), keyword);
+                })
+                .toList();
+
+        Comparator<SubmissionResponse> defaultSort = Comparator.comparing(SubmissionResponse::submittedAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
+        Comparator<SubmissionResponse> comparator = PaginationUtil.resolveSort(sort, Map.of(
+                "submittedAt", Comparator.comparing(SubmissionResponse::submittedAt, Comparator.nullsLast(Comparator.naturalOrder())),
+                "studentName", Comparator.comparing(SubmissionResponse::studentName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
+                "assignmentTitle", Comparator.comparing(SubmissionResponse::assignmentTitle, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
+                "status", Comparator.comparing(SubmissionResponse::status, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+        ), defaultSort);
+
+        List<SubmissionResponse> sorted = filtered.stream().sorted(comparator).toList();
+        return PaginationUtil.paginate(sorted, normalizedPage, normalizedSize);
+    }
+
+    @Transactional
+    public BulkGradeResponse bulkGrade(UUID assignmentId, BulkGradeRequest request) {
+        Assignment assignment = assignments.findActiveById(assignmentId)
+                .orElseThrow(() -> BusinessException.notFound("Assignment not found"));
+        permissions.requireManageClass(security.currentUser(), assignment.getClassId());
+        if (request == null || request.grades() == null || request.grades().isEmpty()) {
+            throw BusinessException.badRequest("grades must not be empty");
+        }
+
+        int gradedCount = 0;
+        List<BulkGradeResponse.BulkGradeError> errors = new java.util.ArrayList<>();
+        for (var item : request.grades()) {
+            UUID submissionId = item == null ? null : item.submissionId();
+            try {
+                if (submissionId == null) throw BusinessException.badRequest("submissionId is required");
+                if (item.score() == null) throw BusinessException.badRequest("score is required");
+                Submission submission = submissions.findActiveById(submissionId)
+                        .orElseThrow(() -> BusinessException.notFound("Submission not found"));
+                if (!submission.getAssignmentId().equals(assignmentId)) {
+                    throw BusinessException.badRequest("Submission does not belong to this assignment");
+                }
+                if (item.score().signum() < 0) throw BusinessException.badRequest("Score cannot be negative");
+                if (item.score().compareTo(assignment.getMaxScore()) > 0) throw BusinessException.badRequest("Score cannot exceed assignment max score");
+
+                Grade grade = grades.findBySubmissionId(submissionId).orElseGet(Grade::new);
+                grade.setSubmissionId(submissionId);
+                grade.setScore(item.score());
+                grade.setFeedback(item.feedback());
+                grade.setGradedBy(security.currentUser().getId());
+                grade.setGradedAt(Instant.now());
+                submission.setStatus(SubmissionStatus.GRADED);
+                submissions.save(submission);
+                grades.save(grade);
+                gradedCount++;
+            } catch (RuntimeException ex) {
+                errors.add(new BulkGradeResponse.BulkGradeError(submissionId, ex.getMessage()));
+            }
+        }
+        if (gradedCount > 0) {
+            activityService.log("SUBMISSIONS_BULK_GRADED", "ASSIGNMENT", assignment.getId(), assignment.getTitle(), assignment.getClassId(), "Đã chấm hàng loạt " + gradedCount + " bài nộp cho bài tập: " + assignment.getTitle());
+        }
+        return new BulkGradeResponse(gradedCount, errors.size(), errors);
     }
 
     @Transactional
@@ -94,5 +169,9 @@ public class GradingService {
 
     private GradeResponse toResponse(Grade g) {
         return new GradeResponse(g.getId(), g.getSubmissionId(), g.getScore(), g.getFeedback(), g.getGradedBy(), g.getGradedAt());
+    }
+
+    private boolean containsIgnoreCase(String value, String keyword) {
+        return value != null && value.toLowerCase().contains(keyword);
     }
 }

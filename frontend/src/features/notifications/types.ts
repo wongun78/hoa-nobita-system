@@ -8,6 +8,8 @@ export interface Notification {
   targetId?: string
   createdBy: string
   createdAt: string
+  isRead: boolean
+  readAt?: string
 }
 
 export interface NotificationRequest {

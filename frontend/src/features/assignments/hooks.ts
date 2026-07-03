@@ -67,3 +67,33 @@ export function useDeleteAssignment(_classId?: string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.assignments() }),
   })
 }
+
+export function useAssignmentMissingStudents(id: string) {
+  return useQuery({
+    queryKey: qk.assignmentMissingStudents(id),
+    queryFn: () => api.previewMissingStudents(id),
+    enabled: !!id,
+  })
+}
+
+export function useSendAssignmentReminder(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (req?: { title?: string; content?: string }) => api.sendAssignmentReminder(id, req),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.notifications })
+      qc.invalidateQueries({ queryKey: qk.assignmentMissingStudents(id) })
+    },
+  })
+}
+
+export function useSendBatchAssignmentReminders(classId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (req?: { assignmentIds?: string[]; title?: string; content?: string }) => api.sendBatchAssignmentReminders(classId, req),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.assignments(classId) })
+      qc.invalidateQueries({ queryKey: qk.notifications })
+    },
+  })
+}

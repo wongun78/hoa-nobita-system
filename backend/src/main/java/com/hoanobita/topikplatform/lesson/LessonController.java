@@ -22,9 +22,14 @@ public class LessonController {
     }
 
     @GetMapping("/api/v1/classes/{classId}/lessons")
-    public ResponseEntity<?> listLessons(@PathVariable UUID classId) {
+    public ResponseEntity<?> listLessons(@PathVariable UUID classId,
+                                         @RequestParam(required = false) Integer page,
+                                         @RequestParam(required = false) Integer size,
+                                         @RequestParam(required = false) String sort,
+                                         @RequestParam(required = false) String search,
+                                         @RequestParam(required = false) String status) {
         var user = securityUtils.getCurrentUser();
-        return ResponseEntity.ok(ApiResponse.ok(lessonService.listByClass(classId, user)));
+        return ResponseEntity.ok(ApiResponse.ok(lessonService.listByClass(classId, user, page, size, sort, search, status)));
     }
 
     @PostMapping("/api/v1/classes/{classId}/lessons")

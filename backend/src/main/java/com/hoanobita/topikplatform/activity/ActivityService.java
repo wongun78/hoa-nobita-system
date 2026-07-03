@@ -4,6 +4,8 @@ import com.hoanobita.topikplatform.activity.dto.ActivityResponse;
 import com.hoanobita.topikplatform.activity.entity.ActivityLog;
 import com.hoanobita.topikplatform.activity.repository.ActivityLogRepository;
 import com.hoanobita.topikplatform.common.BusinessException;
+import com.hoanobita.topikplatform.common.PageResponse;
+import com.hoanobita.topikplatform.common.PaginationUtil;
 import com.hoanobita.topikplatform.common.PermissionService;
 import com.hoanobita.topikplatform.common.SecurityUtils;
 import com.hoanobita.topikplatform.user.entity.User;
@@ -13,7 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -55,23 +59,115 @@ public class ActivityService {
     }
 
     public List<ActivityResponse> recentForCurrentUser() {
-        User user = security.currentUser();
-        if (user.isTeacher()) {
-            return repo.findTop50ByOrderByCreatedAtDesc().stream().map(this::toResponse).toList();
-        }
-        
-        List<UUID> classIds = permissions.getAccessibleClassIds(user);
-        if (classIds == null || classIds.isEmpty()) {
-            return List.of();
-        }
-        
-        return repo.findTop50ByClassIdInOrderByCreatedAtDesc(classIds).stream().map(this::toResponse).toList();
+        return recentForCurrentUser(null, null, null, null).items();
     }
 
     public List<ActivityResponse> recentForClass(UUID classId) {
+        return recentForClass(classId, null, null, null, null).items();
+    }
+
+    public PageResponse<ActivityResponse> recentForCurrentUser(Integer page, Integer size, String sort, String search) {
+        int normalizedPage = PaginationUtil.normalizePage(page);
+        int normalizedSize = PaginationUtil.normalizeSize(size);
+
+        User user = security.currentUser();
+        List<ActivityResponse> activities;
+        if (user.isTeacher()) {
+            activities = repo.findTop50ByOrderByCreatedAtDesc().stream().map(this::toResponse).toList();
+        } else {
+            List<UUID> classIds = permissions.getAccessibleClassIds(user);
+            if (classIds == null || classIds.isEmpty()) {
+                return PaginationUtil.paginate(List.of(), normalizedPage, normalizedSize);
+            }
+            activities = repo.findTop50ByClassIdInOrderByCreatedAtDesc(classIds).stream().map(this::toResponse).toList();
+        }
+
+        List<ActivityResponse> filtered = activities.stream()
+                .filter(item -> {
+                    if (search == null || search.isBlank()) return true;
+                    String keyword = search.toLowerCase();
+                    return containsIgnoreCase(item.actionType(), keyword)
+                            || containsIgnoreCase(item.targetName(), keyword)
+                            || containsIgnoreCase(item.actorName(), keyword)
+                            || containsIgnoreCase(item.message(), keyword);
+                })
+                .toList();
+
+        Comparator<ActivityResponse> defaultSort = Comparator.comparing(ActivityResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
+        Comparator<ActivityResponse> comparator = PaginationUtil.resolveSort(sort, Map.of(
+                "createdAt", Comparator.comparing(ActivityResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())),
+                "actionType", Comparator.comparing(ActivityResponse::actionType, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
+                "actorName", Comparator.comparing(ActivityResponse::actorName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+        ), defaultSort);
+
+        List<ActivityResponse> sorted = filtered.stream().sorted(comparator).toList();
+        return PaginationUtil.paginate(sorted, normalizedPage, normalizedSize);
+    }
+
+    public PageResponse<ActivityResponse> userActivity(UUID userId, Integer page, Integer size, String sort, String search) {
+        int normalizedPage = PaginationUtil.normalizePage(page);
+        int normalizedSize = PaginationUtil.normalizeSize(size);
+
+        User currentUser = security.currentUser();
+        if (currentUser.isStudent() && !currentUser.getId().equals(userId)) {
+            throw BusinessException.forbidden("You can only view your own activity logs");
+        }
+        if (currentUser.isAdmin() && !currentUser.isTeacher() && !currentUser.getId().equals(userId)
+                && !permissions.canAccessStudentProgress(currentUser, userId)) {
+            throw BusinessException.forbidden("You can only view activity logs for students in your assigned classes");
+        }
+
+        List<ActivityResponse> filtered = repo.findByActorIdOrderByCreatedAtDesc(userId).stream()
+                .map(this::toResponse)
+                .filter(item -> {
+                    if (search == null || search.isBlank()) return true;
+                    String keyword = search.toLowerCase();
+                    return containsIgnoreCase(item.actionType(), keyword)
+                            || containsIgnoreCase(item.targetName(), keyword)
+                            || containsIgnoreCase(item.message(), keyword);
+                })
+                .toList();
+        List<ActivityResponse> sorted = sortActivities(filtered, sort);
+        return PaginationUtil.paginate(sorted, normalizedPage, normalizedSize);
+    }
+
+    public PageResponse<ActivityResponse> recentForClass(UUID classId, Integer page, Integer size, String sort, String search) {
+        int normalizedPage = PaginationUtil.normalizePage(page);
+        int normalizedSize = PaginationUtil.normalizeSize(size);
+
         User user = security.currentUser();
         permissions.requireAccessClass(user, classId);
-        return repo.findTop50ByClassIdOrderByCreatedAtDesc(classId).stream().map(this::toResponse).toList();
+        List<ActivityResponse> filtered = repo.findTop50ByClassIdOrderByCreatedAtDesc(classId).stream()
+                .map(this::toResponse)
+                .filter(item -> {
+                    if (search == null || search.isBlank()) return true;
+                    String keyword = search.toLowerCase();
+                    return containsIgnoreCase(item.actionType(), keyword)
+                            || containsIgnoreCase(item.targetName(), keyword)
+                            || containsIgnoreCase(item.actorName(), keyword)
+                            || containsIgnoreCase(item.message(), keyword);
+                })
+                .toList();
+
+        Comparator<ActivityResponse> defaultSort = Comparator.comparing(ActivityResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
+        Comparator<ActivityResponse> comparator = PaginationUtil.resolveSort(sort, Map.of(
+                "createdAt", Comparator.comparing(ActivityResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())),
+                "actionType", Comparator.comparing(ActivityResponse::actionType, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
+                "actorName", Comparator.comparing(ActivityResponse::actorName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+        ), defaultSort);
+
+        List<ActivityResponse> sorted = filtered.stream().sorted(comparator).toList();
+        return PaginationUtil.paginate(sorted, normalizedPage, normalizedSize);
+    }
+
+    private List<ActivityResponse> sortActivities(List<ActivityResponse> activities, String sort) {
+        Comparator<ActivityResponse> defaultSort = Comparator.comparing(ActivityResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
+        Comparator<ActivityResponse> comparator = PaginationUtil.resolveSort(sort, Map.of(
+                "createdAt", Comparator.comparing(ActivityResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())),
+                "actionType", Comparator.comparing(ActivityResponse::actionType, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
+                "actorName", Comparator.comparing(ActivityResponse::actorName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+        ), defaultSort);
+        return activities.stream().sorted(comparator).toList();
     }
 
     private ActivityResponse toResponse(ActivityLog a) {
@@ -80,5 +176,9 @@ public class ActivityService {
                 a.getTargetName(), a.getActorId(), a.getActorName(), a.getClassId(),
                 a.getMessage(), a.getCreatedAt()
         );
+    }
+
+    private boolean containsIgnoreCase(String value, String keyword) {
+        return value != null && value.toLowerCase().contains(keyword);
     }
 }

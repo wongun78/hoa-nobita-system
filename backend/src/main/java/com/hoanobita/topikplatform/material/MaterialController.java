@@ -23,9 +23,13 @@ public class MaterialController {
     }
 
     @GetMapping("/api/v1/classes/{classId}/materials")
-    public ResponseEntity<?> listMaterials(@PathVariable UUID classId) {
+    public ResponseEntity<?> listMaterials(@PathVariable UUID classId,
+                                           @RequestParam(required = false) Integer page,
+                                           @RequestParam(required = false) Integer size,
+                                           @RequestParam(required = false) String sort,
+                                           @RequestParam(required = false) String search) {
         var user = securityUtils.getCurrentUser();
-        return ResponseEntity.ok(ApiResponse.ok(materialService.listByClass(classId, user)));
+        return ResponseEntity.ok(ApiResponse.ok(materialService.listByClass(classId, user, page, size, sort, search)));
     }
 
     @PostMapping("/api/v1/classes/{classId}/materials")

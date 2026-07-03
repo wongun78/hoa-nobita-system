@@ -8,6 +8,8 @@ import com.hoanobita.topikplatform.classroom.repository.KlassRepository;
 import com.hoanobita.topikplatform.common.BusinessException;
 import com.hoanobita.topikplatform.common.Enums.AssignmentStatus;
 import com.hoanobita.topikplatform.common.Enums.SubmissionStatus;
+import com.hoanobita.topikplatform.common.PageResponse;
+import com.hoanobita.topikplatform.common.PaginationUtil;
 import com.hoanobita.topikplatform.common.PermissionService;
 import com.hoanobita.topikplatform.common.SecurityUtils;
 import com.hoanobita.topikplatform.grading.repository.GradeRepository;
@@ -21,7 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -46,16 +50,62 @@ public class SubmissionService {
         this.activityService = activityService;
     }
 
-    public List<SubmissionResponse> byAssignment(UUID assignmentId) {
+    public PageResponse<SubmissionResponse> byAssignment(UUID assignmentId, Integer page, Integer size, String sort, String search, String status) {
+        int normalizedPage = PaginationUtil.normalizePage(page);
+        int normalizedSize = PaginationUtil.normalizeSize(size);
+
         Assignment a = assignment(assignmentId);
         permissions.requireManageClass(security.currentUser(), a.getClassId());
-        return repo.findByAssignmentId(assignmentId).stream().map(this::toResponse).toList();
+        List<SubmissionResponse> filtered = repo.findByAssignmentId(assignmentId).stream()
+                .map(this::toResponse)
+                .filter(item -> status == null || status.isBlank() || item.status().equalsIgnoreCase(status))
+                .filter(item -> {
+                    if (search == null || search.isBlank()) return true;
+                    String keyword = search.toLowerCase();
+                    return containsIgnoreCase(item.studentName(), keyword)
+                            || containsIgnoreCase(item.assignmentTitle(), keyword)
+                            || containsIgnoreCase(item.className(), keyword);
+                })
+                .toList();
+
+        Comparator<SubmissionResponse> defaultSort = Comparator.comparing(SubmissionResponse::submittedAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
+        Comparator<SubmissionResponse> comparator = PaginationUtil.resolveSort(sort, Map.of(
+                "submittedAt", Comparator.comparing(SubmissionResponse::submittedAt, Comparator.nullsLast(Comparator.naturalOrder())),
+                "studentName", Comparator.comparing(SubmissionResponse::studentName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
+                "assignmentTitle", Comparator.comparing(SubmissionResponse::assignmentTitle, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
+                "status", Comparator.comparing(SubmissionResponse::status, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+        ), defaultSort);
+
+        List<SubmissionResponse> sorted = filtered.stream().sorted(comparator).toList();
+        return PaginationUtil.paginate(sorted, normalizedPage, normalizedSize);
     }
 
-    public List<SubmissionResponse> mySubmissions() {
+    public PageResponse<SubmissionResponse> mySubmissions(Integer page, Integer size, String sort, String search, String status) {
+        int normalizedPage = PaginationUtil.normalizePage(page);
+        int normalizedSize = PaginationUtil.normalizeSize(size);
+
         User user = security.currentUser();
         if (!user.isStudent()) throw BusinessException.forbidden("Only students can use this endpoint");
-        return repo.findByStudentId(user.getId()).stream().map(this::toResponse).toList();
+        List<SubmissionResponse> filtered = repo.findByStudentId(user.getId()).stream()
+                .map(this::toResponse)
+                .filter(item -> status == null || status.isBlank() || item.status().equalsIgnoreCase(status))
+                .filter(item -> {
+                    if (search == null || search.isBlank()) return true;
+                    String keyword = search.toLowerCase();
+                    return containsIgnoreCase(item.assignmentTitle(), keyword)
+                            || containsIgnoreCase(item.className(), keyword);
+                })
+                .toList();
+
+        Comparator<SubmissionResponse> defaultSort = Comparator.comparing(SubmissionResponse::submittedAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
+        Comparator<SubmissionResponse> comparator = PaginationUtil.resolveSort(sort, Map.of(
+                "submittedAt", Comparator.comparing(SubmissionResponse::submittedAt, Comparator.nullsLast(Comparator.naturalOrder())),
+                "assignmentTitle", Comparator.comparing(SubmissionResponse::assignmentTitle, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
+                "status", Comparator.comparing(SubmissionResponse::status, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+        ), defaultSort);
+
+        List<SubmissionResponse> sorted = filtered.stream().sorted(comparator).toList();
+        return PaginationUtil.paginate(sorted, normalizedPage, normalizedSize);
     }
 
     public SubmissionResponse get(UUID id) {
@@ -161,5 +211,9 @@ public class SubmissionService {
                 assignment != null ? assignment.getMaxScore() : null,
                 grade == null ? null : grade.getFeedback()
         );
+    }
+
+    private boolean containsIgnoreCase(String value, String keyword) {
+        return value != null && value.toLowerCase().contains(keyword);
     }
 }

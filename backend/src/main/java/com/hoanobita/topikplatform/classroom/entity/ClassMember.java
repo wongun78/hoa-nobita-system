@@ -20,6 +20,9 @@ public class ClassMember {
     @Column(name = "student_id", nullable = false)
     private UUID studentId;
 
+    @Column(name = "student_code")
+    private String studentCode;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MemberStatus status = MemberStatus.ACTIVE;
@@ -38,6 +41,9 @@ public class ClassMember {
 
     public UUID getStudentId() { return studentId; }
     public void setStudentId(UUID studentId) { this.studentId = studentId; }
+
+    public String getStudentCode() { return studentCode; }
+    public void setStudentCode(String studentCode) { this.studentCode = studentCode; }
 
     public MemberStatus getStatus() { return status; }
     public void setStatus(MemberStatus status) { this.status = status; }
