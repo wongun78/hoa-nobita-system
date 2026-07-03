@@ -10,6 +10,7 @@ import { ClassesPage } from './pages/classes-page'
 import { DashboardPage } from './pages/dashboard-page'
 import { GradingV2Page } from './pages/grading-v2'
 import { LoginPage } from './pages/login-page'
+import { MaterialsLibraryPage } from './pages/materials-library-page'
 import { NotificationsPage } from './pages/notifications-page'
 import { AttendancePage, CalendarPage, MaterialsPage, ProfilePage, StudentAssignmentSubmitPage } from './pages/operations-pages'
 import { ReportsPage } from './pages/reports-page'
@@ -50,7 +51,7 @@ export function NewAppRouter() {
       <Route path="/teacher/classes/:classId" element={<RoleFrame roles={['TEACHER_OWNER']}><ClassDetailV2Page /></RoleFrame>} />
       <Route path="/teacher/assignments" element={<RoleFrame roles={['TEACHER_OWNER']}><AssignmentsV2Page /></RoleFrame>} />
       <Route path="/teacher/grading" element={<RoleFrame roles={['TEACHER_OWNER']}><GradingV2Page /></RoleFrame>} />
-      <Route path="/teacher/materials" element={<RoleFrame roles={['TEACHER_OWNER']}><MaterialsPage /></RoleFrame>} />
+      <Route path="/teacher/materials" element={<RoleFrame roles={['TEACHER_OWNER']}><MaterialsLibraryPage /></RoleFrame>} />
       <Route path="/teacher/notifications" element={<RoleFrame roles={['TEACHER_OWNER']}><NotificationsPage /></RoleFrame>} />
       <Route path="/teacher/attendance" element={<RoleFrame roles={['TEACHER_OWNER']}><AttendancePage /></RoleFrame>} />
       <Route path="/teacher/calendar" element={<RoleFrame roles={['TEACHER_OWNER']}><CalendarPage /></RoleFrame>} />
@@ -61,7 +62,7 @@ export function NewAppRouter() {
       <Route path="/admin/classes/:classId" element={<RoleFrame roles={['CLASS_ADMIN']}><ClassDetailV2Page /></RoleFrame>} />
       <Route path="/admin/assignments" element={<RoleFrame roles={['CLASS_ADMIN']}><AssignmentsV2Page /></RoleFrame>} />
       <Route path="/admin/grading" element={<RoleFrame roles={['CLASS_ADMIN']}><GradingV2Page /></RoleFrame>} />
-      <Route path="/admin/materials" element={<RoleFrame roles={['CLASS_ADMIN']}><MaterialsPage /></RoleFrame>} />
+      <Route path="/admin/materials" element={<RoleFrame roles={['CLASS_ADMIN']}><MaterialsLibraryPage /></RoleFrame>} />
       <Route path="/admin/notifications" element={<RoleFrame roles={['CLASS_ADMIN']}><NotificationsPage /></RoleFrame>} />
       <Route path="/admin/attendance" element={<RoleFrame roles={['CLASS_ADMIN']}><AttendancePage /></RoleFrame>} />
       <Route path="/admin/calendar" element={<RoleFrame roles={['CLASS_ADMIN']}><CalendarPage /></RoleFrame>} />
