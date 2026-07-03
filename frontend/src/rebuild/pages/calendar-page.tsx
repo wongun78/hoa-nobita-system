@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { BookOpenCheck, CalendarDays, Clock3, GraduationCap, ListChecks } from 'lucide-react'
+import { BookOpenCheck, CalendarDays, Clock3, GraduationCap, Grid3X3, ListChecks, Rows3 } from 'lucide-react'
 import { api } from '../core/api'
 import { EmptyState, ErrorState, FilterBar, MetricCard, PageHeader, SkeletonCard, StatusBadge } from '../components/foundation'
-import { Button, FieldLabel } from '../layout/ui'
+import { Button, Card, FieldLabel } from '../layout/ui'
 import { useNewAuth } from '../auth/use-auth'
 import type { CalendarEvent, ClassItem, RoleName } from '../core/types'
+
+type CalendarView = 'AGENDA' | 'MONTH' | 'WEEK'
 
 type AgendaEvent = CalendarEvent & {
   startsAt: Date
@@ -26,6 +28,28 @@ function addDays(date: Date, days: number) {
   const next = new Date(date)
   next.setDate(next.getDate() + days)
   return next
+}
+
+function startOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1)
+}
+
+function startOfWeek(date: Date) {
+  const day = date.getDay() || 7
+  return addDays(date, 1 - day)
+}
+
+function sameMonth(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth()
+}
+
+function rangeDays(start: Date, count: number) {
+  return Array.from({ length: count }, (_, index) => addDays(start, index))
+}
+
+function monthGridDays(date: Date) {
+  const firstGridDay = startOfWeek(startOfMonth(date))
+  return rangeDays(firstGridDay, 42)
 }
 
 function rolePrefix(role?: RoleName) {
@@ -104,12 +128,79 @@ function AgendaEventCard({ event, role }: Readonly<{ event: AgendaEvent; role: R
   )
 }
 
+function ViewButton({ active, icon, label, onClick }: Readonly<{ active: boolean; icon: React.ReactNode; label: string; onClick: () => void }>) {
+  return <Button type="button" variant={active ? 'primary' : 'secondary'} className="min-h-11 flex-1 md:flex-none" onClick={onClick}>{icon}{label}</Button>
+}
+
+function CalendarChip({ event, role }: Readonly<{ event: AgendaEvent; role: RoleName }>) {
+  const isAssignment = event.type === 'ASSIGNMENT_DEADLINE'
+  return (
+    <Link to={eventHref(event, role)} className={`block truncate rounded-xl px-2 py-1 text-xs font-bold transition hover:opacity-80 ${isAssignment ? 'bg-amber-50 text-amber-700' : 'bg-indigo-50 text-indigo-700'}`} title={event.title}>
+      {isAssignment ? 'Bài: ' : 'Học: '}{event.title}
+    </Link>
+  )
+}
+
+function MonthGrid({ days, eventsByDay, role, anchorDate }: Readonly<{ days: Date[]; eventsByDay: Map<string, AgendaEvent[]>; role: RoleName; anchorDate: Date }>) {
+  return (
+    <Card className="hidden rounded-3xl md:block">
+      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-2xl border border-sky-100 bg-sky-100">
+        {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((day) => <div key={day} className="bg-sky-50 p-3 text-center text-xs font-black text-slate-500">{day}</div>)}
+        {days.map((day) => {
+          const key = isoDate(day)
+          const dayEvents = eventsByDay.get(key) ?? []
+          return (
+            <div key={key} className={`min-h-32 bg-white p-2 ${sameMonth(day, anchorDate) ? '' : 'opacity-45'}`}>
+              <div className="mb-2 flex items-center justify-between">
+                <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-black ${isToday(day) ? 'bg-indigo-600 text-white' : 'text-slate-600'}`}>{day.getDate()}</span>
+                {dayEvents.length > 2 && <span className="text-[10px] font-bold text-slate-400">+{dayEvents.length - 2}</span>}
+              </div>
+              <div className="space-y-1">
+                {dayEvents.slice(0, 2).map((event) => <CalendarChip key={`${event.type}-${event.id}`} event={event} role={role} />)}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </Card>
+  )
+}
+
+function WeekGrid({ days, eventsByDay, role }: Readonly<{ days: Date[]; eventsByDay: Map<string, AgendaEvent[]>; role: RoleName }>) {
+  return (
+    <Card className="hidden rounded-3xl md:block">
+      <div className="grid grid-cols-7 gap-3">
+        {days.map((day) => {
+          const key = isoDate(day)
+          const dayEvents = eventsByDay.get(key) ?? []
+          return (
+            <section key={key} className={`min-h-96 rounded-3xl border p-3 ${isToday(day) ? 'border-indigo-200 bg-indigo-50/50' : 'border-sky-100 bg-white'}`}>
+              <div className="mb-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{dayFormatter.format(day).split(',')[0]}</p>
+                <h2 className="text-lg font-black text-slate-950">{compactDateFormatter.format(day)}</h2>
+              </div>
+              <div className="space-y-2">
+                {dayEvents.map((event) => <CalendarChip key={`${event.type}-${event.id}`} event={event} role={role} />)}
+                {!dayEvents.length && <p className="rounded-2xl bg-slate-50 p-3 text-xs text-slate-400">Không có lịch</p>}
+              </div>
+            </section>
+          )
+        })}
+      </div>
+    </Card>
+  )
+}
+
 export function CalendarPage() {
   const { user } = useNewAuth()
   const role = primaryRole(user?.roles)
   const [classId, setClassId] = useState('')
+  const [view, setView] = useState<CalendarView>('AGENDA')
   const today = useMemo(() => new Date(), [])
-  const from = isoDate(today)
+  const todayStart = useMemo(() => new Date(today.getFullYear(), today.getMonth(), today.getDate()), [today])
+  const monthDays = useMemo(() => monthGridDays(today), [today])
+  const weekDays = useMemo(() => rangeDays(startOfWeek(today), 7), [today])
+  const from = isoDate(startOfMonth(today))
   const to = isoDate(addDays(today, 90))
 
   const classes = useQuery({ queryKey: ['classes', 'calendar-filter'], queryFn: () => api.classes({ page: 0, size: 100 }), staleTime: 60_000 })
@@ -119,10 +210,17 @@ export function CalendarPage() {
     .map(toAgendaEvent)
     .filter((item): item is AgendaEvent => Boolean(item))
     .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()), [calendar.data])
-  const groups = useMemo(() => groupByDay(events), [events])
-  const lessonCount = events.filter((event) => event.type === 'LESSON').length
-  const assignmentCount = events.filter((event) => event.type === 'ASSIGNMENT_DEADLINE').length
-  const nextEvent = events[0]
+  const agendaEvents = useMemo(() => events.filter((event) => event.startsAt >= todayStart), [events, todayStart])
+  const groups = useMemo(() => groupByDay(agendaEvents), [agendaEvents])
+  const eventsByDay = useMemo(() => events.reduce<Map<string, AgendaEvent[]>>((acc, event) => {
+    const items = acc.get(event.dateKey) ?? []
+    items.push(event)
+    acc.set(event.dateKey, items)
+    return acc
+  }, new Map()), [events])
+  const lessonCount = agendaEvents.filter((event) => event.type === 'LESSON').length
+  const assignmentCount = agendaEvents.filter((event) => event.type === 'ASSIGNMENT_DEADLINE').length
+  const nextEvent = agendaEvents[0]
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
@@ -147,6 +245,11 @@ export function CalendarPage() {
             {(classes.data ?? []).map((item: ClassItem) => <option key={item.id} value={item.id}>{item.name} · {item.code}</option>)}
           </select>
         </div>
+        <div className="grid grid-cols-3 gap-2 md:flex md:items-end">
+          <ViewButton active={view === 'AGENDA'} icon={<ListChecks size={16} />} label="Agenda" onClick={() => setView('AGENDA')} />
+          <ViewButton active={view === 'MONTH'} icon={<Grid3X3 size={16} />} label="Tháng" onClick={() => setView('MONTH')} />
+          <ViewButton active={view === 'WEEK'} icon={<Rows3 size={16} />} label="Tuần" onClick={() => setView('WEEK')} />
+        </div>
         <div className="flex items-end">
           <Button type="button" variant="secondary" className="min-h-11" onClick={() => void calendar.refetch()}>Làm mới</Button>
         </div>
@@ -156,12 +259,16 @@ export function CalendarPage() {
       {calendar.isLoading && <div className="space-y-3"><SkeletonCard lines={3} /><SkeletonCard lines={3} /><SkeletonCard lines={3} /></div>}
       {calendar.isError && <ErrorState title="Không tải được lịch" description="Vui lòng kiểm tra quyền truy cập lớp hoặc thử lại sau ít phút." onRetry={() => calendar.refetch()} />}
 
-      {!calendar.isLoading && !calendar.isError && !events.length && (
+      {!calendar.isLoading && !calendar.isError && !agendaEvents.length && (
         <EmptyState title="Chưa có sự kiện sắp tới" description="Không có buổi học hoặc hạn nộp bài trong 90 ngày tới cho phạm vi lớp hiện tại." action={<CalendarDays className="mx-auto text-indigo-400" />} />
       )}
 
+      {!calendar.isLoading && !calendar.isError && view === 'MONTH' && <MonthGrid days={monthDays} eventsByDay={eventsByDay} role={role} anchorDate={today} />}
+      {!calendar.isLoading && !calendar.isError && view === 'WEEK' && <WeekGrid days={weekDays} eventsByDay={eventsByDay} role={role} />}
+
       {!calendar.isLoading && !calendar.isError && groups.length > 0 && (
-        <div className="space-y-5">
+        <div className={`space-y-5 ${view === 'AGENDA' ? '' : 'md:hidden'}`}>
+          {view !== 'AGENDA' && <div className="rounded-2xl border border-sky-100 bg-white/90 px-4 py-3 text-sm font-bold text-slate-600 shadow-sm md:hidden">Mobile hiển thị Agenda mặc định để dễ thao tác cảm ứng.</div>}
           {groups.map((group) => (
             <section key={group.dateKey} className="space-y-3" aria-labelledby={`day-${group.dateKey}`}>
               <div className="sticky top-0 z-10 rounded-2xl border border-sky-100 bg-white/90 px-4 py-3 shadow-sm backdrop-blur md:static">
