@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { RequireAuth, RequireRole } from './auth/guards'
+import { ErrorBoundary } from './components/error-boundary'
 import { SkeletonCard } from './components/foundation'
 import { AppShell } from './layout/app-shell'
 import { AttendanceMarkingPage } from './pages/attendance-marking-page'
@@ -22,12 +23,30 @@ import { StudentSubmissionsPage } from './pages/student-submissions-page'
 import { UserDetailPage, UsersPage } from './pages/users-page'
 import type { RoleName } from './core/types'
 
-const AssignmentsV2Page = lazy(() => import('./pages/assignments-v2').then((module) => ({ default: module.AssignmentsV2Page })))
-const CalendarPage = lazy(() => import('./pages/calendar-page').then((module) => ({ default: module.CalendarPage })))
-const ClassDetailV2Page = lazy(() => import('./pages/class-detail-v2').then((module) => ({ default: module.ClassDetailV2Page })))
-const DashboardPage = lazy(() => import('./pages/dashboard-page').then((module) => ({ default: module.DashboardPage })))
-const GradingV2Page = lazy(() => import('./pages/grading-v2').then((module) => ({ default: module.GradingV2Page })))
-const ReportsPage = lazy(() => import('./pages/reports-page').then((module) => ({ default: module.ReportsPage })))
+function lazyWithRetry<T extends React.ComponentType>(factory: () => Promise<{ default: T }>, retries = 3, interval = 1500): React.LazyExoticComponent<T> {
+  return lazy(() => {
+    let lastError: unknown
+    const attempt = async (): Promise<{ default: T }> => {
+      for (let i = 0; i <= retries; i++) {
+        try {
+          return await factory()
+        } catch (err) {
+          lastError = err
+          if (i < retries) await new Promise((r) => setTimeout(r, interval * (i + 1)))
+        }
+      }
+      throw lastError
+    }
+    return attempt()
+  })
+}
+
+const AssignmentsV2Page = lazyWithRetry(() => import('./pages/assignments-v2').then((module) => ({ default: module.AssignmentsV2Page })))
+const CalendarPage = lazyWithRetry(() => import('./pages/calendar-page').then((module) => ({ default: module.CalendarPage })))
+const ClassDetailV2Page = lazyWithRetry(() => import('./pages/class-detail-v2').then((module) => ({ default: module.ClassDetailV2Page })))
+const DashboardPage = lazyWithRetry(() => import('./pages/dashboard-page').then((module) => ({ default: module.DashboardPage })))
+const GradingV2Page = lazyWithRetry(() => import('./pages/grading-v2').then((module) => ({ default: module.GradingV2Page })))
+const ReportsPage = lazyWithRetry(() => import('./pages/reports-page').then((module) => ({ default: module.ReportsPage })))
 
 function RouteFallback() {
   return <div className="space-y-4"><SkeletonCard lines={4} /><SkeletonCard lines={3} /></div>
@@ -40,13 +59,13 @@ function LazyPage({ children }: Readonly<{ children: React.ReactNode }>) {
 function AppFrame({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <RequireAuth>
-      <AppShell>{children}</AppShell>
+      <AppShell><ErrorBoundary>{children}</ErrorBoundary></AppShell>
     </RequireAuth>
   )
 }
 
 function RoleFrame({ roles, children }: Readonly<{ roles: RoleName[]; children: React.ReactNode }>) {
-  return <RequireRole roles={roles}><AppShell>{children}</AppShell></RequireRole>
+  return <RequireRole roles={roles}><AppShell><ErrorBoundary>{children}</ErrorBoundary></AppShell></RequireRole>
 }
 
 function RoleLazyPage({ roles, children }: Readonly<{ roles: RoleName[]; children: React.ReactNode }>) {
