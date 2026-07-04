@@ -6,7 +6,7 @@ import { useNewAuth } from '../auth/use-auth'
 import { ConfirmDialog, EmptyState, ErrorState, MetricCard, PageHeader, PaginationControls, StatusBadge } from '../components/foundation'
 import { api } from '../core/api'
 import { ApiClientError } from '../core/http'
-import type { ClassStatus, LessonItem, LessonStatus, NotificationItem, StudentMemberItem } from '../core/types'
+import type { ClassItem, ClassStatus, LessonItem, LessonStatus, NotificationItem, StudentMemberItem } from '../core/types'
 import { Button, Card, FieldLabel, Input, TextArea } from '../layout/ui'
 import { asPage, fmtDate, numberValue } from './phase2-utils'
 
@@ -173,9 +173,16 @@ export function ClassDetailV2Page() {
       if (!editName.trim()) { setEditErrors({ name: 'Tên lớp là bắt buộc' }); throw new Error('validation') }
       if (!editCode.trim()) { setEditErrors({ code: 'Mã lớp là bắt buộc' }); throw new Error('validation') }
       setEditErrors({})
-      await api.updateClass(classId, { name: editName, code: editCode, description: editDesc || undefined, status: editStatus })
+      return api.updateClass(classId, { name: editName, code: editCode, description: editDesc || undefined, status: editStatus })
     },
-    onSuccess: async () => { setEditOpen(false); setEditToast({ type: 'success', message: 'Đã cập nhật lớp học.' }); await qc.invalidateQueries({ queryKey: ['class', classId] }) },
+    onSuccess: async (updated: ClassItem) => {
+      qc.setQueryData(['class', classId], updated)
+      setEditOpen(false); setEditToast({ type: 'success', message: 'Đã cập nhật lớp học.' })
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['class', classId] }),
+        qc.invalidateQueries({ queryKey: ['classes'] }),
+      ])
+    },
     onError: (err: unknown) => { if (err instanceof Error && err.message === 'validation') return; setEditToast({ type: 'error', message: err instanceof ApiClientError ? err.message : 'Không thể cập nhật. Vui lòng thử lại.' }) },
   })
 

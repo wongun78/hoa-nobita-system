@@ -54,9 +54,17 @@ export function ClassesPage() {
       if (!editName.trim()) { setEditErrors({ name: 'Tên lớp là bắt buộc' }); throw new Error('validation') }
       if (!editCode.trim()) { setEditErrors({ code: 'Mã lớp là bắt buộc' }); throw new Error('validation') }
       setEditErrors({})
-      await api.updateClass(editItem.id, { name: editName, code: editCode, description: editDesc || undefined, status: editStatus })
+      return api.updateClass(editItem.id, { name: editName, code: editCode, description: editDesc || undefined, status: editStatus })
     },
-    onSuccess: async () => { resetEdit(); setToast({ type: 'success', message: 'Đã cập nhật lớp học.' }); await qc.invalidateQueries({ queryKey: ['classes'] }) },
+    onSuccess: async (updated: ClassItem) => {
+      qc.setQueryData(['classes', page, search, status], (old: unknown) => {
+        if (!old || Array.isArray(old)) return old
+        const p = old as { items: ClassItem[] }
+        return { ...p, items: p.items.map((i) => i.id === updated.id ? updated : i) }
+      })
+      resetEdit(); setToast({ type: 'success', message: 'Đã cập nhật lớp học.' })
+      await qc.invalidateQueries({ queryKey: ['classes'] })
+    },
     onError: (err: unknown) => { if (err instanceof Error && err.message === 'validation') return; setToast({ type: 'error', message: err instanceof ApiClientError ? err.message : 'Không thể cập nhật. Vui lòng thử lại.' }) },
   })
   const resetCreate = () => { setShowCreate(false); setName(''); setCode(''); setDescription(''); setClassStatus('DRAFT'); setAdminId(''); setFieldErrors({}) }
