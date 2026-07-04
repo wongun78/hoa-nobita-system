@@ -49,14 +49,32 @@ public class GradingService {
     }
 
     public PageResponse<SubmissionResponse> classSubmissions(UUID classId, Integer page, Integer size, String sort, String search, String status) {
+        return submissions(classId, page, size, sort, search, status);
+    }
+
+    public PageResponse<SubmissionResponse> submissions(UUID classId, Integer page, Integer size, String sort, String search, String status) {
         int normalizedPage = PaginationUtil.normalizePage(page);
         int normalizedSize = PaginationUtil.normalizeSize(size);
 
-        permissions.requireManageClass(security.currentUser(), classId);
-        List<UUID> assignmentIds = assignments.findByClassId(classId).stream().map(Assignment::getId).toList();
-        if (assignmentIds.isEmpty()) return PaginationUtil.paginate(List.of(), normalizedPage, normalizedSize);
+        var currentUser = security.currentUser();
+        List<com.hoanobita.topikplatform.submission.entity.Submission> source;
+        if (classId != null) {
+            permissions.requireManageClass(currentUser, classId);
+            List<UUID> assignmentIds = assignments.findByClassId(classId).stream().map(Assignment::getId).toList();
+            source = assignmentIds.isEmpty() ? List.of() : submissions.findByAssignmentIdIn(assignmentIds);
+        } else if (currentUser.isTeacher()) {
+            source = submissions.findAllActive();
+        } else {
+            List<UUID> accessibleClassIds = permissions.getAccessibleClassIds(currentUser);
+            if (accessibleClassIds == null || accessibleClassIds.isEmpty()) return PaginationUtil.paginate(List.of(), normalizedPage, normalizedSize);
+            List<UUID> assignmentIds = accessibleClassIds.stream()
+                    .flatMap(id -> assignments.findByClassId(id).stream())
+                    .map(Assignment::getId)
+                    .toList();
+            source = assignmentIds.isEmpty() ? List.of() : submissions.findByAssignmentIdIn(assignmentIds);
+        }
 
-        List<SubmissionResponse> filtered = submissions.findByAssignmentIdIn(assignmentIds).stream()
+        List<SubmissionResponse> filtered = source.stream()
                 .map(submissionService::toResponse)
                 .filter(item -> status == null || status.isBlank() || item.status().equalsIgnoreCase(status))
                 .filter(item -> {

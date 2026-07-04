@@ -322,14 +322,12 @@ public class ClassroomService {
         permissionService.requireManageClass(currentUser, classId);
         var member = classMemberRepo.findByClassIdAndStudentId(classId, studentId)
                 .orElseThrow(() -> BusinessException.notFound("Student not in this class"));
-        
-        member.setStatus(MemberStatus.REMOVED);
-        member.setRemovedAt(Instant.now());
-        classMemberRepo.save(member);
-        
         var student = userRepo.findActiveById(studentId).orElse(null);
+
+        classMemberRepo.delete(member);
+
         if (student != null) {
-            activityService.log("CLASS_STUDENT_REMOVED", "USER", studentId, student.getFullName(), classId, "Đã xóa học viên " + student.getFullName() + " khỏi lớp");
+            activityService.log("CLASS_STUDENT_REMOVED", "USER", studentId, student.getFullName(), classId, "Đã xóa vĩnh viễn học viên " + student.getFullName() + " khỏi lớp; bài nộp và điểm đã có vẫn được giữ lại");
         }
     }
 

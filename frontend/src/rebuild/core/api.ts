@@ -167,6 +167,7 @@ export const api = {
   mySubmissions: async (params?: QueryParams) => normalizeList(await api.mySubmissionsPage(params)),
 
   classGradingSubmissionsPage: (classId: string, params?: QueryParams) => getApi<PageResponse<SubmissionItem> | SubmissionItem[]>(`/classes/${classId}/grading/submissions`, params),
+  gradingSubmissionsPage: (params?: QueryParams & { classId?: string }) => getApi<PageResponse<SubmissionItem> | SubmissionItem[]>('/grading/submissions', params),
   classGradingSubmissions: async (classId: string, params?: QueryParams) => normalizeList(await api.classGradingSubmissionsPage(classId, params)),
   gradeSubmission: (submissionId: string, payload: { score: number; feedback?: string }) => postApi<GradeItem>(`/submissions/${submissionId}/grade`, payload),
   updateGrade: (gradeId: string, payload: { score: number; feedback?: string }) => patchApi<GradeItem>(`/grades/${gradeId}`, payload),

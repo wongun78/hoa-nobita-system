@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { Download, Save } from 'lucide-react'
+import { Download, Save, UserMinus } from 'lucide-react'
 import { useNewAuth } from '../auth/use-auth'
-import { EmptyState, ErrorState, MetricCard, PageHeader, StatusBadge } from '../components/foundation'
+import { ConfirmDialog, EmptyState, ErrorState, MetricCard, PageHeader, StatusBadge } from '../components/foundation'
 import { api } from '../core/api'
 import type { StudentMemberItem } from '../core/types'
 import { Button, Card, Input } from '../layout/ui'
@@ -12,11 +12,36 @@ import { asPage, fmtDate } from './phase2-utils'
 const tabs = ['Overview', 'Students', 'Lessons', 'Materials', 'Assignments', 'Submissions', 'Grading', 'Attendance', 'Activity', 'Notifications', 'Settings'] as const
 type TabName = typeof tabs[number]
 
-function StudentRow({ classId, student }: Readonly<{ classId: string; student: StudentMemberItem }>) {
+function StudentRow({ classId, student, canRemove }: Readonly<{ classId: string; student: StudentMemberItem; canRemove: boolean }>) {
   const qc = useQueryClient()
   const [code, setCode] = useState(student.studentCode ?? '')
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const save = useMutation({ mutationFn: () => api.updateClassStudentCode(classId, student.id, code), onSuccess: async () => qc.invalidateQueries({ queryKey: ['class', classId, 'students'] }) })
-  return <tr className="border-b border-sky-50"><td className="px-3 py-3 font-bold">{student.fullName}<p className="text-xs font-normal text-slate-500">{student.email || '-'}</p></td><td className="px-3 py-3"><Input value={code} onChange={(e) => setCode(e.target.value)} /></td><td className="px-3 py-3"><StatusBadge value={student.status} /></td><td className="px-3 py-3 text-slate-500">{fmtDate(student.joinedAt)}</td><td className="px-3 py-3"><Button variant="secondary" disabled={save.isPending} onClick={() => save.mutate()}><Save size={14} /> Lưu code</Button></td></tr>
+  const remove = useMutation({
+    mutationFn: () => api.removeClassStudent(classId, student.id),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ['class', classId, 'students'] })
+      const previous = qc.getQueryData(['class', classId, 'students', 0])
+      qc.setQueryData(['class', classId, 'students', 0], (old: unknown) => {
+        if (!old || Array.isArray(old)) return old
+        const page = old as { items?: StudentMemberItem[] }
+        return { ...page, items: (page.items ?? []).filter((item) => item.id !== student.id), totalItems: Math.max(((page as { totalItems?: number }).totalItems ?? 1) - 1, 0) }
+      })
+      return { previous }
+    },
+    onError: (_error, _vars, context) => {
+      if (context?.previous) qc.setQueryData(['class', classId, 'students', 0], context.previous)
+    },
+    onSuccess: async () => {
+      setConfirmOpen(false)
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['class', classId, 'students'] }),
+        qc.invalidateQueries({ queryKey: ['class', classId, 'stats'] }),
+        qc.invalidateQueries({ queryKey: ['class', classId] }),
+      ])
+    },
+  })
+  return <><tr className="border-b border-sky-50"><td className="px-3 py-3 font-bold">{student.fullName}<p className="text-xs font-normal text-slate-500">{student.email || '-'}</p></td><td className="px-3 py-3"><Input value={code} onChange={(e) => setCode(e.target.value)} /></td><td className="px-3 py-3"><StatusBadge value={student.status} /></td><td className="px-3 py-3 text-slate-500">{fmtDate(student.joinedAt)}</td><td className="px-3 py-3"><div className="flex flex-wrap gap-2"><Button variant="secondary" disabled={save.isPending} onClick={() => save.mutate()}><Save size={14} /> Lưu code</Button>{canRemove && <Button variant="ghost" disabled={remove.isPending} onClick={() => setConfirmOpen(true)}><UserMinus size={14} /> Gỡ học viên</Button>}</div></td></tr><ConfirmDialog open={confirmOpen} title={`Gỡ ${student.fullName} khỏi lớp?`} description="Hành động này KHÔNG HOÀN TÁC. Membership của học viên trong lớp sẽ bị xoá cứng và mất liên kết lớp; bài nộp/điểm đã có vẫn được giữ lại để tra cứu." confirmLabel={remove.isPending ? 'Đang gỡ...' : 'Gỡ vĩnh viễn'} onCancel={() => setConfirmOpen(false)} onConfirm={() => remove.mutate()} /></>
 }
 
 export function ClassDetailV2Page() {
@@ -52,7 +77,7 @@ export function ClassDetailV2Page() {
   return <div className="space-y-5"><div className="sticky top-20 z-20 space-y-3"><PageHeader eyebrow={klass.data.code} title={klass.data.name} description={isAdmin ? 'Scoped view cho CLASS_ADMIN: ẩn action global-only như assign global admin/delete class/cross-class data.' : klass.data.description || 'Chi tiết vận hành lớp học'} actions={<><Button variant="secondary" onClick={() => api.downloadClassStudentsCsv(classId)}><Download size={16} /> Export students CSV</Button></>} /><div className="flex gap-2 overflow-x-auto rounded-3xl border border-sky-100 bg-white/90 p-2 shadow-sm">{tabs.map((item) => <button key={item} className={`whitespace-nowrap rounded-2xl px-3 py-2 text-sm font-bold ${tab === item ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-sky-50'}`} onClick={() => setTab(item)}>{item}</button>)}</div></div>
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5"><MetricCard label="Học viên" value={stats.data?.totalStudents ?? klass.data.studentCount} /><MetricCard label="Bài tập" value={stats.data?.totalAssignments ?? '-'} /><MetricCard label="Tỷ lệ nộp" value={`${Math.round(stats.data?.submissionRate ?? 0)}%`} /><MetricCard label="Cần chấm" value={stats.data?.needGrading ?? '-'} /><MetricCard label="Health" value={classHealth} /></div>
     {tab === 'Overview' && <Card><h2 className="font-black text-slate-950">Overview</h2><p className="mt-2 text-sm text-slate-600">Giáo viên: {klass.data.teacherName}</p><p className="text-sm text-slate-600">Trạng thái: <StatusBadge value={klass.data.status} /></p></Card>}
-    {tab === 'Students' && <Card><div className="mb-3 flex items-center justify-between"><h2 className="font-black">Students</h2><Button variant="secondary" onClick={() => api.downloadClassStudentsCsv(classId)}><Download size={16} /> CSV</Button></div><div className="overflow-auto"><table className="w-full min-w-[820px] text-sm"><thead><tr className="border-b border-sky-100 text-left text-slate-500"><th className="px-3 py-3">Học viên</th><th className="px-3 py-3">Student code</th><th className="px-3 py-3">Trạng thái</th><th className="px-3 py-3">Ngày vào</th><th className="px-3 py-3">Hành động</th></tr></thead><tbody>{studentsPage.items.map((student) => <StudentRow key={student.id} classId={classId} student={student} />)}</tbody></table></div>{studentsPage.items.length === 0 && <EmptyState title="Chưa có học viên" />}</Card>}
+    {tab === 'Students' && <Card><div className="mb-3 flex items-center justify-between"><h2 className="font-black">Students</h2><Button variant="secondary" onClick={() => api.downloadClassStudentsCsv(classId)}><Download size={16} /> CSV</Button></div><div className="overflow-auto"><table className="w-full min-w-[820px] text-sm"><thead><tr className="border-b border-sky-100 text-left text-slate-500"><th className="px-3 py-3">Học viên</th><th className="px-3 py-3">Student code</th><th className="px-3 py-3">Trạng thái</th><th className="px-3 py-3">Ngày vào</th><th className="px-3 py-3">Hành động</th></tr></thead><tbody>{studentsPage.items.map((student) => <StudentRow key={student.id} classId={classId} student={student} canRemove={canOperate} />)}</tbody></table></div>{studentsPage.items.length === 0 && <EmptyState title="Chưa có học viên" />}</Card>}
     {tab === 'Lessons' && <Card><h2 className="font-black">Lessons</h2><div className="mt-3 divide-y divide-sky-50">{lessonsPage.items.map((item) => <div key={item.id} className="py-3"><b>{item.title}</b><p className="text-xs text-slate-500">{item.status} · {fmtDate(item.lessonDate)}</p></div>)}{lessonsPage.items.length === 0 && <EmptyState title="Chưa có bài học" />}</div></Card>}
     {tab === 'Materials' && <Card><h2 className="font-black">Materials</h2><div className="mt-3 divide-y divide-sky-50">{materialsPage.items.map((item) => <div key={item.id} className="flex justify-between py-3"><div><b>{item.title}</b><p className="text-xs text-slate-500">{item.description || '-'}</p></div><StatusBadge value={item.visible ? 'PUBLISHED' : 'DRAFT'} /></div>)}{materialsPage.items.length === 0 && <EmptyState title="Chưa có tài liệu" />}</div></Card>}
     {tab === 'Assignments' && <Card><h2 className="font-black">Assignments</h2><div className="mt-3 divide-y divide-sky-50">{assignmentsPage.items.map((item) => <div key={item.id} className="flex justify-between py-3"><div><b>{item.title}</b><p className="text-xs text-slate-500">Hạn: {fmtDate(item.dueAt)}</p></div><StatusBadge value={item.status} /></div>)}{assignmentsPage.items.length === 0 && <EmptyState title="Chưa có bài tập" />}</div></Card>}

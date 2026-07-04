@@ -32,6 +32,16 @@ public class GradingController {
         return ApiResponse.ok(service.classSubmissions(classId, page, size, sort, search, status));
     }
 
+    @GetMapping("/grading/submissions")
+    public ApiResponse<PageResponse<SubmissionResponse>> submissions(@RequestParam(required = false) UUID classId,
+                                                                     @RequestParam(required = false) Integer page,
+                                                                     @RequestParam(required = false) Integer size,
+                                                                     @RequestParam(required = false) String sort,
+                                                                     @RequestParam(required = false) String search,
+                                                                     @RequestParam(required = false) String status) {
+        return ApiResponse.ok(service.submissions(classId, page, size, sort, search, status));
+    }
+
     @PostMapping("/assignments/{assignmentId}/submissions/bulk-grade")
     public ApiResponse<BulkGradeResponse> bulkGrade(@PathVariable UUID assignmentId,
                                                     @RequestBody BulkGradeRequest req) {
