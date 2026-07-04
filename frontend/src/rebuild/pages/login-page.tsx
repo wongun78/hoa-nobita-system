@@ -77,17 +77,11 @@ export function LoginPage() {
           </span>
         ))}
 
-        {/* Hero image placeholder — replace with real Nguyễn Tuấn Hoà photo */}
-        {/* TODO: Đặt ảnh thật tại frontend/public/hoa-nobita-hero.jpg rồi thay src bên dưới */}
+        {/* Hero image */}
         <div className="relative z-10 flex flex-1 items-center justify-center">
-          <div className="flex h-64 w-64 items-center justify-center rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-indigo-500/30 via-sky-400/20 to-rose-400/20 shadow-2xl backdrop-blur-sm xl:h-80 xl:w-80">
-            <div className="text-center">
-              <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-400 via-sky-300 to-pink-300 text-5xl font-black text-white shadow-xl xl:h-28 xl:w-28">
-                한
-              </div>
-              <p className="mt-4 text-sm font-medium text-white/50">Ảnh Nguyễn Tuấn Hoà</p>
-              <p className="text-xs text-white/30">hoa-nobita-hero.jpg</p>
-            </div>
+          <div className="relative h-72 w-72 overflow-hidden rounded-[2.5rem] border border-white/10 shadow-2xl xl:h-80 xl:w-80">
+            <img src="/hoa-nobita-hero.jpg" alt="Nguyễn Tuấn Hoà" className="h-full w-full object-cover" />
+            <div className="absolute inset-0 rounded-[2.5rem] ring-1 ring-inset ring-white/10" />
           </div>
         </div>
 
