@@ -163,7 +163,7 @@ export function AttendanceMarkingPage() {
           <FieldLabel htmlFor="attendance-lesson">Buổi học</FieldLabel>
           <select id="attendance-lesson" className="min-h-11 w-full rounded-2xl border border-sky-100 bg-white px-4 text-sm font-bold text-slate-600 outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" value={lessonId} onChange={(event) => setLessonId(event.target.value)} disabled={!classId}>
             <option value="">Chọn buổi học</option>
-            {lessonPage.items.map((item: LessonItem) => <option key={item.id} value={item.id}>{item.title} · {fmtDate(item.lessonDate)}</option>)}
+            {lessonPage.items.map((item: LessonItem) => <option key={item.id} value={item.id}>{item.lessonDate ? new Date(item.lessonDate + 'T00:00:00').toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'} · {item.title}</option>)}
           </select>
         </div>
       </FilterBar>

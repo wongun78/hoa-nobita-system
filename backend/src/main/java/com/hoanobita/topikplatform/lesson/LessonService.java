@@ -73,11 +73,18 @@ public class LessonService {
 
         var lesson = new Lesson();
         lesson.setClassId(classId);
-        lesson.setTitle(request.title());
         lesson.setDescription(request.description());
         lesson.setOrderIndex(request.orderIndex() != null ? request.orderIndex() : 0);
         lesson.setCreatedBy(user.getId());
-        if (request.lessonDate() != null) lesson.setLessonDate(LocalDate.parse(request.lessonDate()));
+        LocalDate parsedDate = request.lessonDate() != null && !request.lessonDate().isBlank() ? LocalDate.parse(request.lessonDate()) : null;
+        lesson.setLessonDate(parsedDate);
+        if (request.title() != null && !request.title().isBlank()) {
+            lesson.setTitle(request.title());
+        } else if (parsedDate != null) {
+            lesson.setTitle("Buổi học %s".formatted(parsedDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))));
+        } else {
+            lesson.setTitle("Buổi học");
+        }
         if (request.status() != null) {
             try { lesson.setStatus(LessonStatus.valueOf(request.status())); }
             catch (IllegalArgumentException e) { throw BusinessException.badRequest("Invalid status"); }
@@ -101,10 +108,16 @@ public class LessonService {
                 .orElseThrow(() -> BusinessException.notFound("Lesson not found"));
         permissionService.requireManageClass(user, lesson.getClassId());
 
-        if (request.title() != null) lesson.setTitle(request.title());
+        if (request.title() != null && !request.title().isBlank()) lesson.setTitle(request.title());
         if (request.description() != null) lesson.setDescription(request.description());
         if (request.orderIndex() != null) lesson.setOrderIndex(request.orderIndex());
-        if (request.lessonDate() != null) lesson.setLessonDate(LocalDate.parse(request.lessonDate()));
+        if (request.lessonDate() != null && !request.lessonDate().isBlank()) {
+            LocalDate parsedDate = LocalDate.parse(request.lessonDate());
+            lesson.setLessonDate(parsedDate);
+            if (request.title() != null && request.title().isBlank()) {
+                lesson.setTitle("Buổi học %s".formatted(parsedDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))));
+            }
+        }
         if (request.status() != null) {
             try { lesson.setStatus(LessonStatus.valueOf(request.status())); }
             catch (IllegalArgumentException e) { throw BusinessException.badRequest("Invalid status"); }
