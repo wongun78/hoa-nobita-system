@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Bell, CheckCheck, ChevronRight, Megaphone, Plus, Send } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -19,6 +19,12 @@ type NotificationForm = {
 }
 
 const emptyForm: NotificationForm = { title: '', content: '', targetType: 'CLASS', targetId: '' }
+
+function useDebouncedValue<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => { const id = setTimeout(() => setDebounced(value), delay); return () => clearTimeout(id) }, [value, delay])
+  return debounced
+}
 
 function notificationHref(item: NotificationItem, rolePrefix: '/teacher' | '/admin' | '/student') {
   if (item.targetType === 'CLASS' && item.targetId) return `${rolePrefix}/classes/${item.targetId}`
@@ -150,7 +156,8 @@ export function NotificationsInboxPage() {
   const qc = useQueryClient()
   const [tab, setTab] = useState<NotificationTab>('ALL')
   const [page, setPage] = useState(0)
-  const [search, setSearch] = useState('')
+  const [text, setText] = useState('')
+  const search = useDebouncedValue(text, 300)
   const [composerOpen, setComposerOpen] = useState(false)
   const canManage = hasRole('TEACHER_OWNER', 'CLASS_ADMIN')
   const rolePrefix = hasRole('TEACHER_OWNER') ? '/teacher' : hasRole('CLASS_ADMIN') ? '/admin' : '/student'
@@ -193,9 +200,6 @@ export function NotificationsInboxPage() {
     onSettled: invalidateNotifications,
   })
 
-  if (notifications.isLoading) return <div className="space-y-4 pb-20 md:pb-0"><SkeletonCard lines={4} /><SkeletonCard /><SkeletonCard /></div>
-  if (notifications.isError) return <ErrorState title="Không tải được thông báo" description="Vui lòng thử lại sau ít phút." onRetry={() => notifications.refetch()} />
-
   return (
     <div className="space-y-5 pb-20 md:pb-0">
       <PageHeader
@@ -214,18 +218,19 @@ export function NotificationsInboxPage() {
         <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0">
           {(['ALL', 'UNREAD'] as const).map((item) => <button key={item} type="button" onClick={() => { setTab(item); setPage(0) }} className={`min-h-11 shrink-0 rounded-2xl px-4 text-sm font-bold ${tab === item ? 'bg-indigo-600 text-white' : 'border border-sky-100 bg-white text-slate-600 hover:bg-sky-50'}`}>{item === 'ALL' ? 'Tất cả' : 'Chưa đọc'}</button>)}
         </div>
-        <div className="min-w-0 flex-1"><SearchInput value={search} onChange={(event) => { setSearch(event.target.value); setPage(0) }} placeholder="Tìm tiêu đề, nội dung thông báo..." aria-label="Tìm thông báo" /></div>
+        <div className="min-w-0 flex-1"><SearchInput value={text} onChange={(event) => { setText(event.target.value); setPage(0) }} placeholder="Tìm tiêu đề, nội dung thông báo..." aria-label="Tìm thông báo" /></div>
         <Button type="button" variant="secondary" className="min-h-11" disabled={markAll.isPending || (unread.data?.count ?? 0) === 0} onClick={() => markAll.mutate()}><CheckCheck size={16} />Đọc tất cả</Button>
       </FilterBar>
 
       {composerOpen && canManage && <NotificationComposer onClose={() => setComposerOpen(false)} />}
 
-      {pageData.items.length ? (
+      {notifications.isLoading && <div className="space-y-3"><SkeletonCard lines={4} /><SkeletonCard /><SkeletonCard /></div>}
+      {notifications.isError && <ErrorState title="Không tải được thông báo" description="Vui lòng thử lại sau ít phút." onRetry={() => notifications.refetch()} />}
+      {!notifications.isLoading && !notifications.isError && pageData.items.length === 0 && <EmptyState title={tab === 'UNREAD' ? 'Không còn thông báo chưa đọc' : 'Hộp thông báo đang trống'} description="Thông báo mới từ lớp học và hệ thống sẽ xuất hiện tại đây." action={<Bell className="mx-auto text-indigo-400" />} />}
+      {pageData.items.length > 0 && (
         <div className="space-y-3">
           {pageData.items.map((item) => <NotificationCard key={item.id} item={item} rolePrefix={rolePrefix} onRead={(id) => markRead.mutate(id)} />)}
         </div>
-      ) : (
-        <EmptyState title={tab === 'UNREAD' ? 'Không còn thông báo chưa đọc' : 'Hộp thông báo đang trống'} description="Thông báo mới từ lớp học và hệ thống sẽ xuất hiện tại đây." action={<Bell className="mx-auto text-indigo-400" />} />
       )}
       <PaginationControls page={pageData.page} totalPages={pageData.totalPages} onPageChange={setPage} />
     </div>
