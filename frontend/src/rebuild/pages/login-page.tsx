@@ -77,7 +77,7 @@ export function LoginPage() {
           </span>
         ))}
 
-        {/* Hero image placeholder — replace with real Hoà Nobita photo */}
+        {/* Hero image placeholder — replace with real Nguyễn Tuấn Hoà photo */}
         {/* TODO: Đặt ảnh thật tại frontend/public/hoa-nobita-hero.jpg rồi thay src bên dưới */}
         <div className="relative z-10 flex flex-1 items-center justify-center">
           <div className="flex h-64 w-64 items-center justify-center rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-indigo-500/30 via-sky-400/20 to-rose-400/20 shadow-2xl backdrop-blur-sm xl:h-80 xl:w-80">
@@ -85,7 +85,7 @@ export function LoginPage() {
               <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-400 via-sky-300 to-pink-300 text-5xl font-black text-white shadow-xl xl:h-28 xl:w-28">
                 한
               </div>
-              <p className="mt-4 text-sm font-medium text-white/50">Ảnh Hoà Nobita</p>
+              <p className="mt-4 text-sm font-medium text-white/50">Ảnh Nguyễn Tuấn Hoà</p>
               <p className="text-xs text-white/30">hoa-nobita-hero.jpg</p>
             </div>
           </div>
@@ -94,7 +94,7 @@ export function LoginPage() {
         {/* Brand text */}
         <div className="relative z-10 mt-8">
           <h1 className="text-4xl font-black tracking-tight text-white xl:text-5xl">
-            Hoà <span className="bg-gradient-to-r from-sky-300 via-indigo-300 to-pink-300 bg-clip-text text-transparent">Nobita</span>
+            Nguyễn Tuấn <span className="bg-gradient-to-r from-sky-300 via-indigo-300 to-pink-300 bg-clip-text text-transparent">Hoà</span>
           </h1>
           <p className="mt-3 max-w-md text-lg leading-7 text-white/60">
             Nền tảng học TOPIK thông minh — học tiếng Hàn có lộ trình, có phản hồi, có tiến bộ mỗi ngày.
@@ -122,7 +122,7 @@ export function LoginPage() {
               한
             </div>
             <h1 className="text-2xl font-black tracking-tight text-white">
-              Hoà <span className="bg-gradient-to-r from-sky-300 to-pink-300 bg-clip-text text-transparent">Nobita</span>
+              Nguyễn Tuấn <span className="bg-gradient-to-r from-sky-300 to-pink-300 bg-clip-text text-transparent">Hoà</span>
             </h1>
             <p className="mt-1 text-sm text-white/50">Nền tảng học TOPIK thông minh</p>
           </div>
