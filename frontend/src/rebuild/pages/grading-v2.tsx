@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, CheckCircle, Download, ExternalLink, FileText, RotateCcw, Send, Upload } from 'lucide-react'
+import { ArrowDown, ArrowUp, CheckCircle, Download, ExternalLink, RotateCcw, Send, Upload } from 'lucide-react'
 import { useNewAuth } from '../auth/use-auth'
 import { EmptyState, ErrorState, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { api } from '../core/api'
+import { ApiClientError } from '../core/http'
 import type { AssignmentItem, SubmissionItem } from '../core/types'
 import { Button, Card, Input, TextArea } from '../layout/ui'
 import { asPage, fmtDate } from './phase2-utils'
@@ -22,6 +23,10 @@ export function GradingV2Page() {
   const [feedbackFileId, setFeedbackFileId] = useState<string>('')
   const [feedbackLink, setFeedbackLink] = useState<string>('')
   const [uploadingFeedback, setUploadingFeedback] = useState(false)
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
+  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t) }, [toast])
+  const showError = (err: unknown, fallback: string) => { const msg = err instanceof ApiClientError ? err.message : fallback; console.error('[grading]', msg, err); setToast({ type: 'error', message: msg }) }
 
   const classes = useQuery({ queryKey: ['classes', 'grading-v2'], queryFn: () => api.classesPage({ page: 0, size: 100 }) })
   const classPage = asPage(classes.data, 0, 100)
@@ -62,8 +67,27 @@ export function GradingV2Page() {
     try {
       const uploaded = await api.uploadFile(file)
       setFeedbackFileId(uploaded.id)
+      setToast({ type: 'success', message: 'Đã tải lên tệp phản hồi.' })
+    } catch (err) {
+      showError(err, 'Không thể tải lên tệp phản hồi.')
     } finally {
       setUploadingFeedback(false)
+    }
+  }
+
+  const handleDownloadSubmission = async () => {
+    try {
+      await api.downloadSubmissionFile(selected!.id, selected!.fileName || `submission-${selected!.id}`)
+    } catch (err) {
+      showError(err, 'Không thể tải file bài nộp.')
+    }
+  }
+
+  const handleDownloadFeedback = async () => {
+    try {
+      await api.downloadFeedbackFile(selected!.id, selected!.feedbackFileName || `feedback-${selected!.id}`)
+    } catch (err) {
+      showError(err, 'Không thể tải tệp phản hồi.')
     }
   }
 
@@ -74,12 +98,23 @@ export function GradingV2Page() {
       if (feedbackLink) payload.feedbackLink = feedbackLink
       return selected?.gradeId ? api.updateGrade(selected.gradeId, payload) : api.gradeSubmission(selected!.id, payload)
     },
-    onSuccess: async () => { if (draftKey) localStorage.removeItem(draftKey); await qc.invalidateQueries({ queryKey: ['grading-v2', classId] }) },
+    onSuccess: async () => { if (draftKey) localStorage.removeItem(draftKey); setToast({ type: 'success', message: 'Đã lưu điểm.' }); await qc.invalidateQueries({ queryKey: ['grading-v2', classId] }) },
+    onError: (err) => showError(err, 'Không thể lưu điểm. Vui lòng thử lại.'),
   })
-  const resubmit = useMutation({ mutationFn: () => api.requestResubmit(selected!.id), onSuccess: async () => qc.invalidateQueries({ queryKey: ['grading-v2', classId] }) })
+  const resubmit = useMutation({
+    mutationFn: () => api.requestResubmit(selected!.id),
+    onSuccess: async () => { setToast({ type: 'success', message: 'Đã yêu cầu nộp lại.' }); await qc.invalidateQueries({ queryKey: ['grading-v2', classId] }) },
+    onError: (err) => showError(err, 'Không thể yêu cầu nộp lại.'),
+  })
   const bulk = useMutation({
-    mutationFn: () => api.bulkGrade(selected!.assignmentId, queue.items.filter((s) => s.status !== 'GRADED').map((s) => ({ submissionId: s.id, score: Number(score || s.score || 0), feedback: feedback || undefined }))),
-    onSuccess: async () => qc.invalidateQueries({ queryKey: ['grading-v2', classId] }),
+    mutationFn: () => api.bulkGrade(selected!.assignmentId, queue.items.filter((s) => s.status !== 'GRADED').map((s) => {
+      const item: { submissionId: string; score: number; feedback?: string; feedbackFileId?: string; feedbackLink?: string } = { submissionId: s.id, score: Number(score || s.score || 0), feedback: feedback || undefined }
+      if (feedbackFileId) item.feedbackFileId = feedbackFileId
+      if (feedbackLink) item.feedbackLink = feedbackLink
+      return item
+    })),
+    onSuccess: async () => { setToast({ type: 'success', message: 'Đã chấm hàng loạt.' }); await qc.invalidateQueries({ queryKey: ['grading-v2', classId] }) },
+    onError: (err) => showError(err, 'Không thể chấm hàng loạt.'),
   })
 
   useEffect(() => {
@@ -161,7 +196,7 @@ export function GradingV2Page() {
               {selected.contentUrl && <a className="text-sm font-bold text-indigo-600" href={selected.contentUrl} target="_blank" rel="noreferrer">Mở URL bài làm</a>}
               {selected.fileId && (
                 <div className="flex items-center gap-2">
-                  <Button variant="secondary" onClick={() => api.downloadSubmissionFile(selected.id, selected.fileName || `submission-${selected.id}`)}>
+                  <Button type="button" variant="secondary" onClick={handleDownloadSubmission}>
                     <Download size={16} /> Tải file bài làm
                   </Button>
                   {selected.fileName && <span className="text-xs text-slate-500">{selected.fileName} ({selected.fileSize ? Math.round(selected.fileSize / 1024) + ' KB' : ''})</span>}
@@ -178,7 +213,7 @@ export function GradingV2Page() {
                 <h3 className="text-sm font-bold text-slate-700">Tệp đính kèm phản hồi</h3>
                 {selected.feedbackFileId && selected.feedbackFileName && (
                   <div className="flex items-center gap-2">
-                    <Button variant="secondary" onClick={() => api.downloadFeedbackFile(selected.id, selected.feedbackFileName || `feedback-${selected.id}`)}>
+                    <Button type="button" variant="secondary" onClick={handleDownloadFeedback}>
                       <Download size={16} /> {selected.feedbackFileName}
                     </Button>
                     <span className="text-xs text-slate-500">({selected.feedbackFileSize ? Math.round(selected.feedbackFileSize / 1024) + ' KB' : ''})</span>
@@ -201,9 +236,9 @@ export function GradingV2Page() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <Button disabled={!score || save.isPending} onClick={() => save.mutate()}><Send size={16} /> Lưu điểm</Button>
-                <Button variant="secondary" disabled={resubmit.isPending} onClick={() => resubmit.mutate()}><RotateCcw size={16} /> Yêu cầu nộp lại</Button>
-                <Button variant="secondary" disabled={!score || bulk.isPending} onClick={() => bulk.mutate()}><CheckCircle size={16} /> Chấm hàng loạt</Button>
+                <Button type="button" disabled={!score || save.isPending} onClick={() => save.mutate()}><Send size={16} /> Lưu điểm</Button>
+                <Button type="button" variant="secondary" disabled={resubmit.isPending} onClick={() => resubmit.mutate()}><RotateCcw size={16} /> Yêu cầu nộp lại</Button>
+                <Button type="button" variant="secondary" disabled={!score || bulk.isPending} onClick={() => bulk.mutate()}><CheckCircle size={16} /> Chấm hàng loạt</Button>
               </div>
 
               <div className="flex items-center gap-4 text-xs text-slate-400">
@@ -214,6 +249,12 @@ export function GradingV2Page() {
           )}
         </Card>
       </div>
+
+      {toast && (
+        <div className={`fixed bottom-4 right-4 z-[60] rounded-2xl px-4 py-3 text-sm font-bold shadow-lg ${toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}`}>
+          {toast.message}
+        </div>
+      )}
     </div>
   )
 }
