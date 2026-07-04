@@ -157,6 +157,13 @@ public class ClassroomService {
         permissionService.requireManageClass(currentUser, classId);
 
         if (request.name() != null) klass.setName(request.name());
+        if (request.code() != null) {
+            String newCode = request.code().trim();
+            if (!newCode.equalsIgnoreCase(klass.getCode()) && klassRepo.existsByCode(newCode)) {
+                throw BusinessException.badRequest("Class code already exists: " + newCode);
+            }
+            klass.setCode(newCode);
+        }
         if (request.description() != null) klass.setDescription(request.description());
         if (request.levelFrom() != null) klass.setLevelFrom(request.levelFrom());
         if (request.levelTo() != null) klass.setLevelTo(request.levelTo());

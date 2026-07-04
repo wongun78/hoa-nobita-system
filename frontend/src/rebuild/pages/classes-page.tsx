@@ -36,6 +36,7 @@ export function ClassesPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [editItem, setEditItem] = useState<ClassItem | null>(null)
   const [editName, setEditName] = useState('')
+  const [editCode, setEditCode] = useState('')
   const [editDesc, setEditDesc] = useState('')
   const [editStatus, setEditStatus] = useState<ClassStatus>('ACTIVE')
   const [editErrors, setEditErrors] = useState<Record<string, string>>({})
@@ -46,13 +47,14 @@ export function ClassesPage() {
   const adminList: UserItem[] = Array.isArray(adminsQ.data) ? adminsQ.data : adminsQ.data?.items ?? []
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t) }, [toast])
   const resetEdit = () => { setEditOpen(false); setEditItem(null); setEditErrors({}) }
-  const openEdit = (item: ClassItem) => { setEditItem(item); setEditName(item.name); setEditDesc(item.description ?? ''); setEditStatus(item.status as ClassStatus); setEditErrors({}); setEditOpen(true) }
+  const openEdit = (item: ClassItem) => { setEditItem(item); setEditName(item.name); setEditCode(item.code); setEditDesc(item.description ?? ''); setEditStatus(item.status as ClassStatus); setEditErrors({}); setEditOpen(true) }
   const editClass = useMutation({
     mutationFn: async () => {
       if (!editItem) return
       if (!editName.trim()) { setEditErrors({ name: 'Tên lớp là bắt buộc' }); throw new Error('validation') }
+      if (!editCode.trim()) { setEditErrors({ code: 'Mã lớp là bắt buộc' }); throw new Error('validation') }
       setEditErrors({})
-      await api.updateClass(editItem.id, { name: editName, description: editDesc || undefined, status: editStatus })
+      await api.updateClass(editItem.id, { name: editName, code: editCode, description: editDesc || undefined, status: editStatus })
     },
     onSuccess: async () => { resetEdit(); setToast({ type: 'success', message: 'Đã cập nhật lớp học.' }); await qc.invalidateQueries({ queryKey: ['classes'] }) },
     onError: (err: unknown) => { if (err instanceof Error && err.message === 'validation') return; setToast({ type: 'error', message: err instanceof ApiClientError ? err.message : 'Không thể cập nhật. Vui lòng thử lại.' }) },
@@ -90,6 +92,11 @@ export function ClassesPage() {
                 <FieldLabel htmlFor="edit-name">Tên lớp <span className="text-rose-500">*</span></FieldLabel>
                 <Input id="edit-name" value={editName} onChange={(e) => setEditName(e.target.value)} />
                 {editErrors.name && <p className="mt-1 text-xs text-rose-500">{editErrors.name}</p>}
+              </div>
+              <div>
+                <FieldLabel htmlFor="edit-code">Mã lớp <span className="text-rose-500">*</span></FieldLabel>
+                <Input id="edit-code" value={editCode} onChange={(e) => setEditCode(e.target.value)} />
+                {editErrors.code && <p className="mt-1 text-xs text-rose-500">{editErrors.code}</p>}
               </div>
               <div>
                 <FieldLabel htmlFor="edit-desc">Mô tả</FieldLabel>
