@@ -2,9 +2,13 @@ package com.hoanobita.topikplatform.submission;
 
 import com.hoanobita.topikplatform.common.ApiResponse;
 import com.hoanobita.topikplatform.common.PageResponse;
+import com.hoanobita.topikplatform.file.entity.StoredFile;
 import com.hoanobita.topikplatform.submission.dto.SubmissionRequest;
 import com.hoanobita.topikplatform.submission.dto.SubmissionResponse;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -49,6 +53,26 @@ public class SubmissionController {
     public ApiResponse<Void> delete(@PathVariable UUID submissionId) {
         service.delete(submissionId);
         return ApiResponse.ok(null);
+    }
+
+    @GetMapping("/submissions/{submissionId}/files/submission/download")
+    public ResponseEntity<Resource> downloadSubmissionFile(@PathVariable UUID submissionId) {
+        StoredFile meta = service.getSubmissionFileMetadata(submissionId);
+        Resource resource = service.downloadSubmissionFile(submissionId);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + meta.getOriginalFileName() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, meta.getContentType())
+                .body(resource);
+    }
+
+    @GetMapping("/submissions/{submissionId}/files/feedback/download")
+    public ResponseEntity<Resource> downloadFeedbackFile(@PathVariable UUID submissionId) {
+        StoredFile meta = service.getFeedbackFileMetadata(submissionId);
+        Resource resource = service.downloadFeedbackFile(submissionId);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + meta.getOriginalFileName() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, meta.getContentType())
+                .body(resource);
     }
 
     @GetMapping("/me/submissions")

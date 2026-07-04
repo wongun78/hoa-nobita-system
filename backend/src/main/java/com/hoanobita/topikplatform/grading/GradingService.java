@@ -129,6 +129,8 @@ public class GradingService {
                 grade.setGradedBy(security.currentUser().getId());
                 grade.setGradedAt(Instant.now());
                 submission.setStatus(SubmissionStatus.GRADED);
+                if (item.feedbackFileId() != null) submission.setFeedbackFileId(item.feedbackFileId());
+                if (item.feedbackLink() != null) submission.setFeedbackLink(item.feedbackLink());
                 submissions.save(submission);
                 grades.save(grade);
                 gradedCount++;
@@ -156,6 +158,8 @@ public class GradingService {
         g.setGradedBy(security.currentUser().getId());
         g.setGradedAt(Instant.now());
         s.setStatus(SubmissionStatus.GRADED);
+        if (req.feedbackFileId() != null) s.setFeedbackFileId(req.feedbackFileId());
+        if (req.feedbackLink() != null) s.setFeedbackLink(req.feedbackLink());
         submissions.save(s);
         activityService.log("SUBMISSION_GRADED", "SUBMISSION", s.getId(), "Bài nộp của học viên", a.getClassId(), "Đã chấm điểm bài nộp cho bài tập: " + a.getTitle());
         return toResponse(grades.save(g));
@@ -171,6 +175,9 @@ public class GradingService {
         if (req.score().compareTo(a.getMaxScore()) > 0) throw BusinessException.badRequest("Score cannot exceed assignment max score");
         g.setScore(req.score());
         g.setFeedback(req.feedback());
+        if (req.feedbackFileId() != null) s.setFeedbackFileId(req.feedbackFileId());
+        if (req.feedbackLink() != null) s.setFeedbackLink(req.feedbackLink());
+        submissions.save(s);
         activityService.log("GRADE_UPDATED", "SUBMISSION", s.getId(), "Bài nộp của học viên", a.getClassId(), "Đã cập nhật điểm bài nộp cho bài tập: " + a.getTitle());
         return toResponse(grades.save(g));
     }

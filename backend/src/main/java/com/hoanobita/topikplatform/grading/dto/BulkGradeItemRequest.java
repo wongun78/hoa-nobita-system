@@ -6,5 +6,7 @@ import java.util.UUID;
 public record BulkGradeItemRequest(
         UUID submissionId,
         BigDecimal score,
-        String feedback
+        String feedback,
+        UUID feedbackFileId,
+        String feedbackLink
 ) {}

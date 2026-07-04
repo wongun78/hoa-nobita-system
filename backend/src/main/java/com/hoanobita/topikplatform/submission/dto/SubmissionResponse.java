@@ -19,5 +19,15 @@ public record SubmissionResponse(
         UUID gradeId,
         BigDecimal score,
         BigDecimal maxScore,
-        String feedback
+        String feedback,
+        // Submission file metadata
+        String fileName,
+        String fileContentType,
+        Long fileSize,
+        // Feedback attachments
+        UUID feedbackFileId,
+        String feedbackLink,
+        String feedbackFileName,
+        String feedbackFileContentType,
+        Long feedbackFileSize
 ) {}

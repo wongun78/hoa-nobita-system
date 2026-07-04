@@ -25,6 +25,12 @@ public class Submission extends BaseEntity {
     @Column(name = "file_id")
     private UUID fileId;
 
+    @Column(name = "feedback_file_id")
+    private UUID feedbackFileId;
+
+    @Column(name = "feedback_link", columnDefinition = "text")
+    private String feedbackLink;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SubmissionStatus status = SubmissionStatus.SUBMITTED;
@@ -43,6 +49,10 @@ public class Submission extends BaseEntity {
     public void setContentUrl(String contentUrl) { this.contentUrl = contentUrl; }
     public UUID getFileId() { return fileId; }
     public void setFileId(UUID fileId) { this.fileId = fileId; }
+    public UUID getFeedbackFileId() { return feedbackFileId; }
+    public void setFeedbackFileId(UUID feedbackFileId) { this.feedbackFileId = feedbackFileId; }
+    public String getFeedbackLink() { return feedbackLink; }
+    public void setFeedbackLink(String feedbackLink) { this.feedbackLink = feedbackLink; }
     public SubmissionStatus getStatus() { return status; }
     public void setStatus(SubmissionStatus status) { this.status = status; }
     public Instant getSubmittedAt() { return submittedAt; }

@@ -12,6 +12,8 @@ import com.hoanobita.topikplatform.common.PageResponse;
 import com.hoanobita.topikplatform.common.PaginationUtil;
 import com.hoanobita.topikplatform.common.PermissionService;
 import com.hoanobita.topikplatform.common.SecurityUtils;
+import com.hoanobita.topikplatform.file.entity.StoredFile;
+import com.hoanobita.topikplatform.file.repository.FileRepository;
 import com.hoanobita.topikplatform.grading.repository.GradeRepository;
 import com.hoanobita.topikplatform.submission.dto.SubmissionRequest;
 import com.hoanobita.topikplatform.submission.dto.SubmissionResponse;
@@ -19,6 +21,7 @@ import com.hoanobita.topikplatform.submission.entity.Submission;
 import com.hoanobita.topikplatform.submission.repository.SubmissionRepository;
 import com.hoanobita.topikplatform.user.entity.User;
 import com.hoanobita.topikplatform.user.repository.UserRepository;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,16 +38,20 @@ public class SubmissionService {
     private final GradeRepository grades;
     private final KlassRepository klasses;
     private final UserRepository users;
+    private final FileRepository files;
+    private final com.hoanobita.topikplatform.file.FileService fileService;
     private final PermissionService permissions;
     private final SecurityUtils security;
     private final ActivityService activityService;
 
-    public SubmissionService(SubmissionRepository repo, AssignmentRepository assignments, GradeRepository grades, KlassRepository klasses, UserRepository users, PermissionService permissions, SecurityUtils security, ActivityService activityService) {
+    public SubmissionService(SubmissionRepository repo, AssignmentRepository assignments, GradeRepository grades, KlassRepository klasses, UserRepository users, FileRepository files, com.hoanobita.topikplatform.file.FileService fileService, PermissionService permissions, SecurityUtils security, ActivityService activityService) {
         this.repo = repo;
         this.assignments = assignments;
         this.grades = grades;
         this.klasses = klasses;
         this.users = users;
+        this.files = files;
+        this.fileService = fileService;
         this.permissions = permissions;
         this.security = security;
         this.activityService = activityService;
@@ -193,24 +200,91 @@ public class SubmissionService {
         var assignment = assignments.findById(s.getAssignmentId()).orElse(null);
         var klass = assignment != null ? klasses.findById(assignment.getClassId()).orElse(null) : null;
         var student = users.findById(s.getStudentId()).orElse(null);
-        
+
+        // Submission file metadata
+        StoredFile subFile = s.getFileId() != null ? files.findById(s.getFileId()).orElse(null) : null;
+        // Feedback file metadata
+        StoredFile fbFile = s.getFeedbackFileId() != null ? files.findById(s.getFeedbackFileId()).orElse(null) : null;
+
         return new SubmissionResponse(
-                s.getId(), 
-                s.getAssignmentId(), 
+                s.getId(),
+                s.getAssignmentId(),
                 assignment != null ? assignment.getTitle() : "Unknown Assignment",
                 klass != null ? klass.getName() : "Unknown Class",
-                s.getStudentId(), 
+                s.getStudentId(),
                 student != null ? student.getFullName() : "Unknown Student",
-                s.getContentText(), 
-                s.getContentUrl(), 
-                s.getFileId(), 
-                s.getStatus().name(), 
+                s.getContentText(),
+                s.getContentUrl(),
+                s.getFileId(),
+                s.getStatus().name(),
                 s.getSubmittedAt(),
                 grade == null ? null : grade.getId(),
-                grade == null ? null : grade.getScore(), 
+                grade == null ? null : grade.getScore(),
                 assignment != null ? assignment.getMaxScore() : null,
-                grade == null ? null : grade.getFeedback()
+                grade == null ? null : grade.getFeedback(),
+                // Submission file metadata
+                subFile != null ? subFile.getOriginalFileName() : null,
+                subFile != null ? subFile.getContentType() : null,
+                subFile != null ? subFile.getFileSize() : null,
+                // Feedback attachments
+                s.getFeedbackFileId(),
+                s.getFeedbackLink(),
+                fbFile != null ? fbFile.getOriginalFileName() : null,
+                fbFile != null ? fbFile.getContentType() : null,
+                fbFile != null ? fbFile.getFileSize() : null
         );
+    }
+
+    public Resource downloadSubmissionFile(UUID submissionId) {
+        Submission s = find(submissionId);
+        User user = security.currentUser();
+        Assignment a = assignment(s.getAssignmentId());
+        if (user.isStudent()) {
+            if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Cannot access another student's file");
+        } else {
+            permissions.requireManageClass(user, a.getClassId());
+        }
+        if (s.getFileId() == null) throw BusinessException.notFound("No file attached to this submission");
+        return fileService.download(s.getFileId());
+    }
+
+    public StoredFile getSubmissionFileMetadata(UUID submissionId) {
+        Submission s = find(submissionId);
+        User user = security.currentUser();
+        Assignment a = assignment(s.getAssignmentId());
+        if (user.isStudent()) {
+            if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Cannot access another student's file");
+        } else {
+            permissions.requireManageClass(user, a.getClassId());
+        }
+        if (s.getFileId() == null) throw BusinessException.notFound("No file attached to this submission");
+        return fileService.getById(s.getFileId());
+    }
+
+    public Resource downloadFeedbackFile(UUID submissionId) {
+        Submission s = find(submissionId);
+        User user = security.currentUser();
+        Assignment a = assignment(s.getAssignmentId());
+        if (user.isStudent()) {
+            if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Cannot access another student's feedback file");
+        } else {
+            permissions.requireManageClass(user, a.getClassId());
+        }
+        if (s.getFeedbackFileId() == null) throw BusinessException.notFound("No feedback file attached");
+        return fileService.download(s.getFeedbackFileId());
+    }
+
+    public StoredFile getFeedbackFileMetadata(UUID submissionId) {
+        Submission s = find(submissionId);
+        User user = security.currentUser();
+        Assignment a = assignment(s.getAssignmentId());
+        if (user.isStudent()) {
+            if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Cannot access another student's feedback file");
+        } else {
+            permissions.requireManageClass(user, a.getClassId());
+        }
+        if (s.getFeedbackFileId() == null) throw BusinessException.notFound("No feedback file attached");
+        return fileService.getById(s.getFeedbackFileId());
     }
 
     private boolean containsIgnoreCase(String value, String keyword) {
