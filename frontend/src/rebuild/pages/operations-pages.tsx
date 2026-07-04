@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, ExternalLink } from 'lucide-react'
+import { Download, ExternalLink, FileText, Link2, Upload } from 'lucide-react'
 import { api } from '../core/api'
 import { Button, Card, Input, TextArea } from '../layout/ui'
+import { EmptyState } from '../components/foundation'
 import { fmtDate } from './phase2-utils'
 import type { AssignmentItem, CalendarEvent, ClassItem, SubmissionItem } from '../core/types'
 
@@ -39,19 +40,21 @@ export function MaterialsPage() {
       )}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {(materials.data ?? []).map((item) => (
-          <Card key={item.id} className="rounded-3xl">
-            <div className="flex items-start justify-between gap-3">
-              <div>
+          <Card key={item.id} className="rounded-3xl transition hover:-translate-y-0.5 hover:shadow-lg">
+            <div className="flex items-start gap-3">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-indigo-50 text-indigo-600">{item.externalUrl ? <Link2 size={20} /> : <FileText size={20} />}</div>
+              <div className="min-w-0 flex-1">
                 <h2 className="font-bold text-slate-950">{item.title}</h2>
-                <p className="mt-1 text-sm text-slate-500">{item.description || 'Tài liệu học tập'}</p>
+                <p className="mt-1 line-clamp-2 text-sm text-slate-500">{item.description || 'Tài liệu học tập'}</p>
               </div>
-              <StatusPill>{item.visible ? 'Hiển thị' : 'Ẩn'}</StatusPill>
             </div>
-            {item.externalUrl && <a className="mt-4 block text-sm font-semibold text-indigo-600" href={item.externalUrl} target="_blank" rel="noreferrer">Mở liên kết</a>}
-            {item.fileId && <a className="mt-4 block text-sm font-semibold text-indigo-600" href={api.downloadFileUrl(item.fileId)}>Tải xuống</a>}
+            <div className="mt-4 flex flex-wrap gap-2">
+              {item.externalUrl && <a className="inline-flex min-h-10 items-center gap-1 rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700 transition hover:bg-sky-50" href={item.externalUrl} target="_blank" rel="noreferrer"><ExternalLink size={14} />Mở liên kết</a>}
+              {item.fileId && <a className="inline-flex min-h-10 items-center gap-1 rounded-2xl bg-indigo-600 px-4 text-sm font-bold text-white transition hover:bg-indigo-700" href={api.downloadFileUrl(item.fileId)}><Download size={14} />Tải xuống</a>}
+            </div>
           </Card>
         ))}
-        {classId && !materials.isLoading && (materials.data ?? []).length === 0 && <Card>Chưa có tài liệu cho lớp này.</Card>}
+        {classId && !materials.isLoading && (materials.data ?? []).length === 0 && <EmptyState title="Chưa có tài liệu" description="Tài liệu học tập sẽ xuất hiện tại đây khi giáo viên tải lên." />}
       </div>
     </div>
   )
@@ -193,10 +196,19 @@ export function ProfilePage() {
   return (
     <div className="space-y-5">
       <SectionHeader title="Hồ sơ cá nhân" eyebrow="Hồ sơ" description="Cập nhật thông tin cá nhân và bảo mật tài khoản." />
-      <Card className="max-w-2xl space-y-3 rounded-3xl">
-        <Input placeholder={me.data?.fullName || 'Họ tên'} value={fullName} onChange={(e) => setFullName(e.target.value)} />
-        <Input placeholder={me.data?.phone || 'Số điện thoại'} value={phone} onChange={(e) => setPhone(e.target.value)} />
-        <Button onClick={() => update.mutate()} disabled={update.isPending}>Lưu hồ sơ</Button>
+      <Card className="max-w-2xl rounded-3xl">
+        <div className="flex items-center gap-4">
+          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-sky-400 text-2xl font-black text-white">{(me.data?.fullName || 'U')[0].toUpperCase()}</div>
+          <div>
+            <h2 className="text-lg font-black text-slate-950">{me.data?.fullName || 'Học viên'}</h2>
+            <p className="text-sm text-slate-500">{me.data?.email || me.data?.phone || 'Chưa cập nhật'}</p>
+          </div>
+        </div>
+        <div className="mt-6 space-y-3">
+          <Input placeholder={me.data?.fullName || 'Họ tên'} value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          <Input placeholder={me.data?.phone || 'Số điện thoại'} value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <Button className="min-h-11" onClick={() => update.mutate()} disabled={update.isPending}>{update.isPending ? 'Đang lưu...' : 'Lưu hồ sơ'}</Button>
+        </div>
       </Card>
     </div>
   )
@@ -213,13 +225,13 @@ export function StudentAssignmentSubmitPage() {
   return (
     <div className="space-y-5">
       <SectionHeader title="Nộp bài" eyebrow="Nộp bài" description="Chọn bài tập đang mở và gửi nội dung bài làm." />
-      <Card className="max-w-3xl space-y-3 rounded-3xl">
+      <Card className="max-w-3xl rounded-3xl">
         <select className="w-full rounded-xl border border-sky-100 bg-white px-3 py-2 text-sm" value={assignmentId} onChange={(e) => setAssignmentId(e.target.value)}>
           <option value="">Chọn bài tập</option>
           {(assignments.data ?? []).map((item: AssignmentItem) => <option key={item.id} value={item.id}>{item.title}</option>)}
         </select>
         {selected && (
-          <div className="rounded-2xl bg-sky-50 p-4 space-y-2">
+          <div className="mt-3 rounded-2xl border border-sky-100 bg-sky-50/50 p-4 space-y-2">
             <h2 className="font-black text-slate-950">{selected.title}</h2>
             <p className="text-sm leading-6 text-slate-600">{selected.description || selected.instruction || 'Chưa có hướng dẫn chi tiết.'}</p>
             <div className="flex flex-wrap gap-2 text-xs font-bold text-slate-600">
@@ -227,13 +239,17 @@ export function StudentAssignmentSubmitPage() {
               <span className="rounded-full bg-white px-3 py-1">Điểm tối đa: {selected.maxScore}</span>
               {selected.skill && <span className="rounded-xl bg-violet-50 px-2 py-0.5 text-violet-700">{selected.skill}</span>}
             </div>
-            {selected.externalLink && <a className="inline-flex items-center gap-1 text-sm font-bold text-indigo-600" href={selected.externalLink} target="_blank" rel="noreferrer"><ExternalLink size={14} />Tài liệu tham khảo</a>}
-            {selected.fileId && <a className="inline-flex items-center gap-1 text-sm font-bold text-indigo-600" href={api.downloadFileUrl(selected.fileId)}><Download size={14} />Tải tệp đính kèm</a>}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {selected.externalLink && <a className="inline-flex min-h-10 items-center gap-1 rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700 transition hover:bg-sky-50" href={selected.externalLink} target="_blank" rel="noreferrer"><ExternalLink size={14} />Tài liệu tham khảo</a>}
+              {selected.fileId && <a className="inline-flex min-h-10 items-center gap-1 rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700 transition hover:bg-sky-50" href={api.downloadFileUrl(selected.fileId)}><Download size={14} />Tải tệp đính kèm</a>}
+            </div>
           </div>
         )}
-        <TextArea rows={6} placeholder="Nội dung bài làm" value={contentText} onChange={(e) => setContentText(e.target.value)} />
-        <Input placeholder="URL bài làm ngoài (nếu có)" value={contentUrl} onChange={(e) => setContentUrl(e.target.value)} />
-        <Button disabled={!assignmentId || (!contentText.trim() && !contentUrl.trim()) || submit.isPending} onClick={() => submit.mutate()}>Gửi bài</Button>
+        <div className="mt-4 space-y-3">
+          <TextArea rows={6} placeholder="Nội dung bài làm" value={contentText} onChange={(e) => setContentText(e.target.value)} />
+          <Input placeholder="URL bài làm ngoài (nếu có)" value={contentUrl} onChange={(e) => setContentUrl(e.target.value)} />
+          <Button className="min-h-11 w-full" disabled={!assignmentId || (!contentText.trim() && !contentUrl.trim()) || submit.isPending} onClick={() => submit.mutate()}><Upload size={16} />{submit.isPending ? 'Đang gửi...' : 'Gửi bài'}</Button>
+        </div>
       </Card>
     </div>
   )

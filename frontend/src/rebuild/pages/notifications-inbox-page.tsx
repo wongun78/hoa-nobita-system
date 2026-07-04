@@ -4,7 +4,7 @@ import { Bell, CheckCheck, ChevronRight, Megaphone, Plus, Send } from 'lucide-re
 import { useNavigate } from 'react-router-dom'
 import { useNewAuth } from '../auth/use-auth'
 import { api } from '../core/api'
-import { EmptyState, ErrorState, FilterBar, MetricCard, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
+import { EmptyState, ErrorState, FilterBar, MetricCard, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { Button, Card, FieldLabel, Input, TextArea } from '../layout/ui'
 import { asPage, fmtDate } from './phase2-utils'
 import type { ClassItem, NotificationItem, PageResponse, TargetType, UserItem } from '../core/types'
@@ -202,12 +202,16 @@ export function NotificationsInboxPage() {
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <PageHeader
-        eyebrow="Thông báo"
-        title="Hộp thông báo"
-        description="Theo dõi thông báo theo quyền truy cập của từng vai trò và đánh dấu đã đọc đồng bộ với chuông thông báo."
-        actions={canManage && <Button type="button" className="min-h-11" onClick={() => setComposerOpen(true)}><Plus size={16} />Tạo thông báo</Button>}
-      />
+      <div className="relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
+        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight md:text-3xl">Hộp thông báo</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">Theo dõi thông báo theo quyền truy cập của từng vai trò và đánh dấu đã đọc đồng bộ với chuông thông báo.</p>
+          </div>
+          {canManage && <Button type="button" className="min-h-11 bg-white/20 text-white backdrop-blur hover:bg-white/30" onClick={() => setComposerOpen(true)}><Plus size={16} />Tạo thông báo</Button>}
+        </div>
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <MetricCard label="Chưa đọc" value={unread.data?.count ?? 0} hint="Đồng bộ với notification bell" icon={<Bell size={20} />} tone="indigo" />

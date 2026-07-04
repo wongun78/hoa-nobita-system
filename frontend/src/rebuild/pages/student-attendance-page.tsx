@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { CalendarCheck2, CheckCircle2, Clock3, XCircle } from 'lucide-react'
 import { api } from '../core/api'
-import { EmptyState, ErrorState, MetricCard, PageHeader, SkeletonCard, StatusBadge } from '../components/foundation'
+import { EmptyState, ErrorState, MetricCard, SkeletonCard, StatusBadge } from '../components/foundation'
 import { Card } from '../layout/ui'
 import { fmtDate } from './phase2-utils'
 import type { AttendanceItem, AttendanceStatus } from '../core/types'
@@ -67,7 +67,13 @@ export function StudentAttendancePage() {
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <PageHeader eyebrow="Chuyên cần" title="Điểm danh của tôi" description="Theo dõi tỷ lệ tham gia lớp học và lịch sử điểm danh cá nhân từ tài khoản hiện tại." />
+      <div className="relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
+        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative">
+          <h1 className="text-2xl font-black tracking-tight md:text-3xl">Điểm danh của tôi</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">Theo dõi tỷ lệ tham gia lớp học và lịch sử điểm danh cá nhân từ tài khoản hiện tại.</p>
+        </div>
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Tỷ lệ tham gia" value={rate == null ? '-' : `${rate}%`} hint="Có mặt + đi muộn / tổng buổi" icon={<CalendarCheck2 size={20} />} tone="emerald" />

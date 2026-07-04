@@ -1,15 +1,31 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { Download, ExternalLink, FileText, MessageSquareText, Search } from 'lucide-react'
+import { Download, ExternalLink, FileText, MessageSquareText } from 'lucide-react'
 import { api } from '../core/api'
-import { EmptyState, ErrorState, FilterBar, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
+import { EmptyState, ErrorState, FilterBar, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { Button, Card } from '../layout/ui'
 import { asPage, fmtDate } from './phase2-utils'
 import type { SubmissionItem, SubmissionStatus } from '../core/types'
 
 const statusOptions: Array<'ALL' | SubmissionStatus> = ['ALL', 'SUBMITTED', 'LATE', 'GRADED', 'RESUBMIT_REQUESTED']
 const statusFilterLabel: Record<string, string> = { ALL: 'Tất cả', SUBMITTED: 'Đã nộp', LATE: 'Nộp trễ', GRADED: 'Đã chấm', RESUBMIT_REQUESTED: 'Yêu cầu nộp lại' }
+
+function scoreTone(score: number, maxScore?: number | null) {
+  if (!maxScore) return 'bg-slate-50 text-slate-700'
+  const pct = (score / maxScore) * 100
+  if (pct >= 80) return 'bg-emerald-50 text-emerald-700'
+  if (pct >= 60) return 'bg-amber-50 text-amber-700'
+  return 'bg-rose-50 text-rose-700'
+}
+
+function scoreTextTone(score: number, maxScore?: number | null) {
+  if (!maxScore) return 'text-slate-950'
+  const pct = (score / maxScore) * 100
+  if (pct >= 80) return 'text-emerald-600'
+  if (pct >= 60) return 'text-amber-600'
+  return 'text-rose-600'
+}
 
 function SubmissionCard({ item }: Readonly<{ item: SubmissionItem }>) {
   return (
@@ -22,7 +38,7 @@ function SubmissionCard({ item }: Readonly<{ item: SubmissionItem }>) {
             {item.contentText && <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-600">{item.contentText}</p>}
           </div>
           <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
-            <div className="rounded-2xl bg-slate-50 px-3 py-2 text-sm font-black text-slate-700">{item.score == null ? 'Chưa chấm' : `${item.score}/${item.maxScore ?? '-'}`}</div>
+            <div className={`rounded-2xl px-3 py-2 text-sm font-black ${item.score == null ? 'bg-slate-50 text-slate-700' : scoreTone(Number(item.score), item.maxScore)}`}>{item.score == null ? 'Chưa chấm' : `${item.score}/${item.maxScore ?? '-'}`}</div>
             {item.feedback && <span className="inline-flex min-h-8 items-center gap-1 rounded-full bg-emerald-50 px-3 text-xs font-bold text-emerald-700"><MessageSquareText size={14} /> Có phản hồi</span>}
           </div>
         </div>
@@ -40,7 +56,16 @@ function StudentSubmissionDetail({ submissionId }: Readonly<{ submissionId: stri
   const item = query.data
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <PageHeader eyebrow="Bài nộp" title={item.assignmentTitle} description={`${item.className} · Nộp lúc ${fmtDate(item.submittedAt)}`} actions={<StatusBadge value={item.status} />} />
+      <div className="relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
+        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative">
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge value={item.status} />
+          </div>
+          <h1 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">{item.assignmentTitle}</h1>
+          <p className="mt-2 text-sm text-white/80">{item.className} · Nộp lúc {fmtDate(item.submittedAt)}</p>
+        </div>
+      </div>
       <div className="grid gap-4 xl:grid-cols-[1fr_380px]">
         <Card className="rounded-3xl">
           <h2 className="text-lg font-black text-slate-950">Nội dung bài làm</h2>
@@ -63,7 +88,7 @@ function StudentSubmissionDetail({ submissionId }: Readonly<{ submissionId: stri
         </Card>
         <Card className="rounded-3xl bg-gradient-to-br from-white to-emerald-50/60">
           <h2 className="text-lg font-black text-slate-950">Điểm & phản hồi</h2>
-          <div className="mt-5 text-5xl font-black text-slate-950">{item.score == null ? '-' : item.score}</div>
+          <div className={`mt-5 text-5xl font-black ${item.score != null ? scoreTextTone(Number(item.score), item.maxScore) : 'text-slate-950'}`}>{item.score == null ? '-' : item.score}</div>
           <p className="mt-1 text-sm text-slate-500">/ {item.maxScore ?? 'điểm tối đa'}</p>
           {item.feedback ? <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm leading-7 text-emerald-800">{item.feedback}</div> : <p className="mt-5 text-sm text-slate-500">Giáo viên chưa để lại nhận xét.</p>}
         </Card>
@@ -93,7 +118,13 @@ export function StudentSubmissionsPage() {
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <PageHeader eyebrow="Bài nộp" title="Bài nộp của tôi" description="Theo dõi toàn bộ bài đã nộp, trạng thái chấm điểm và phản hồi từ giáo viên." />
+      <div className="relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
+        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative">
+          <h1 className="text-2xl font-black tracking-tight md:text-3xl">Bài nộp của tôi</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">Theo dõi toàn bộ bài đã nộp, trạng thái chấm điểm và phản hồi từ giáo viên.</p>
+        </div>
+      </div>
       <FilterBar>
         <div className="min-w-0 flex-1"><SearchInput value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm bài nộp, lớp, phản hồi..." aria-label="Tìm bài nộp" /></div>
         <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0">
@@ -102,7 +133,6 @@ export function StudentSubmissionsPage() {
       </FilterBar>
       {filteredItems.length ? <div className="space-y-3">{filteredItems.map((item) => <SubmissionCard key={item.id} item={item} />)}</div> : <EmptyState title="Chưa có bài nộp phù hợp" description="Thử đổi bộ lọc hoặc quay lại sau khi bạn nộp bài." action={<FileText className="mx-auto text-indigo-400" />} />}
       <PaginationControls page={pageData.page} totalPages={pageData.totalPages} onPageChange={setPage} />
-      <div className="rounded-3xl border border-white/70 bg-gradient-to-r from-sky-50 to-pink-50 p-4 text-sm text-slate-600"><Search className="mr-2 inline text-indigo-500" size={16} />Mẹo: dùng bộ lọc trạng thái để tìm nhanh bài cần nộp lại hoặc bài đã chấm.</div>
     </div>
   )
 }

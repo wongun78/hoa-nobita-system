@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { BookOpenCheck, CalendarDays, Clock3, GraduationCap, Grid3X3, ListChecks, Rows3 } from 'lucide-react'
 import { api } from '../core/api'
-import { EmptyState, ErrorState, FilterBar, MetricCard, PageHeader, SkeletonCard, StatusBadge } from '../components/foundation'
+import { EmptyState, ErrorState, FilterBar, MetricCard, SkeletonCard, StatusBadge } from '../components/foundation'
 import { Button, Card } from '../layout/ui'
 import { useNewAuth } from '../auth/use-auth'
 import type { CalendarEvent, ClassItem, RoleName } from '../core/types'
@@ -224,11 +224,14 @@ export function CalendarPage() {
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <PageHeader
-        eyebrow="Lịch học"
-        title="Lịch học"
-        description="Lịch 90 ngày tới, hiển thị buổi học và hạn nộp bài theo các lớp bạn đang tham gia."
-      />
+      <div className="relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
+        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="absolute -left-6 bottom-0 h-28 w-28 rounded-full bg-white/10 blur-xl" />
+        <div className="relative">
+          <h1 className="text-2xl font-black tracking-tight md:text-3xl">Lịch học</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">Lịch 90 ngày tới, hiển thị buổi học và hạn nộp bài theo các lớp bạn đang tham gia.</p>
+        </div>
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Tổng sự kiện" value={events.length} hint={`${from} → ${to}`} icon={<CalendarDays size={20} />} tone="indigo" />

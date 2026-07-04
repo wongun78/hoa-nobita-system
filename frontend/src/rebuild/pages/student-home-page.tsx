@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Bell, BookOpen, CalendarDays, CheckCircle2, Clock3, GraduationCap, Sparkles, TrendingUp } from 'lucide-react'
 import { api } from '../core/api'
-import { EmptyState, ErrorState, MetricCard, PageHeader, SkeletonCard, StatusBadge } from '../components/foundation'
+import { EmptyState, ErrorState, MetricCard, SkeletonCard, StatusBadge } from '../components/foundation'
 import { Card } from '../layout/ui'
 import { fmtDate } from './phase2-utils'
 import { useNewAuth } from '../auth/use-auth'
@@ -62,12 +62,17 @@ export function StudentHomePage() {
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <PageHeader
-        eyebrow="Học tập hôm nay"
-        title={`Hôm nay bạn học gì${user?.fullName ? `, ${user.fullName.split(' ').slice(-1).join('')}` : ''}?`}
-        description="Một góc học tập nhẹ nhàng để theo dõi lớp TOPIK, deadline, điểm số và thông báo mới."
-        actions={<div className="rounded-full bg-gradient-to-r from-indigo-500 to-pink-400 px-4 py-2 text-sm font-black text-white shadow-sm"><Sparkles size={16} className="mr-1 inline" /> TOPIK Journey</div>}
-      />
+      <div className="relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
+        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="absolute -left-6 bottom-0 h-28 w-28 rounded-full bg-white/10 blur-xl" />
+        <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-xs font-bold backdrop-blur"><Sparkles size={14} /> TOPIK Journey</span>
+            <h1 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">Hôm nay bạn học gì{user?.fullName ? `, ${user.fullName.split(' ').slice(-1).join('')}` : ''}?</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">Một góc học tập nhẹ nhàng để theo dõi lớp TOPIK, deadline, điểm số và thông báo mới.</p>
+          </div>
+        </div>
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Lớp đang học" value={dashboard.data?.joinedClassCount ?? 0} hint="Lớp bạn đã tham gia" icon={<BookOpen size={20} />} tone="indigo" />
@@ -99,6 +104,7 @@ export function StudentHomePage() {
             ))}
             {!upcoming.length && <EmptyState title="Không có deadline gần" description="Hộp việc tuần này đang nhẹ nhàng — hãy ôn lại bài cũ nhé." />}
           </div>
+          <a href="/student/assignments" className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-indigo-600 transition hover:gap-2">Xem tất cả <span className="transition hover:translate-x-1">→</span></a>
         </Card>
 
         <Card className="rounded-3xl">
@@ -118,6 +124,7 @@ export function StudentHomePage() {
             ))}
             {!overdue.length && <EmptyState title="Không có bài quá hạn" description="Rất tốt — bạn đang giữ tiến độ ổn định." />}
           </div>
+          <a href="/student/assignments" className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-rose-600 transition hover:gap-2">Xem tất cả <span className="transition hover:translate-x-1">→</span></a>
         </Card>
       </div>
 
@@ -135,6 +142,7 @@ export function StudentHomePage() {
             ))}
             {!recentGrades.length && <EmptyState title="Chưa có điểm mới" description="Điểm và phản hồi sẽ xuất hiện sau khi giáo viên chấm bài." />}
           </div>
+          <a href="/student/grades" className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-emerald-600 transition hover:gap-2">Xem tất cả <span className="transition hover:translate-x-1">→</span></a>
         </Card>
 
         <Card className="rounded-3xl">
@@ -148,6 +156,7 @@ export function StudentHomePage() {
             ))}
             {!notificationItems.length && <EmptyState title="Hộp thư yên tĩnh" description="Không có thông báo mới trong lúc này." />}
           </div>
+          <a href="/student/notifications" className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-indigo-600 transition hover:gap-2">Xem tất cả <span className="transition hover:translate-x-1">→</span></a>
         </Card>
 
         <Card className="rounded-3xl bg-gradient-to-br from-emerald-50 via-white to-sky-50">
