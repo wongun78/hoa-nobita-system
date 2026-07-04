@@ -225,7 +225,7 @@ export function CalendarPage() {
   return (
     <div className="space-y-5 pb-20 md:pb-0">
       <PageHeader
-        eyebrow="학습 캘린더"
+        eyebrow="Lịch học"
         title="Lịch học"
         description="Agenda 90 ngày tới, lấy từ backend Calendar API: buổi học + hạn nộp bài theo quyền truy cập lớp của từng role."
       />

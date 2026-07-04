@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { Bell, BookOpen, CalendarCheck2, ClipboardList, Download, FileText, GraduationCap, LayoutDashboard, MessageSquareText } from 'lucide-react'
+import { Bell, BookOpen, CalendarCheck2, ClipboardList, Download, ExternalLink, FileText, GraduationCap, LayoutDashboard, MessageSquareText } from 'lucide-react'
 import { api } from '../core/api'
 import { EmptyState, ErrorState, MetricCard, PageHeader, SkeletonCard, StatusBadge } from '../components/foundation'
 import { Button, Card } from '../layout/ui'
@@ -144,7 +144,7 @@ export function StudentClassDetailPage() {
       {activeTab === 'materials' && <MaterialsTab items={visibleMaterials} />}
       {activeTab === 'assignments' && <AssignmentsTab items={assignmentItems} submissions={submissionItems} />}
       {activeTab === 'submissions' && <SubmissionsTab items={submissionStats.related} />}
-      {activeTab === 'attendance' && <AttendanceTab items={classAttendance} rate={rate} />}
+      {activeTab === 'attendance' && <AttendanceTab items={classAttendance} lessons={lessonItems} rate={rate} />}
       {activeTab === 'notifications' && <NotificationsTab items={notificationItems} />}
     </div>
   )
@@ -202,7 +202,13 @@ function AssignmentsTab({ items, submissions }: Readonly<{ items: AssignmentItem
           <a key={item.id} href={`/student/assignments/${item.id}`} className="block rounded-3xl focus:outline-none focus:ring-4 focus:ring-indigo-100">
             <Card className={`rounded-3xl transition hover:-translate-y-0.5 hover:shadow-lg ${late ? 'border-rose-100 bg-rose-50/50' : ''}`}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0"><h2 className="font-black text-slate-950">{item.title}</h2><p className="mt-1 text-sm text-slate-500">Hạn: {fmtDate(item.dueAt)} · Điểm tối đa {item.maxScore}</p></div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="font-black text-slate-950">{item.title}</h2>
+                    {item.skill && <span className="rounded-xl bg-violet-50 px-2 py-0.5 text-xs font-bold text-violet-700">{item.skill}</span>}
+                  </div>
+                  <p className="mt-1 text-sm text-slate-500">Hạn: {fmtDate(item.dueAt)} · Điểm tối đa {item.maxScore}</p>
+                </div>
                 <div className="flex flex-wrap gap-2"><StatusBadge value={item.status} /><StatusBadge value={submission?.status ?? (late ? 'LATE' : 'CHƯA NỘP')} /></div>
               </div>
             </Card>
@@ -226,6 +232,12 @@ function SubmissionsTab({ items }: Readonly<{ items: SubmissionItem[] }>) {
             </div>
             {item.score != null && <div className="mt-3 text-sm font-black text-emerald-600">Điểm: {item.score}/{item.maxScore ?? '-'}</div>}
             {item.feedback && <div className="mt-2 rounded-2xl bg-slate-50 p-3 text-sm leading-6 text-slate-600">{item.feedback}</div>}
+            {(item.feedbackFileId || item.feedbackLink) && (
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-bold">
+                {item.feedbackFileId && <span className="inline-flex min-h-7 items-center gap-1 rounded-full bg-indigo-50 px-2.5 text-indigo-600"><Download size={12} /> Tệp phản hồi</span>}
+                {item.feedbackLink && <span className="inline-flex min-h-7 items-center gap-1 rounded-full bg-indigo-50 px-2.5 text-indigo-600"><ExternalLink size={12} /> Liên kết phản hồi</span>}
+              </div>
+            )}
           </Card>
         </a>
       ))}
@@ -233,18 +245,27 @@ function SubmissionsTab({ items }: Readonly<{ items: SubmissionItem[] }>) {
   )
 }
 
-function AttendanceTab({ items, rate }: Readonly<{ items: AttendanceItem[]; rate: number | null }>) {
+function AttendanceTab({ items, lessons, rate }: Readonly<{ items: AttendanceItem[]; lessons: LessonItem[]; rate: number | null }>) {
   if (!items.length) return <EmptyState title="Chưa có dữ liệu điểm danh" description="Lịch sử chuyên cần của bạn trong lớp sẽ xuất hiện sau buổi học." />
   return (
     <div className="space-y-4">
       <MetricCard label="Tỷ lệ chuyên cần" value={rate == null ? '-' : `${rate}%`} hint="Có mặt + đi muộn" icon={<CalendarCheck2 size={20} />} tone="emerald" />
       <div className="space-y-3">
-        {items.map((item) => (
-          <Card key={item.id} className="rounded-3xl">
-            <div className="flex items-center justify-between gap-3"><div><div className="font-bold text-slate-950">Buổi học</div><div className="text-xs text-slate-500">{fmtDate(item.createdAt)}</div></div><StatusBadge value={item.status} /></div>
-            {item.note && <p className="mt-2 text-sm text-slate-500">{item.note}</p>}
-          </Card>
-        ))}
+        {items.map((item) => {
+          const lesson = item.lessonId ? lessons.find((l) => l.id === item.lessonId) : null
+          return (
+            <Card key={item.id} className="rounded-3xl">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="font-bold text-slate-950">{lesson ? lesson.title : 'Buổi học'}</div>
+                  <div className="text-xs text-slate-500">{fmtDate(lesson?.lessonDate ?? item.createdAt)}</div>
+                </div>
+                <StatusBadge value={item.status} />
+              </div>
+              {item.note && <p className="mt-2 text-sm text-slate-500">{item.note}</p>}
+            </Card>
+          )
+        })}
       </div>
     </div>
   )

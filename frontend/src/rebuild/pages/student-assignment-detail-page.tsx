@@ -165,6 +165,9 @@ export function StudentAssignmentDetailPage() {
             <h2 className="mt-4 text-lg font-black text-slate-950">Yêu cầu bài tập</h2>
             <p className="mt-2 whitespace-pre-line text-sm leading-7 text-slate-600">{assignment.data.instruction || assignment.data.description || 'Giáo viên chưa thêm hướng dẫn chi tiết.'}</p>
             <div className="mt-4 text-sm font-bold text-slate-700">Điểm tối đa: {assignment.data.maxScore}</div>
+            {assignment.data.skill && <div className="mt-2"><span className="rounded-xl bg-violet-50 px-2 py-0.5 text-xs font-bold text-violet-700">{assignment.data.skill}</span></div>}
+            {assignment.data.externalLink && <a className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700 transition hover:bg-sky-50" href={assignment.data.externalLink} target="_blank" rel="noreferrer"><ExternalLink size={14} />Tài liệu tham khảo</a>}
+            {assignment.data.fileId && <Button type="button" variant="secondary" className="mt-3 min-h-11" onClick={() => api.downloadFile(assignment.data.fileId!, assignment.data.title)}><Download size={16} />Tải tệp đính kèm</Button>}
           </Card>
 
           <SubmissionSummary assignment={assignment.data} submission={mySubmission} />

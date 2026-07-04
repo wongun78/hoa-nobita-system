@@ -26,7 +26,7 @@ export function MaterialsPage() {
 
   return (
     <div className="space-y-5">
-      <SectionHeader title="Thư viện tài liệu" eyebrow="한글 자료실" description="Quản lý tài liệu lớp học, tệp đính kèm và liên kết ngoài theo API Materials + Files." />
+      <SectionHeader title="Thư viện tài liệu" eyebrow="Thư viện tài liệu" description="Quản lý tài liệu lớp học, tệp đính kèm và liên kết ngoài theo API Materials + Files." />
       <Card className="grid gap-3 md:grid-cols-[1fr_auto]">
         <select className="rounded-xl border border-sky-100 bg-white px-3 py-2 text-sm" value={classId} onChange={(e) => setClassId(e.target.value)}>
           <option value="">Chọn lớp học</option>
@@ -192,7 +192,7 @@ export function ProfilePage() {
 
   return (
     <div className="space-y-5">
-      <SectionHeader title="Hồ sơ cá nhân" eyebrow="프로필" description="Cập nhật thông tin cá nhân và bảo mật tài khoản." />
+      <SectionHeader title="Hồ sơ cá nhân" eyebrow="Hồ sơ" description="Cập nhật thông tin cá nhân và bảo mật tài khoản." />
       <Card className="max-w-2xl space-y-3 rounded-3xl">
         <Input placeholder={me.data?.fullName || 'Họ tên'} value={fullName} onChange={(e) => setFullName(e.target.value)} />
         <Input placeholder={me.data?.phone || 'Số điện thoại'} value={phone} onChange={(e) => setPhone(e.target.value)} />
@@ -210,7 +210,7 @@ export function StudentAssignmentSubmitPage() {
 
   return (
     <div className="space-y-5">
-      <SectionHeader title="Nộp bài" eyebrow="과제 제출" description="Chọn bài tập đang mở và gửi nội dung bài làm." />
+      <SectionHeader title="Nộp bài" eyebrow="Nộp bài" description="Chọn bài tập đang mở và gửi nội dung bài làm." />
       <Card className="max-w-3xl space-y-3 rounded-3xl">
         <select className="w-full rounded-xl border border-sky-100 bg-white px-3 py-2 text-sm" value={assignmentId} onChange={(e) => setAssignmentId(e.target.value)}>
           <option value="">Chọn bài tập</option>

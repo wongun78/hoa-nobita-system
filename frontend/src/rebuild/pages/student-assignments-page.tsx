@@ -58,6 +58,7 @@ function AssignmentCard({ item, submission }: Readonly<{ item: AssignmentItem; s
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="line-clamp-2 text-lg font-black text-slate-950">{item.title}</h2>
               <StatusBadge value={item.status} />
+              {item.skill && <span className="rounded-xl bg-violet-50 px-2 py-0.5 text-xs font-bold text-violet-700">{item.skill}</span>}
             </div>
             <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">{item.description || item.instruction || 'Bài luyện TOPIK'}</p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-slate-600">

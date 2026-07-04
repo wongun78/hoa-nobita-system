@@ -203,7 +203,7 @@ export function NotificationsInboxPage() {
   return (
     <div className="space-y-5 pb-20 md:pb-0">
       <PageHeader
-        eyebrow="알림"
+        eyebrow="Thông báo"
         title="Hộp thông báo"
         description="Theo dõi thông báo theo quyền truy cập của từng vai trò và đánh dấu đã đọc đồng bộ với chuông thông báo."
         actions={canManage && <Button type="button" className="min-h-11" onClick={() => setComposerOpen(true)}><Plus size={16} />Tạo thông báo</Button>}
