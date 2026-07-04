@@ -227,13 +227,13 @@ export function CalendarPage() {
       <PageHeader
         eyebrow="Lịch học"
         title="Lịch học"
-        description="Agenda 90 ngày tới, lấy từ backend Calendar API: buổi học + hạn nộp bài theo quyền truy cập lớp của từng role."
+        description="Lịch 90 ngày tới, hiển thị buổi học và hạn nộp bài theo các lớp bạn đang tham gia."
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Tổng sự kiện" value={events.length} hint={`${from} → ${to}`} icon={<CalendarDays size={20} />} tone="indigo" />
-        <MetricCard label="Buổi học" value={lessonCount} hint="LESSON" icon={<GraduationCap size={20} />} tone="sky" />
-        <MetricCard label="Hạn bài tập" value={assignmentCount} hint="ASSIGNMENT_DEADLINE" icon={<BookOpenCheck size={20} />} tone="amber" />
+        <MetricCard label="Buổi học" value={lessonCount} hint="Lịch học trên lớp" icon={<GraduationCap size={20} />} tone="sky" />
+        <MetricCard label="Hạn bài tập" value={assignmentCount} hint="Bài tập đến hạn" icon={<BookOpenCheck size={20} />} tone="amber" />
         <MetricCard label="Sắp tới" value={nextEvent ? compactDateFormatter.format(nextEvent.startsAt) : '-'} hint={nextEvent?.title ?? 'Không có lịch'} icon={<ListChecks size={20} />} tone="emerald" />
       </div>
 
