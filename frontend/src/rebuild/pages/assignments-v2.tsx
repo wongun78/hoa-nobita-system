@@ -207,7 +207,7 @@ export function AssignmentsV2Page() {
   const optimisticStatus = async (id: string, newStatus: string) => {
     await qc.cancelQueries({ queryKey: assignmentsQueryKey })
     const previous = qc.getQueryData(assignmentsQueryKey)
-    qc.setQueryData(assignmentsQueryKey, (old) => patchItemInPage(old, id, { status: newStatus as AssignmentItem['status'] }))
+    qc.setQueryData(assignmentsQueryKey, (old: PageResponse<AssignmentItem> | AssignmentItem[] | undefined) => patchItemInPage(old, id, { status: newStatus as AssignmentItem['status'] }))
     return { previous }
   }
 
@@ -236,7 +236,7 @@ export function AssignmentsV2Page() {
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: assignmentsQueryKey })
       const previous = qc.getQueryData(assignmentsQueryKey)
-      qc.setQueryData(assignmentsQueryKey, (old) => {
+      qc.setQueryData(assignmentsQueryKey, (old: PageResponse<AssignmentItem> | AssignmentItem[] | undefined) => {
         if (!old) return old
         if (Array.isArray(old)) return old.filter((item) => item.id !== selectedId)
         return { ...old, items: old.items.filter((item) => item.id !== selectedId), totalItems: Math.max(old.totalItems - 1, 0) }

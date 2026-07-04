@@ -189,7 +189,7 @@ export function TeacherDashboardPage() {
           renderSubtitle={(item) => {
             const actor = textValue(item.actorName, '')
             const target = textValue(item.targetName, '')
-            const time = relativeTime(textValue(item.createdAt, null))
+            const time = relativeTime(textValue(item.createdAt, undefined))
             return [actor, target].filter(Boolean).join(' · ') + (time ? ` · ${time}` : '')
           }}
         /></div>

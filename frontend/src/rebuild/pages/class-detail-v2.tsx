@@ -13,10 +13,9 @@ import { asPage, fmtDate, numberValue } from './phase2-utils'
 const tabs = ['Tổng quan', 'Học viên', 'Buổi học', 'Tài liệu', 'Bài tập', 'Bài nộp', 'Điểm danh', 'Hoạt động', 'Thông báo'] as const
 type TabName = typeof tabs[number]
 
-function formatLessonLabel(item: LessonItem, className?: string): string {
+function formatLessonLabel(item: LessonItem, _className?: string): string {
   const datePart = item.lessonDate ? `Buổi học ${new Date(item.lessonDate + 'T00:00:00').toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}` : ''
   const titlePart = item.title || ''
-  const classPart = className ?? ''
   if (datePart && titlePart && titlePart !== datePart) return `${datePart} - ${titlePart}`
   if (datePart) return datePart
   if (titlePart) return titlePart
@@ -150,7 +149,7 @@ export function ClassDetailV2Page() {
   }
 
   const createLessonMutation = useMutation({
-    mutationFn: () => api.createLesson(classId, { title: lessonForm.title || undefined, description: lessonForm.description || undefined, lessonDate: lessonForm.lessonDate || undefined, orderIndex: lessonForm.orderIndex, status: lessonForm.status }),
+    mutationFn: () => api.createLesson(classId, { title: lessonForm.title, description: lessonForm.description || undefined, lessonDate: lessonForm.lessonDate || undefined, orderIndex: lessonForm.orderIndex, status: lessonForm.status }),
     onSuccess: async () => { await invalidateLessons(); setLessonDialogOpen(false) },
   })
 

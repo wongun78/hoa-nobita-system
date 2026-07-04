@@ -50,7 +50,7 @@ export function ClassesPage() {
   const openEdit = (item: ClassItem) => { setEditItem(item); setEditName(item.name); setEditCode(item.code); setEditDesc(item.description ?? ''); setEditStatus(item.status as ClassStatus); setEditErrors({}); setEditOpen(true) }
   const editClass = useMutation({
     mutationFn: async () => {
-      if (!editItem) return
+      if (!editItem) throw new Error('Chưa chọn lớp để chỉnh sửa')
       if (!editName.trim()) { setEditErrors({ name: 'Tên lớp là bắt buộc' }); throw new Error('validation') }
       if (!editCode.trim()) { setEditErrors({ code: 'Mã lớp là bắt buộc' }); throw new Error('validation') }
       setEditErrors({})

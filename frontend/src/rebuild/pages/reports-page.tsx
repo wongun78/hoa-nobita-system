@@ -4,7 +4,7 @@ import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Too
 import { Activity, BarChart3, BookOpenCheck, Download, GraduationCap, Percent, Users } from 'lucide-react'
 import { api } from '../core/api'
 import { EmptyState, ErrorState, FilterBar, MetricCard, PageHeader, SkeletonCard } from '../components/foundation'
-import { Button, Card, FieldLabel } from '../layout/ui'
+import { Button, Card } from '../layout/ui'
 import { useNewAuth } from '../auth/use-auth'
 import { asPage, numberValue } from './phase2-utils'
 import type { ClassItem, RoleName } from '../core/types'

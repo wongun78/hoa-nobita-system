@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { BookOpenCheck, CalendarDays, Clock3, GraduationCap, Grid3X3, ListChecks, Rows3 } from 'lucide-react'
 import { api } from '../core/api'
 import { EmptyState, ErrorState, FilterBar, MetricCard, PageHeader, SkeletonCard, StatusBadge } from '../components/foundation'
-import { Button, Card, FieldLabel } from '../layout/ui'
+import { Button, Card } from '../layout/ui'
 import { useNewAuth } from '../auth/use-auth'
 import type { CalendarEvent, ClassItem, RoleName } from '../core/types'
 

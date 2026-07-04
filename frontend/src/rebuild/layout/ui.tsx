@@ -36,6 +36,6 @@ export function Card({ children, className }: CardProps) {
   return <section className={clsx('rounded-3xl border border-sky-100 bg-white/90 p-5 shadow-sm', className)}>{children}</section>
 }
 
-export function FieldLabel({ children, htmlFor }: Readonly<{ children: string; htmlFor: string }>) {
+export function FieldLabel({ children, htmlFor }: Readonly<{ children: React.ReactNode; htmlFor?: string }>) {
   return <label htmlFor={htmlFor} className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{children}</label>
 }
