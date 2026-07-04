@@ -90,23 +90,24 @@ export function ReportsPage() {
 
   const classesQuery = useQuery({ queryKey: ['classes', 'reports'], queryFn: () => api.classesPage({ page: 0, size: 100 }), staleTime: 60_000 })
   const classesPage = asPage(classesQuery.data, 0, 100)
-  const systemQuery = useQuery({ queryKey: ['reports', 'system'], queryFn: () => api.reportSystem() as Promise<SystemReport>, enabled: isTeacherOwner })
-  const classReportQuery = useQuery({ queryKey: ['reports', 'class', classId], queryFn: () => api.reportClass(classId) as Promise<ClassReport>, enabled: Boolean(classId) })
-  const classStatsQuery = useQuery({ queryKey: ['classes', classId, 'stats', 'reports'], queryFn: () => api.classStats(classId) as Promise<ClassStats>, enabled: Boolean(classId) })
-  const attendanceQuery = useQuery({ queryKey: ['attendance-summary', classId, 'reports'], queryFn: () => api.attendanceSummary(classId) as Promise<AttendanceSummary>, enabled: Boolean(classId) })
+  const selectedClassId = classId || undefined
+  const systemQuery = useQuery({ queryKey: ['reports', 'system'], queryFn: () => api.reportSystem() as Promise<SystemReport>, enabled: isTeacherOwner && !selectedClassId })
+  const classReportQuery = useQuery({ queryKey: ['reports', 'class', selectedClassId], queryFn: () => api.reportClass(selectedClassId!) as Promise<ClassReport>, enabled: Boolean(selectedClassId) })
+  const classStatsQuery = useQuery({ queryKey: ['classes', selectedClassId, 'stats', 'reports'], queryFn: () => api.classStats(selectedClassId!) as Promise<ClassStats>, enabled: Boolean(selectedClassId) })
+  const attendanceQuery = useQuery({ queryKey: ['attendance-summary', selectedClassId, 'reports'], queryFn: () => api.attendanceSummary(selectedClassId!) as Promise<AttendanceSummary>, enabled: Boolean(selectedClassId) })
 
   useEffect(() => {
-    if (!classId && classesPage.items.length) setClassId(classesPage.items[0].id)
-  }, [classId, classesPage.items])
+    if (!isTeacherOwner && !classId && classesPage.items.length) setClassId(classesPage.items[0].id)
+  }, [classId, classesPage.items, isTeacherOwner])
 
-  const classReport = classReportQuery.data
-  const classStats = classStatsQuery.data
-  const attendance = attendanceQuery.data
+  const classReport = selectedClassId ? classReportQuery.data : undefined
+  const classStats = selectedClassId ? classStatsQuery.data : undefined
+  const attendance = selectedClassId ? attendanceQuery.data : undefined
   const assignmentChartData = useMemo(() => chartData(classReport), [classReport])
   const topStudents = useMemo(() => studentRows(classReport), [classReport])
   const selectedClass = classesPage.items.find((item: ClassItem) => item.id === classId)
-  const classPerformanceRows = systemQuery.data?.classPerformances ?? []
-  const loadingClassReport = classReportQuery.isLoading || classStatsQuery.isLoading || attendanceQuery.isLoading
+  const classPerformanceRows = !selectedClassId ? (systemQuery.data?.classPerformances ?? []) : []
+  const loadingClassReport = classReportQuery.isLoading || classStatsQuery.isLoading || attendanceQuery.isLoading || classReportQuery.isFetching || classStatsQuery.isFetching || attendanceQuery.isFetching
   const classReportError = classReportQuery.isError || classStatsQuery.isError || attendanceQuery.isError
 
   const exportSystemCsv = async () => {
@@ -174,19 +175,19 @@ export function ReportsPage() {
       {classesQuery.isError && <ErrorState title="Không tải được danh sách lớp" description="Vui lòng kiểm tra quyền quản trị lớp và thử lại." onRetry={() => classesQuery.refetch()} />}
       {!classesQuery.isLoading && !classesQuery.isError && !classesPage.items.length && <EmptyState title="Chưa có lớp để báo cáo" description="CLASS_ADMIN chỉ thấy lớp được gán; Teacher Owner thấy toàn bộ lớp active." />}
 
-      {isTeacherOwner && systemQuery.data && (
+      {isTeacherOwner && !selectedClassId && systemQuery.data && (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <MetricCard label="Người dùng" value={systemQuery.data.totalUsers} hint="Toàn hệ thống" icon={<Users size={20} />} tone="indigo" />
-          <MetricCard label="Lớp học" value={systemQuery.data.totalClasses} hint="Active classes" icon={<GraduationCap size={20} />} tone="sky" />
-          <MetricCard label="Bài tập" value={systemQuery.data.totalAssignments} hint="Assignments" icon={<BookOpenCheck size={20} />} tone="amber" />
-          <MetricCard label="Bài nộp" value={systemQuery.data.totalSubmissions} hint="Submissions" icon={<Activity size={20} />} tone="emerald" />
-          <MetricCard label="Điểm TB" value={score(systemQuery.data.averageScore)} hint="Global average" icon={<BarChart3 size={20} />} tone="violet" />
+          <MetricCard label="Lớp học" value={systemQuery.data.totalClasses} hint="Lớp đang hoạt động" icon={<GraduationCap size={20} />} tone="sky" />
+          <MetricCard label="Bài tập" value={systemQuery.data.totalAssignments} hint="Bài tập" icon={<BookOpenCheck size={20} />} tone="amber" />
+          <MetricCard label="Bài nộp" value={systemQuery.data.totalSubmissions} hint="Bài nộp" icon={<Activity size={20} />} tone="emerald" />
+          <MetricCard label="Điểm TB" value={score(systemQuery.data.averageScore)} hint="Trung bình toàn hệ thống" icon={<BarChart3 size={20} />} tone="violet" />
         </div>
       )}
-      {isTeacherOwner && systemQuery.isLoading && <SkeletonCard lines={2} />}
-      {isTeacherOwner && systemQuery.isError && <ErrorState title="Không tải được báo cáo hệ thống" description="Endpoint /reports/system chỉ dành cho Teacher Owner." onRetry={() => systemQuery.refetch()} />}
+      {isTeacherOwner && !selectedClassId && systemQuery.isLoading && <SkeletonCard lines={2} />}
+      {isTeacherOwner && !selectedClassId && systemQuery.isError && <ErrorState title="Không tải được báo cáo hệ thống" description="Báo cáo hệ thống chỉ dành cho chủ trung tâm." onRetry={() => systemQuery.refetch()} />}
 
-      {isTeacherOwner && classPerformanceRows.length > 0 && (
+      {isTeacherOwner && !selectedClassId && classPerformanceRows.length > 0 && (
         <ReportChart title="Hiệu suất các lớp" description="So sánh sĩ số, điểm trung bình và tỷ lệ nộp bài theo lớp." empty={!classPerformanceRows.length}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={classPerformanceRows.slice(0, 10)}>

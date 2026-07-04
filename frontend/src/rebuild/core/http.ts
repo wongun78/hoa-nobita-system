@@ -81,20 +81,33 @@ http.interceptors.response.use(
   }
 )
 
+function toBackendParams(params?: Record<string, unknown>) {
+  if (!params || typeof params.page !== 'number') return params
+  return { ...params, page: params.page + 1 }
+}
+
+function normalizeBackendPage<T>(data: T): T {
+  if (data && typeof data === 'object' && !Array.isArray(data) && 'items' in data && 'page' in data) {
+    const pageData = data as T & { page: unknown }
+    if (typeof pageData.page === 'number') return { ...pageData, page: Math.max(pageData.page - 1, 0) }
+  }
+  return data
+}
+
 async function unwrap<T>(promise: Promise<{ data: ApiEnvelope<T> }>): Promise<T> {
   try {
     const res = await promise
     if (!res.data.success) {
       throw new ApiClientError(res.data.message || 'API Error', undefined, res.data.errors ?? [])
     }
-    return res.data.data
+    return normalizeBackendPage(res.data.data)
   } catch (error) {
     throw toApiClientError(error)
   }
 }
 
 export function getApi<T>(url: string, params?: Record<string, unknown>) {
-  return unwrap<T>(http.get(url, { params }))
+  return unwrap<T>(http.get(url, { params: toBackendParams(params) }))
 }
 
 export function postApi<T>(url: string, body?: unknown) {

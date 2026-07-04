@@ -122,11 +122,13 @@ export function FilterBar({ children }: Readonly<{ children: React.ReactNode }>)
 }
 
 export function PaginationControls({ page, totalPages, onPageChange }: Readonly<{ page: number; totalPages: number; onPageChange: (page: number) => void }>) {
+  const safeTotalPages = Math.max(totalPages, 1)
+  const safePage = Math.min(Math.max(page, 0), safeTotalPages - 1)
   return (
     <div className="flex items-center justify-end gap-2 text-sm text-slate-600">
-      <Button type="button" variant="secondary" disabled={page <= 0} onClick={() => onPageChange(page - 1)}>Trước</Button>
-      <span>Trang {page + 1} / {Math.max(totalPages, 1)}</span>
-      <Button type="button" variant="secondary" disabled={page + 1 >= totalPages} onClick={() => onPageChange(page + 1)}>Sau</Button>
+      <Button type="button" variant="secondary" disabled={safePage <= 0} onClick={() => onPageChange(safePage - 1)}>Trước</Button>
+      <span>Trang {safePage + 1} / {safeTotalPages}</span>
+      <Button type="button" variant="secondary" disabled={safePage + 1 >= safeTotalPages} onClick={() => onPageChange(safePage + 1)}>Sau</Button>
     </div>
   )
 }
