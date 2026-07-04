@@ -24,20 +24,15 @@ export function MaterialsPage() {
   const [classId, setClassId] = useState('')
   const classes = useQuery({ queryKey: ['classes', 'materials-filter'], queryFn: () => api.classes() })
   const materials = useQuery({ queryKey: ['materials', classId], queryFn: () => api.materialsByClass(classId), enabled: Boolean(classId) })
-  const upload = useMutation({ mutationFn: (file: File) => api.uploadFile(file) })
 
   return (
     <div className="space-y-5">
-      <SectionHeader title="Thư viện tài liệu" eyebrow="Thư viện tài liệu" description="Quản lý tài liệu lớp học, tệp đính kèm và liên kết ngoài theo API Materials + Files." />
-      <Card className="grid gap-3 md:grid-cols-[1fr_auto]">
-        <select className="rounded-xl border border-sky-100 bg-white px-3 py-2 text-sm" value={classId} onChange={(e) => setClassId(e.target.value)}>
+      <SectionHeader title="Thư viện tài liệu" eyebrow="Thư viện tài liệu" description="Xem và tải tài liệu học tập, tệp đính kèm và liên kết ngoài theo từng lớp." />
+      <Card className="max-w-md">
+        <select className="w-full rounded-xl border border-sky-100 bg-white px-3 py-2 text-sm" value={classId} onChange={(e) => setClassId(e.target.value)}>
           <option value="">Chọn lớp học</option>
           {(classes.data ?? []).map((item: ClassItem) => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select>
-        <label className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white">
-          Tải tệp lên
-          <input className="hidden" type="file" onChange={(event) => event.target.files?.[0] && upload.mutate(event.target.files[0])} />
-        </label>
       </Card>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {(materials.data ?? []).map((item) => (
