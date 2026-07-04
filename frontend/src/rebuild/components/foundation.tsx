@@ -58,13 +58,13 @@ function statusTone(value: string): Tone {
 
 export function StatusBadge({ value }: Readonly<{ value?: string | null }>) {
   const normalized = value ?? 'UNKNOWN'
-  const labelMap: Record<string, string> = { ACTIVE: 'Đang học', COMPLETED: 'Đã hoàn thành', DRAFT: 'Nháp', UPCOMING: 'Sắp khai giảng', ARCHIVED: 'Đã lưu trữ', PUBLISHED: 'Đã đăng', CLOSED: 'Đã đóng', SUBMITTED: 'Đã nộp', GRADED: 'Đã chấm', LATE: 'Nộp trễ', OVERDUE: 'Quá hạn' }
+  const labelMap: Record<string, string> = { ACTIVE: 'Hoạt động', COMPLETED: 'Đã hoàn thành', DRAFT: 'Nháp', UPCOMING: 'Sắp khai giảng', ARCHIVED: 'Đã lưu trữ', PUBLISHED: 'Đã đăng', CLOSED: 'Đã đóng', SUBMITTED: 'Đã nộp', GRADED: 'Đã chấm', LATE: 'Nộp trễ', OVERDUE: 'Quá hạn', INACTIVE: 'Ngưng', SUSPENDED: 'Đã khoá' }
   return <span className={clsx('inline-flex rounded-full border px-2.5 py-1 text-xs font-bold', toneClasses[statusTone(normalized)])}>{labelMap[normalized] ?? normalized}</span>
 }
 
 export function RoleBadge({ role }: Readonly<{ role: RoleName }>) {
   const toneByRole: Record<RoleName, Tone> = { TEACHER_OWNER: 'violet', CLASS_ADMIN: 'sky', STUDENT: 'emerald' }
-  const labelByRole: Record<RoleName, string> = { TEACHER_OWNER: 'Giáo viên chủ nhiệm', CLASS_ADMIN: 'Quản trị lớp', STUDENT: 'Học viên' }
+  const labelByRole: Record<RoleName, string> = { TEACHER_OWNER: 'Giảng viên chính', CLASS_ADMIN: 'Trợ giảng', STUDENT: 'Học viên' }
   return <span className={clsx('inline-flex rounded-full border px-2.5 py-1 text-xs font-bold', toneClasses[toneByRole[role]])}>{labelByRole[role]}</span>
 }
 
