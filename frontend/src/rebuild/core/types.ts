@@ -114,6 +114,16 @@ export type SubmissionItem = {
   score?: number | null
   maxScore?: number | null
   feedback?: string | null
+  // Submission file metadata
+  fileName?: string | null
+  fileContentType?: string | null
+  fileSize?: number | null
+  // Feedback attachments
+  feedbackFileId?: string | null
+  feedbackLink?: string | null
+  feedbackFileName?: string | null
+  feedbackFileContentType?: string | null
+  feedbackFileSize?: number | null
 }
 
 export type GradeItem = { id: string; submissionId: string; score: number; feedback?: string | null; gradedBy: string; gradedAt: string }

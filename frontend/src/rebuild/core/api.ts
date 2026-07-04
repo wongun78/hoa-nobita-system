@@ -170,8 +170,8 @@ export const api = {
   classGradingSubmissionsPage: (classId: string, params?: QueryParams) => getApi<PageResponse<SubmissionItem> | SubmissionItem[]>(`/classes/${classId}/grading/submissions`, params),
   gradingSubmissionsPage: (params?: QueryParams & { classId?: string }) => getApi<PageResponse<SubmissionItem> | SubmissionItem[]>('/grading/submissions', params),
   classGradingSubmissions: async (classId: string, params?: QueryParams) => normalizeList(await api.classGradingSubmissionsPage(classId, params)),
-  gradeSubmission: (submissionId: string, payload: { score: number; feedback?: string }) => postApi<GradeItem>(`/submissions/${submissionId}/grade`, payload),
-  updateGrade: (gradeId: string, payload: { score: number; feedback?: string }) => patchApi<GradeItem>(`/grades/${gradeId}`, payload),
+  gradeSubmission: (submissionId: string, payload: { score: number; feedback?: string; feedbackFileId?: string; feedbackLink?: string }) => postApi<GradeItem>(`/submissions/${submissionId}/grade`, payload),
+  updateGrade: (gradeId: string, payload: { score: number; feedback?: string; feedbackFileId?: string; feedbackLink?: string }) => patchApi<GradeItem>(`/grades/${gradeId}`, payload),
   requestResubmit: (submissionId: string) => postApi<null>(`/submissions/${submissionId}/request-resubmit`),
   bulkGrade: (assignmentId: string, grades: Array<{ submissionId: string; score: number; feedback?: string }>) => postApi<{ gradedCount: number; failedCount: number; errors: unknown[] }>(`/assignments/${assignmentId}/submissions/bulk-grade`, { grades }),
 
@@ -203,6 +203,8 @@ export const api = {
   fileMetadata: (fileId: string) => getApi<FileItem>(`/files/${fileId}`),
   downloadFileUrl: (fileId: string) => `${API_BASE_URL}/files/${fileId}/download`,
   downloadFile: (fileId: string, filename = `file-${fileId}`) => downloadBlobToFile(`/files/${fileId}/download`, filename),
+  downloadSubmissionFile: (submissionId: string, filename?: string) => downloadBlobToFile(`/submissions/${submissionId}/files/submission/download`, filename || `submission-${submissionId}`),
+  downloadFeedbackFile: (submissionId: string, filename?: string) => downloadBlobToFile(`/submissions/${submissionId}/files/feedback/download`, filename || `feedback-${submissionId}`),
 
   attendanceSummary: (classId: string) => getApi<AttendanceSummary>(`/classes/${classId}/attendance/summary`),
   markLessonAttendance: (lessonId: string, records: Array<{ studentId: string; status: AttendanceStatus; note?: string }>) => postApi<AttendanceItem[]>(`/lessons/${lessonId}/attendance`, { records }),

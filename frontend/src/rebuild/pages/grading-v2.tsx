@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, CheckCircle, Download, RotateCcw, Send } from 'lucide-react'
+import { ArrowDown, ArrowUp, CheckCircle, Download, ExternalLink, FileText, RotateCcw, Send, Upload } from 'lucide-react'
 import { useNewAuth } from '../auth/use-auth'
 import { EmptyState, ErrorState, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { api } from '../core/api'
@@ -19,6 +19,9 @@ export function GradingV2Page() {
   const [selectedId, setSelectedId] = useState('')
   const [score, setScore] = useState('')
   const [feedback, setFeedback] = useState('')
+  const [feedbackFileId, setFeedbackFileId] = useState<string>('')
+  const [feedbackLink, setFeedbackLink] = useState<string>('')
+  const [uploadingFeedback, setUploadingFeedback] = useState(false)
 
   const classes = useQuery({ queryKey: ['classes', 'grading-v2'], queryFn: () => api.classesPage({ page: 0, size: 100 }) })
   const classPage = asPage(classes.data, 0, 100)
@@ -44,11 +47,33 @@ export function GradingV2Page() {
   const selected = useMemo<SubmissionItem | null>(() => queue.items.find((item) => item.id === selectedId) ?? queue.items[0] ?? null, [queue.items, selectedId])
   const draftKey = selected ? `grading-draft:${selected.id}` : ''
 
-  useEffect(() => { if (!selected) return; setSelectedId(selected.id); setScore(String(selected.score ?? '')); setFeedback(localStorage.getItem(`grading-draft:${selected.id}`) ?? selected.feedback ?? '') }, [selected])
+  useEffect(() => {
+    if (!selected) return
+    setSelectedId(selected.id)
+    setScore(String(selected.score ?? ''))
+    setFeedback(localStorage.getItem(`grading-draft:${selected.id}`) ?? selected.feedback ?? '')
+    setFeedbackFileId(selected.feedbackFileId ?? '')
+    setFeedbackLink(selected.feedbackLink ?? '')
+  }, [selected])
   useEffect(() => { if (draftKey) localStorage.setItem(draftKey, feedback) }, [draftKey, feedback])
 
+  const handleFeedbackFileUpload = async (file: File) => {
+    setUploadingFeedback(true)
+    try {
+      const uploaded = await api.uploadFile(file)
+      setFeedbackFileId(uploaded.id)
+    } finally {
+      setUploadingFeedback(false)
+    }
+  }
+
   const save = useMutation({
-    mutationFn: () => selected?.gradeId ? api.updateGrade(selected.gradeId, { score: Number(score), feedback }) : api.gradeSubmission(selected!.id, { score: Number(score), feedback }),
+    mutationFn: () => {
+      const payload: { score: number; feedback?: string; feedbackFileId?: string; feedbackLink?: string } = { score: Number(score), feedback: feedback || undefined }
+      if (feedbackFileId) payload.feedbackFileId = feedbackFileId
+      if (feedbackLink) payload.feedbackLink = feedbackLink
+      return selected?.gradeId ? api.updateGrade(selected.gradeId, payload) : api.gradeSubmission(selected!.id, payload)
+    },
     onSuccess: async () => { if (draftKey) localStorage.removeItem(draftKey); await qc.invalidateQueries({ queryKey: ['grading-v2', classId] }) },
   })
   const resubmit = useMutation({ mutationFn: () => api.requestResubmit(selected!.id), onSuccess: async () => qc.invalidateQueries({ queryKey: ['grading-v2', classId] }) })
@@ -134,11 +159,45 @@ export function GradingV2Page() {
 
               <div className="rounded-3xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">{selected.contentText || 'Không có nội dung văn bản.'}</div>
               {selected.contentUrl && <a className="text-sm font-bold text-indigo-600" href={selected.contentUrl} target="_blank" rel="noreferrer">Mở URL bài làm</a>}
-              {selected.fileId && <Button variant="secondary" onClick={() => api.downloadFile(selected.fileId!, `submission-${selected.id}`)}><Download size={16} /> Tải file bài làm</Button>}
+              {selected.fileId && (
+                <div className="flex items-center gap-2">
+                  <Button variant="secondary" onClick={() => api.downloadSubmissionFile(selected.id, selected.fileName || `submission-${selected.id}`)}>
+                    <Download size={16} /> Tải file bài làm
+                  </Button>
+                  {selected.fileName && <span className="text-xs text-slate-500">{selected.fileName} ({selected.fileSize ? Math.round(selected.fileSize / 1024) + ' KB' : ''})</span>}
+                </div>
+              )}
 
               <div className="grid gap-3 md:grid-cols-[180px_1fr]">
                 <Input type="number" min="0" max={selected.maxScore ?? 100} value={score} onChange={(e) => setScore(e.target.value)} placeholder="Điểm" />
                 <TextArea rows={8} value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Nhận xét cho học viên" />
+              </div>
+
+              {/* Feedback attachments */}
+              <div className="rounded-2xl border border-sky-100 bg-sky-50/50 p-4 space-y-3">
+                <h3 className="text-sm font-bold text-slate-700">Tệp đính kèm phản hồi</h3>
+                {selected.feedbackFileId && selected.feedbackFileName && (
+                  <div className="flex items-center gap-2">
+                    <Button variant="secondary" onClick={() => api.downloadFeedbackFile(selected.id, selected.feedbackFileName || `feedback-${selected.id}`)}>
+                      <Download size={16} /> {selected.feedbackFileName}
+                    </Button>
+                    <span className="text-xs text-slate-500">({selected.feedbackFileSize ? Math.round(selected.feedbackFileSize / 1024) + ' KB' : ''})</span>
+                  </div>
+                )}
+                {selected.feedbackLink && (
+                  <a className="inline-flex items-center gap-1 text-sm font-bold text-indigo-600" href={selected.feedbackLink} target="_blank" rel="noreferrer">
+                    <ExternalLink size={14} /> {selected.feedbackLink}
+                  </a>
+                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="inline-flex cursor-pointer items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50">
+                    <Upload size={14} /> Tải tệp phản hồi
+                    <input type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFeedbackFileUpload(f) }} />
+                  </label>
+                  {uploadingFeedback && <span className="text-xs text-indigo-600">Đang tải lên...</span>}
+                  {feedbackFileId && !selected.feedbackFileId && <span className="text-xs text-green-600">✓ Đã chọn tệp</span>}
+                  <Input type="text" value={feedbackLink} onChange={(e) => setFeedbackLink(e.target.value)} placeholder="Link phản hồi (tuỳ chọn)" className="flex-1 min-w-[200px]" />
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-2">
