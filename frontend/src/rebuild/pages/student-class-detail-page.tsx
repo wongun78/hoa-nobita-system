@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { Bell, BookOpen, CalendarCheck2, ClipboardList, Download, ExternalLink, FileText, GraduationCap, LayoutDashboard, MessageSquareText } from 'lucide-react'
 import { api } from '../core/api'
-import { EmptyState, ErrorState, MetricCard, PageHeader, SkeletonCard, StatusBadge } from '../components/foundation'
+import { EmptyState, ErrorState, MetricCard, SkeletonCard, StatusBadge } from '../components/foundation'
 import { Button, Card } from '../layout/ui'
 import { fmtDate } from './phase2-utils'
 import { useNewAuth } from '../auth/use-auth'
@@ -85,14 +85,22 @@ export function StudentClassDetailPage() {
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <PageHeader
-        eyebrow="Lớp học của tôi"
-        title={classQuery.data.name}
-        description={`${classQuery.data.code} · Giáo viên ${classQuery.data.teacherName}. Theo dõi bài học, tài liệu, bài tập và tiến độ của riêng bạn.`}
-        actions={<StatusBadge value={classQuery.data.status} />}
-      />
+      <div className="relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
+        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="absolute -left-6 bottom-0 h-28 w-28 rounded-full bg-white/10 blur-xl" />
+        <div className="relative">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-bold backdrop-blur">{classQuery.data.code}</span>
+            <StatusBadge value={classQuery.data.status} />
+            {classQuery.data.levelFrom && <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-bold backdrop-blur">TOPIK {classQuery.data.levelFrom}{classQuery.data.levelTo ? `–${classQuery.data.levelTo}` : '+'}</span>}
+          </div>
+          <h1 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">{classQuery.data.name}</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">Giáo viên {classQuery.data.teacherName} · {lessonItems.length} bài học · {assignmentItems.length} bài tập · {visibleMaterials.length} tài liệu</p>
+        </div>
+      </div>
 
-      <div className="-mx-2 overflow-x-auto px-2 pb-1">
+      <div className="relative -mx-2 overflow-x-auto px-2 pb-1">
+        <div className="absolute right-4 top-0 bottom-1 z-10 w-8 bg-gradient-to-l from-white/90 to-transparent pointer-events-none md:hidden" />
         <div className="flex min-w-max gap-2 rounded-3xl border border-sky-100 bg-white/85 p-2 shadow-sm">
           {tabs.map((tab) => (
             <button

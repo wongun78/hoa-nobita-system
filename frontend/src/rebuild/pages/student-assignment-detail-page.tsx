@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { AlertTriangle, CheckCircle2, Clock3, Download, ExternalLink, Sparkles, Trash2 } from 'lucide-react'
 import { api } from '../core/api'
-import { ConfirmDialog, EmptyState, ErrorState, PageHeader, SkeletonCard, StatusBadge } from '../components/foundation'
+import { ConfirmDialog, EmptyState, ErrorState, SkeletonCard, StatusBadge } from '../components/foundation'
 import { StudentFileUpload } from '../components/student-file-upload'
 import { Button, Card, Input, TextArea } from '../layout/ui'
 import { fmtDate } from './phase2-utils'
@@ -141,12 +141,22 @@ export function StudentAssignmentDetailPage() {
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <PageHeader
-        eyebrow="Nộp bài tập"
-        title={assignment.data.title}
-        description={`${assignment.data.className || 'Lớp học'} · Hạn nộp ${fmtDate(assignment.data.dueAt)} · ${deadlineText(assignment.data.dueAt)}`}
-        actions={<StatusBadge value={assignment.data.status} />}
-      />
+      <div className="relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
+        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative">
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge value={assignment.data.status} />
+            {assignment.data.skill && <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-bold backdrop-blur">{assignment.data.skill}</span>}
+            <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-bold backdrop-blur">Điểm tối đa: {assignment.data.maxScore}</span>
+          </div>
+          <h1 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">{assignment.data.title}</h1>
+          <p className="mt-2 flex flex-wrap items-center gap-3 text-sm text-white/80">
+            <span>{assignment.data.className || 'Lớp học'}</span>
+            <span className="inline-flex items-center gap-1"><Clock3 size={14} /> Hạn: {fmtDate(assignment.data.dueAt)}</span>
+            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${isPastDue(assignment.data) ? 'bg-rose-400/30' : 'bg-white/20'} backdrop-blur`}>{deadlineText(assignment.data.dueAt)}</span>
+          </p>
+        </div>
+      </div>
 
       {message && (
         <div className={`rounded-3xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-bold text-emerald-700 transition ${successPulse ? 'scale-[1.01] shadow-lg' : ''}`}>

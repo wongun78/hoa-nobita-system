@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, CheckCircle2, Clock3, FilePenLine, Search } from 'lucide-react'
 import { api } from '../core/api'
-import { EmptyState, ErrorState, FilterBar, PageHeader, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
+import { EmptyState, ErrorState, FilterBar, MetricCard, PageHeader, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { Card } from '../layout/ui'
 import { fmtDate } from './phase2-utils'
 import type { AssignmentItem, SubmissionItem } from '../core/types'
@@ -121,9 +121,9 @@ export function StudentAssignmentsPage() {
       </FilterBar>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <Card className="rounded-3xl"><div className="flex items-center gap-2 text-sm font-bold text-slate-600"><FilePenLine size={18} /> Tổng bài</div><div className="mt-2 text-3xl font-black">{assignmentItems.length}</div></Card>
-        <Card className="rounded-3xl"><div className="flex items-center gap-2 text-sm font-bold text-slate-600"><Clock3 size={18} /> Chưa nộp</div><div className="mt-2 text-3xl font-black">{assignmentItems.filter((item) => getStudentState(item, submissionByAssignment.get(item.id)) === 'CHƯA NỘP').length}</div></Card>
-        <Card className="rounded-3xl"><div className="flex items-center gap-2 text-sm font-bold text-slate-600"><CheckCircle2 size={18} /> Đã chấm</div><div className="mt-2 text-3xl font-black">{assignmentItems.filter((item) => getStudentState(item, submissionByAssignment.get(item.id)) === 'ĐÃ CHẤM').length}</div></Card>
+        <MetricCard label="Tổng bài" value={assignmentItems.length} hint="Bài tập từ tất cả lớp" icon={<FilePenLine size={20} />} tone="indigo" />
+        <MetricCard label="Chưa nộp" value={assignmentItems.filter((item) => getStudentState(item, submissionByAssignment.get(item.id)) === 'CHƯA NỘP').length} hint="Cần hoàn thiện" icon={<Clock3 size={20} />} tone="amber" />
+        <MetricCard label="Đã chấm" value={assignmentItems.filter((item) => getStudentState(item, submissionByAssignment.get(item.id)) === 'ĐÃ CHẤM').length} hint="Có điểm hoặc phản hồi" icon={<CheckCircle2 size={20} />} tone="emerald" />
       </div>
 
       {filtered.length ? (
