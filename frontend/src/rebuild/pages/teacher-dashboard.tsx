@@ -20,24 +20,72 @@ function chartData(data: DashboardRecord, key: string) {
   }))
 }
 
-function InsightList({ title, items, empty }: Readonly<{ title: string; items: DashboardRecord[]; empty: string }>) {
+function relativeTime(iso?: string | null): string {
+  if (!iso) return ''
+  const diffMs = Date.now() - new Date(iso).getTime()
+  if (diffMs < 0) return 'Vừa xong'
+  const min = Math.floor(diffMs / 60000)
+  if (min < 1) return 'Vừa xong'
+  if (min < 60) return `${min} phút trước`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr} giờ trước`
+  const day = Math.floor(hr / 24)
+  if (day < 7) return `${day} ngày trước`
+  return new Date(iso).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
+
+function deadlineLabel(iso?: string | null): string {
+  if (!iso) return ''
+  const diffMs = new Date(iso).getTime() - Date.now()
+  if (diffMs < 0) return 'Đã hết hạn'
+  const hr = Math.floor(diffMs / 3600000)
+  if (hr < 1) return 'Dưới 1 giờ nữa'
+  if (hr < 24) return `Còn ${hr} giờ`
+  const day = Math.floor(hr / 24)
+  return `Còn ${day} ngày`
+}
+
+function fmtDueDate(iso?: string | null): string {
+  if (!iso) return ''
+  return new Date(iso).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
+
+const RISK_ORDER: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 }
+
+function InsightList({ title, items, empty, renderSubtitle, maxItems = 8, viewAllLink, viewAllLabel }: Readonly<{
+  title: string; items: DashboardRecord[]; empty: string;
+  renderSubtitle?: (item: DashboardRecord) => string;
+  maxItems?: number; viewAllLink?: string; viewAllLabel?: string;
+}>) {
+  const displayed = items.slice(0, maxItems)
+  const hasMore = items.length > maxItems
   return (
     <Card className="rounded-3xl">
-      <h2 className="text-base font-black text-slate-950">{title}</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-black text-slate-950">{title}</h2>
+        {viewAllLink && <Link to={viewAllLink} className="text-xs font-bold text-indigo-600 hover:underline">{viewAllLabel ?? 'Xem tất cả'}</Link>}
+      </div>
       <div className="mt-3 divide-y divide-sky-50">
-        {items.map((item, index) => (
+        {displayed.map((item, index) => (
           <div key={getId(item, `${title}-${index}`)} className="py-3">
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="font-bold text-slate-900">{textValue(item.title ?? item.className ?? item.studentName ?? item.message, 'Mục cần chú ý')}</p>
-                <p className="mt-1 text-sm text-slate-500">{textValue(item.description ?? item.reason ?? item.detail ?? item.subtitle, 'Theo dõi thêm trong ngày hôm nay.')}</p>
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-slate-900">{textValue(item.title ?? item.className ?? item.studentName ?? item.fullName ?? item.message, 'Mục cần chú ý')}</p>
+                <p className="mt-1 text-sm text-slate-500">{renderSubtitle ? renderSubtitle(item) : textValue(item.description ?? item.reason ?? item.detail ?? item.subtitle, '')}</p>
               </div>
-              {typeof item.riskLevel === 'string' && <RiskBadge risk={item.riskLevel as never} />}
-              {typeof item.status === 'string' && <StatusBadge value={item.status} />}
+              <div className="flex shrink-0 items-center gap-2">
+                {typeof item.riskLevel === 'string' && <RiskBadge risk={item.riskLevel as never} />}
+                {typeof item.status === 'string' && <StatusBadge value={item.status} />}
+              </div>
             </div>
           </div>
         ))}
         {items.length === 0 && <div className="py-6"><EmptyState title={empty} description="Không có cảnh báo quan trọng ở thời điểm hiện tại." /></div>}
+        {hasMore && viewAllLink && (
+          <div className="pt-3 text-center">
+            <Link to={viewAllLink} className="text-sm font-bold text-indigo-600 hover:underline">Xem tất cả ({items.length})</Link>
+          </div>
+        )}
       </div>
     </Card>
   )
@@ -67,16 +115,17 @@ export function TeacherDashboardPage() {
   const todayTasks = arrayValue<DashboardRecord>(data.todayTasks)
   const classHealth = arrayValue<DashboardRecord>(data.classHealth)
   const riskStudents = arrayValue<DashboardRecord>(data.riskStudents)
+    .sort((a, b) => (RISK_ORDER[String(a.riskLevel)] ?? 3) - (RISK_ORDER[String(b.riskLevel)] ?? 3))
   const dueSoon = arrayValue<DashboardRecord>(data.assignmentsDueSoon)
   const recentActivity = arrayValue<DashboardRecord>(data.recentActivity)
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="HOA NOBITA · 선생님"
+        eyebrow="HOA NOBITA · Giáo viên"
         title={`Chào ${textValue(data.greetingName, 'Anh Hoà')}, hôm nay lớp học đang vận hành thế nào?`}
         description="Bảng điều khiển tập trung cho giáo viên: lớp học, bài tập, chấm điểm, rủi ro học viên."
-        actions={<><Link className="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white" to="/teacher/classes">Quản lý lớp</Link><Link className="inline-flex items-center justify-center rounded-2xl border border-sky-200 bg-white px-4 py-2 text-sm font-bold text-slate-700" to="/teacher/grading">Mở Grading Center</Link></>}
+        actions={<><Link className="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-bold !text-white hover:bg-indigo-700" to="/teacher/classes">Quản lý lớp</Link><Link className="inline-flex items-center justify-center rounded-2xl border border-sky-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-sky-50" to="/teacher/grading">Mở Grading Center</Link></>}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -112,11 +161,38 @@ export function TeacherDashboardPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <InsightList title="Việc hôm nay" items={todayTasks} empty="Hôm nay không có việc gấp" />
-        <InsightList title="Sức khỏe lớp học" items={classHealth} empty="Các lớp đang ổn định" />
-        <InsightList title="Học viên rủi ro" items={riskStudents} empty="Không có học viên rủi ro cao" />
-        <InsightList title="Bài tập sắp đến hạn" items={dueSoon} empty="Không có deadline gần" />
-        <div className="xl:col-span-2"><InsightList title="Hoạt động gần đây" items={recentActivity} empty="Chưa có hoạt động mới" /></div>
+        <InsightList title="Việc hôm nay" items={todayTasks} empty="Hôm nay không có việc gấp" viewAllLink="/teacher/classes" viewAllLabel="Xem tất cả lớp" />
+        <InsightList title="Sức khỏe lớp học" items={classHealth} empty="Các lớp đang ổn định" viewAllLink="/teacher/classes"
+          renderSubtitle={(item) => {
+            const issues = item.issues as string[] | undefined
+            if (issues && issues.length > 0) return issues.join(' · ')
+            const rate = numberValue(item.submissionRate)
+            return `Tỷ lệ nộp ${rate}% · ${numberValue(item.studentCount)} học viên`
+          }}
+        />
+        <InsightList title="Học viên rủi ro" items={riskStudents} empty="Không có học viên rủi ro cao" viewAllLink="/teacher/users" viewAllLabel="Xem tất cả học viên"
+          renderSubtitle={(item) => {
+            const issue = textValue(item.issue, '')
+            const cls = textValue(item.className, '')
+            return issue || cls ? `${issue}${cls ? ` · ${cls}` : ''}` : 'Cần theo dõi'
+          }}
+        />
+        <InsightList title="Bài tập sắp đến hạn" items={dueSoon} empty="Không có deadline gần" viewAllLink="/teacher/assignments"
+          renderSubtitle={(item) => {
+            const due = textValue(item.deadline, '')
+            const cls = textValue(item.className, '')
+            const countdown = deadlineLabel(due)
+            return due ? `${fmtDueDate(due)} · ${countdown}${cls ? ` · ${cls}` : ''}` : cls
+          }}
+        />
+        <div className="xl:col-span-2"><InsightList title="Hoạt động gần đây" items={recentActivity} empty="Chưa có hoạt động mới" maxItems={6} viewAllLink="/teacher/classes" viewAllLabel="Xem tất cả"
+          renderSubtitle={(item) => {
+            const actor = textValue(item.actorName, '')
+            const target = textValue(item.targetName, '')
+            const time = relativeTime(textValue(item.createdAt, null))
+            return [actor, target].filter(Boolean).join(' · ') + (time ? ` · ${time}` : '')
+          }}
+        /></div>
       </div>
     </div>
   )

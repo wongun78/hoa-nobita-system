@@ -232,13 +232,13 @@ public class DashboardService {
         // Today tasks
         List<TeacherDashboardResponse.TodayTask> todayTasks = new ArrayList<>();
         if (needGrading > 0) {
-                        todayTasks.add(new TeacherDashboardResponse.TodayTask("t1", "GRADING", needGrading + " bài nộp đang chờ chấm", "Có " + needGrading + " submissions cần chấm điểm", "HIGH", ROUTE_CLASSES, "Chấm ngay"));
+                        todayTasks.add(new TeacherDashboardResponse.TodayTask("t1", "GRADING", needGrading + " bài nộp đang chờ chấm", "Có " + needGrading + " bài nộp cần chấm điểm", "HIGH", ROUTE_CLASSES, "Chấm ngay"));
         }
         if (dueSoon48h > 0) {
                         todayTasks.add(new TeacherDashboardResponse.TodayTask("t2", "DEADLINE", dueSoon48h + " bài tập sắp hết hạn trong 48 giờ", "Kiểm tra và nhắc nhở học viên", "HIGH", ROUTE_ASSIGNMENTS, "Xem bài tập"));
         }
         if (resubmitRequested > 0) {
-                        todayTasks.add(new TeacherDashboardResponse.TodayTask("t3", "RESUBMIT", resubmitRequested + " submissions được yêu cầu nộp lại", "Theo dõi học viên nộp lại", "MEDIUM", ROUTE_ASSIGNMENTS, "Xem chi tiết"));
+                        todayTasks.add(new TeacherDashboardResponse.TodayTask("t3", "RESUBMIT", resubmitRequested + " bài nộp được yêu cầu nộp lại", "Theo dõi học viên nộp lại", "MEDIUM", ROUTE_ASSIGNMENTS, "Xem chi tiết"));
         }
                 if (missingSubs > 0) {
                                                 todayTasks.add(new TeacherDashboardResponse.TodayTask("t4", "MISSING", missingSubs + " lượt chưa nộp bài", "Danh sách học viên thiếu bài nộp cần được nhắc nhở", "HIGH", ROUTE_CLASSES, "Gửi nhắc nhở"));

@@ -58,25 +58,27 @@ function statusTone(value: string): Tone {
 
 export function StatusBadge({ value }: Readonly<{ value?: string | null }>) {
   const normalized = value ?? 'UNKNOWN'
-  return <span className={clsx('inline-flex rounded-full border px-2.5 py-1 text-xs font-bold', toneClasses[statusTone(normalized)])}>{normalized}</span>
+  const labelMap: Record<string, string> = { ACTIVE: 'Đang học', COMPLETED: 'Đã hoàn thành', DRAFT: 'Nháp', UPCOMING: 'Sắp khai giảng', ARCHIVED: 'Đã lưu trữ', PUBLISHED: 'Đã đăng', CLOSED: 'Đã đóng', SUBMITTED: 'Đã nộp', GRADED: 'Đã chấm', LATE: 'Nộp trễ', OVERDUE: 'Quá hạn' }
+  return <span className={clsx('inline-flex rounded-full border px-2.5 py-1 text-xs font-bold', toneClasses[statusTone(normalized)])}>{labelMap[normalized] ?? normalized}</span>
 }
 
 export function RoleBadge({ role }: Readonly<{ role: RoleName }>) {
   const toneByRole: Record<RoleName, Tone> = { TEACHER_OWNER: 'violet', CLASS_ADMIN: 'sky', STUDENT: 'emerald' }
-  const labelByRole: Record<RoleName, string> = { TEACHER_OWNER: 'Teacher Owner', CLASS_ADMIN: 'Class Admin', STUDENT: 'Student' }
+  const labelByRole: Record<RoleName, string> = { TEACHER_OWNER: 'Giáo viên chủ nhiệm', CLASS_ADMIN: 'Quản trị lớp', STUDENT: 'Học viên' }
   return <span className={clsx('inline-flex rounded-full border px-2.5 py-1 text-xs font-bold', toneClasses[toneByRole[role]])}>{labelByRole[role]}</span>
 }
 
 export function RiskBadge({ risk }: Readonly<{ risk?: RiskLevel | null }>) {
   const value = risk ?? 'LOW'
   const toneByRisk: Record<RiskLevel, Tone> = { LOW: 'emerald', MEDIUM: 'amber', HIGH: 'rose' }
-  return <span className={clsx('inline-flex rounded-full border px-2.5 py-1 text-xs font-bold', toneClasses[toneByRisk[value]])}>{value}</span>
+  const labelMap: Record<RiskLevel, string> = { HIGH: 'Cao', MEDIUM: 'Trung bình', LOW: 'Thấp' }
+  return <span className={clsx('inline-flex rounded-full border px-2.5 py-1 text-xs font-bold', toneClasses[toneByRisk[value]])}>{labelMap[value] ?? value}</span>
 }
 
 export function EmptyState({ title, description, action }: Readonly<{ title: string; description?: string; action?: React.ReactNode }>) {
   return (
     <Card className="text-center">
-      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-pink-100 text-lg">한</div>
+      {/* <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-pink-100 text-lg">한</div> */}
       <h2 className="text-lg font-black text-slate-900">{title}</h2>
       {description && <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
