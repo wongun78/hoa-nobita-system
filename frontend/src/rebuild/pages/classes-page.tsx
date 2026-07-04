@@ -1,13 +1,20 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Grid2X2, List, Plus } from 'lucide-react'
+import { Grid2X2, List, Plus, X } from 'lucide-react'
+import { z } from 'zod'
 import { useNewAuth } from '../auth/use-auth'
 import { EmptyState, ErrorState, FilterBar, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { api } from '../core/api'
-import type { ClassStatus } from '../core/types'
-import { Button, Card, Input, TextArea } from '../layout/ui'
+import { ApiClientError } from '../core/http'
+import type { ClassStatus, UserItem } from '../core/types'
+import { Button, Card, FieldLabel, Input, TextArea } from '../layout/ui'
 import { asPage, fmtDate } from './phase2-utils'
+
+const createClassSchema = z.object({
+  name: z.string().min(1, 'Tên lớp là bắt buộc'),
+  code: z.string().min(1, 'Mã lớp là bắt buộc'),
+})
 
 export function ClassesPage() {
   const { hasRole } = useNewAuth()
@@ -22,17 +29,89 @@ export function ClassesPage() {
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [description, setDescription] = useState('')
+  const [classStatus, setClassStatus] = useState<ClassStatus>('DRAFT')
+  const [adminId, setAdminId] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const basePath = isAdmin ? '/admin/classes' : isTeacher ? '/teacher/classes' : '/student/classes'
   const query = useQuery({ queryKey: ['classes', page, search, status], queryFn: () => api.classesPage({ page, size: 12, search, status }) })
   const pageData = asPage(query.data, page, 12)
-  const create = useMutation({ mutationFn: () => api.createClass({ name, code, description: description || undefined }), onSuccess: async () => { setShowCreate(false); setName(''); setCode(''); setDescription(''); await qc.invalidateQueries({ queryKey: ['classes'] }) } })
+  const adminsQ = useQuery({ queryKey: ['users', 'CLASS_ADMIN'], queryFn: () => api.usersPage({ role: 'CLASS_ADMIN', size: 100 }), enabled: showCreate })
+  const adminList: UserItem[] = Array.isArray(adminsQ.data) ? adminsQ.data : adminsQ.data?.items ?? []
+  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t) }, [toast])
+  const resetCreate = () => { setShowCreate(false); setName(''); setCode(''); setDescription(''); setClassStatus('DRAFT'); setAdminId(''); setFieldErrors({}) }
+  const create = useMutation({
+    mutationFn: async () => {
+      const parsed = createClassSchema.safeParse({ name, code })
+      if (!parsed.success) { const fe: Record<string, string> = {}; parsed.error.issues.forEach((i) => { fe[String(i.path[0])] = i.message }); setFieldErrors(fe); throw new Error('validation') }
+      setFieldErrors({})
+      const cls = await api.createClass({ name, code, description: description || undefined, status: classStatus })
+      if (adminId) await api.addClassAdmin(cls.id, { userId: adminId })
+      return cls
+    },
+    onSuccess: async () => { resetCreate(); setToast({ type: 'success', message: 'Đã tạo lớp học thành công.' }); await qc.invalidateQueries({ queryKey: ['classes'] }) },
+    onError: (err: unknown) => { if (err instanceof Error && err.message === 'validation') return; setToast({ type: 'error', message: err instanceof ApiClientError ? err.message : 'Không thể tạo lớp học. Vui lòng thử lại.' }) },
+  })
   const canCreate = isTeacher
 
   return (
     <div className="space-y-5">
       <PageHeader eyebrow="클래스 운영" title={isAdmin ? 'Lớp được giao' : 'Lớp học'} description={isAdmin ? 'CLASS_ADMIN chỉ thấy lớp được phân quyền và không có action global-only.' : 'Tìm kiếm, lọc và quản lý lớp học.'} actions={canCreate && <Button onClick={() => setShowCreate(true)}><Plus size={16} /> Tạo lớp</Button>} />
       <FilterBar><SearchInput value={search} onChange={(e) => { setPage(0); setSearch(e.target.value) }} placeholder="Tìm lớp, mã lớp" /><select className="rounded-2xl border border-sky-100 bg-white px-3 py-2.5 text-sm" value={status} onChange={(e) => { setPage(0); setStatus(e.target.value) }}><option value="">Tất cả trạng thái</option><option value="DRAFT">DRAFT</option><option value="ACTIVE">ACTIVE</option><option value="COMPLETED">COMPLETED</option><option value="ARCHIVED">ARCHIVED</option></select><div className="ml-auto flex gap-1"><Button variant={view === 'card' ? 'primary' : 'secondary'} onClick={() => setView('card')}><Grid2X2 size={16} /></Button><Button variant={view === 'table' ? 'primary' : 'secondary'} onClick={() => setView('table')}><List size={16} /></Button></div></FilterBar>
-      {showCreate && <dialog open className="fixed inset-0 z-50 m-0 grid h-full w-full max-w-none place-items-center bg-slate-950/30 p-4 backdrop-blur-sm"><Card className="w-full max-w-2xl shadow-2xl"><h2 className="text-xl font-black">Tạo lớp học</h2><form className="mt-4 grid gap-3" onSubmit={(e) => { e.preventDefault(); if (name && code) create.mutate() }}><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Tên lớp" required /><Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Mã lớp" required /><TextArea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả" /><div className="flex justify-end gap-2"><Button type="button" variant="secondary" onClick={() => setShowCreate(false)}>Hủy</Button><Button disabled={create.isPending}>Tạo</Button></div></form></Card></dialog>}
+      {toast && <div className={`fixed bottom-6 right-6 z-[60] rounded-2xl px-5 py-3 text-sm font-bold shadow-lg ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-rose-50 text-rose-700 ring-1 ring-rose-200'}`}>{toast.message}</div>}
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={resetCreate}>
+          <Card className="w-full max-w-lg shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-black text-slate-950">Tạo lớp học</h2>
+              <button type="button" onClick={resetCreate} className="rounded-xl p-1 text-slate-400 hover:bg-slate-100"><X size={18} /></button>
+            </div>
+            <form className="grid gap-3" onSubmit={(e) => { e.preventDefault(); create.mutate() }}>
+              <div>
+                <FieldLabel htmlFor="cls-name">Tên lớp <span className="text-rose-500">*</span></FieldLabel>
+                <Input id="cls-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="VD: TOPIK 3,4 ĐÊM" />
+                {fieldErrors.name && <p className="mt-1 text-xs text-rose-500">{fieldErrors.name}</p>}
+              </div>
+              <div>
+                <FieldLabel htmlFor="cls-code">Mã lớp <span className="text-rose-500">*</span></FieldLabel>
+                <Input id="cls-code" value={code} onChange={(e) => setCode(e.target.value)} placeholder="VD: TOPIK34DEM" />
+                {fieldErrors.code && <p className="mt-1 text-xs text-rose-500">{fieldErrors.code}</p>}
+              </div>
+              <div>
+                <FieldLabel htmlFor="cls-desc">Mô tả</FieldLabel>
+                <TextArea id="cls-desc" rows={3} value={description} onChange={(e) => setDescription((e.target as HTMLTextAreaElement).value)} placeholder="Mô tả lớp học (tuỳ chọn)" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <FieldLabel htmlFor="cls-status">Trạng thái</FieldLabel>
+                  <select id="cls-status" className="min-h-11 w-full rounded-2xl border border-sky-100 bg-white px-4 text-sm font-bold text-slate-600 outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" value={classStatus} onChange={(e) => setClassStatus(e.target.value as ClassStatus)}>
+                    <option value="DRAFT">Nháp</option>
+                    <option value="ACTIVE">Đang học</option>
+                    <option value="COMPLETED">Hoàn thành</option>
+                    <option value="ARCHIVED">Lưu trữ</option>
+                  </select>
+                </div>
+                <div>
+                  <FieldLabel htmlFor="cls-admin">Trợ giảng phụ trách</FieldLabel>
+                  <select id="cls-admin" className="min-h-11 w-full rounded-2xl border border-sky-100 bg-white px-4 text-sm text-slate-600 outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" value={adminId} onChange={(e) => setAdminId(e.target.value)}>
+                    <option value="">— Không gán —</option>
+                    {adminList.map((u) => <option key={u.id} value={u.id}>{u.fullName}</option>)}
+                  </select>
+                </div>
+              </div>
+              {create.isError && !(create.error instanceof Error && create.error.message === 'validation') && (
+                <div className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                  {create.error instanceof ApiClientError ? create.error.message : 'Không thể tạo lớp học. Vui lòng thử lại.'}
+                </div>
+              )}
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="secondary" onClick={resetCreate}>Huỷ</Button>
+                <Button disabled={create.isPending}>{create.isPending ? 'Đang tạo...' : 'Tạo lớp'}</Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
       {query.isLoading && <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"><SkeletonCard /><SkeletonCard /><SkeletonCard /></div>}
       {query.isError && <ErrorState onRetry={() => void query.refetch()} />}
       {!query.isLoading && !query.isError && pageData.items.length === 0 && <EmptyState title="Chưa có lớp học" description="Không có lớp phù hợp với bộ lọc hiện tại." />}

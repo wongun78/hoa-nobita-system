@@ -135,6 +135,13 @@ public class ClassroomService {
         klass.setLevelTo(request.levelTo());
         klass.setTeacherId(currentUser.getId());
         klass.setCreatedBy(currentUser.getId());
+        if (request.status() != null) {
+            try {
+                klass.setStatus(ClassStatus.valueOf(request.status()));
+            } catch (IllegalArgumentException e) {
+                throw BusinessException.badRequest("Invalid status: " + request.status());
+            }
+        }
         if (request.startDate() != null) klass.setStartDate(LocalDate.parse(request.startDate()));
         if (request.endDate() != null) klass.setEndDate(LocalDate.parse(request.endDate()));
 

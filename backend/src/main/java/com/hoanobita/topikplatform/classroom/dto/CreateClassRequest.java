@@ -10,6 +10,7 @@ public record CreateClassRequest(
         String code,
 
         String description,
+        String status,
         Integer levelFrom,
         Integer levelTo,
         String startDate,

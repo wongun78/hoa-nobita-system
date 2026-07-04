@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowRight, Download, Pencil, Plus, Save, Trash2, UserMinus, X } from 'lucide-react'
 import { useNewAuth } from '../auth/use-auth'
 import { ConfirmDialog, EmptyState, ErrorState, MetricCard, PageHeader, PaginationControls, StatusBadge } from '../components/foundation'
 import { api } from '../core/api'
-import type { LessonItem, LessonStatus, NotificationItem, StudentMemberItem } from '../core/types'
+import { ApiClientError } from '../core/http'
+import type { ClassStatus, LessonItem, LessonStatus, NotificationItem, StudentMemberItem } from '../core/types'
 import { Button, Card, FieldLabel, Input, TextArea } from '../layout/ui'
 import { asPage, fmtDate, numberValue } from './phase2-utils'
 
@@ -132,6 +133,12 @@ export function ClassDetailV2Page() {
   const [editingLesson, setEditingLesson] = useState<LessonItem | null>(null)
   const [lessonForm, setLessonForm] = useState<LessonFormState>(emptyForm)
   const [lessonDeleteTarget, setLessonDeleteTarget] = useState<LessonItem | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editDesc, setEditDesc] = useState('')
+  const [editStatus, setEditStatus] = useState<ClassStatus>('ACTIVE')
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({})
+  const [editToast, setEditToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const openCreateLesson = () => { setEditingLesson(null); setLessonForm(emptyForm); setLessonDialogOpen(true) }
   const openEditLesson = (item: LessonItem) => { setEditingLesson(item); setLessonForm({ title: item.title, description: item.description ?? '', lessonDate: item.lessonDate ?? '', orderIndex: item.orderIndex, status: item.status }); setLessonDialogOpen(true) }
@@ -158,6 +165,17 @@ export function ClassDetailV2Page() {
 
   const saveLesson = () => { if (editingLesson) { updateLessonMutation.mutate() } else { createLessonMutation.mutate() } }
   const lessonSaving = createLessonMutation.isPending || updateLessonMutation.isPending
+  useEffect(() => { if (!editToast) return; const t = setTimeout(() => setEditToast(null), 3000); return () => clearTimeout(t) }, [editToast])
+  const openEdit = () => { setEditName(klass.data!.name); setEditDesc(klass.data!.description ?? ''); setEditStatus(klass.data!.status as ClassStatus); setEditErrors({}); setEditOpen(true) }
+  const editClass = useMutation({
+    mutationFn: async () => {
+      if (!editName.trim()) { setEditErrors({ name: 'Tên lớp là bắt buộc' }); throw new Error('validation') }
+      setEditErrors({})
+      await api.updateClass(classId, { name: editName, description: editDesc || undefined, status: editStatus })
+    },
+    onSuccess: async () => { setEditOpen(false); setEditToast({ type: 'success', message: 'Đã cập nhật lớp học.' }); await qc.invalidateQueries({ queryKey: ['class', classId] }) },
+    onError: (err: unknown) => { if (err instanceof Error && err.message === 'validation') return; setEditToast({ type: 'error', message: err instanceof ApiClientError ? err.message : 'Không thể cập nhật. Vui lòng thử lại.' }) },
+  })
 
   const studentsPage = asPage(students.data, studentPage, 20)
   const lessonsPage = asPage(lessons.data, lessonPage, 20)
@@ -188,7 +206,7 @@ export function ClassDetailV2Page() {
   if (klass.isLoading) return <Card>Đang tải lớp học...</Card>
   if (klass.isError || !klass.data) return <ErrorState title="Không thể tải chi tiết lớp" onRetry={() => void klass.refetch()} />
 
-  return <div className="space-y-5"><div className="sticky top-20 z-20 space-y-3"><PageHeader eyebrow={klass.data.code} title={klass.data.name} description={isAdmin ? 'Góc nhìn quản trị lớp: chỉ hiển thị dữ liệu và thao tác trong phạm vi lớp được giao.' : klass.data.description || 'Chi tiết vận hành lớp học'} actions={<><Button variant="secondary" onClick={() => api.downloadClassStudentsCsv(classId)}><Download size={16} /> Xuất CSV học viên</Button></>} /><div className="flex gap-2 overflow-x-auto rounded-3xl border border-sky-100 bg-white/90 p-2 shadow-sm">{tabs.map((item) => <button key={item} className={`whitespace-nowrap rounded-2xl px-3 py-2 text-sm font-bold ${tab === item ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-sky-50'}`} onClick={() => setTab(item)}>{item}</button>)}</div></div>
+  return <div className="space-y-5"><div className="sticky top-20 z-20 space-y-3"><PageHeader eyebrow={klass.data.code} title={klass.data.name} description={isAdmin ? 'Góc nhìn quản trị lớp: chỉ hiển thị dữ liệu và thao tác trong phạm vi lớp được giao.' : klass.data.description || 'Chi tiết vận hành lớp học'} actions={<>{canOperate && <Button variant="secondary" onClick={openEdit}><Pencil size={16} /> Sửa lớp</Button>}<Button variant="secondary" onClick={() => api.downloadClassStudentsCsv(classId)}><Download size={16} /> Xuất CSV học viên</Button></>} /><div className="flex gap-2 overflow-x-auto rounded-3xl border border-sky-100 bg-white/90 p-2 shadow-sm">{tabs.map((item) => <button key={item} className={`whitespace-nowrap rounded-2xl px-3 py-2 text-sm font-bold ${tab === item ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-sky-50'}`} onClick={() => setTab(item)}>{item}</button>)}</div></div>
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5"><MetricCard label="Học viên" value={stats.data?.totalStudents ?? klass.data.studentCount} /><MetricCard label="Bài tập" value={stats.data?.totalAssignments ?? '-'} /><MetricCard label="Tỷ lệ nộp" value={`${Math.round(stats.data?.submissionRate ?? 0)}%`} /><MetricCard label="Cần chấm" value={stats.data?.needGrading ?? '-'} /><MetricCard label="Sức khỏe" value={classHealth} /></div>
     {tab === 'Tổng quan' && <Card><h2 className="font-black text-slate-950">Tổng quan lớp học</h2><p className="mt-2 text-sm text-slate-600">Giáo viên: {klass.data.teacherName}</p><p className="text-sm text-slate-600">Trạng thái: <StatusBadge value={klass.data.status} /></p></Card>}
     {tab === 'Học viên' && <Card><div className="mb-3 flex items-center justify-between"><h2 className="font-black">Học viên</h2><Button variant="secondary" onClick={() => api.downloadClassStudentsCsv(classId)}><Download size={16} /> CSV</Button></div><div className="overflow-auto"><table className="w-full min-w-[820px] text-sm"><thead><tr className="border-b border-sky-100 text-left text-slate-500"><th className="px-3 py-3">Học viên</th><th className="px-3 py-3">Mã học viên</th><th className="px-3 py-3">Trạng thái</th><th className="px-3 py-3">Ngày vào</th><th className="px-3 py-3">Hành động</th></tr></thead><tbody>{studentsPage.items.map((student) => <StudentRow key={student.id} classId={classId} student={student} canRemove={canOperate} />)}</tbody></table></div>{studentsPage.items.length === 0 && <EmptyState title="Chưa có học viên" description="Khi học viên được thêm vào lớp, danh sách sẽ hiển thị tại đây." />}{studentsPage.totalPages > 1 && <div className="mt-3"><PaginationControls page={studentPage} totalPages={studentsPage.totalPages} onPageChange={setStudentPage} /></div>}</Card>}
@@ -199,6 +217,46 @@ export function ClassDetailV2Page() {
     {tab === 'Điểm danh' && <Card><div className="mb-3 flex items-center justify-between gap-3"><h2 className="font-black">Điểm danh</h2>{canOperate && <Link className="inline-flex min-h-10 items-center gap-2 rounded-2xl border border-sky-200 bg-white px-4 text-sm font-bold text-slate-700 hover:bg-sky-50" to={`${rolePrefix}/attendance`}><ArrowRight size={16} />Mở điểm danh</Link>}</div><div className="grid gap-3 sm:grid-cols-2"><MetricCard label="Tỷ lệ chuyên cần" value={`${attendanceRate.toFixed(1)}%`} /><MetricCard label="Số buổi học" value={attendance.data?.totalLessons ?? lessonsPage.totalItems} /></div>{!attendance.isLoading && !attendance.data && <EmptyState title="Chưa có dữ liệu điểm danh" description="Dữ liệu chuyên cần sẽ hiển thị sau khi lớp có buổi học và bản ghi điểm danh." />}</Card>}
     {tab === 'Thông báo' && <Card><div className="mb-3 flex items-center justify-between gap-3"><h2 className="font-black">Thông báo</h2>{canOperate && <Link className="inline-flex min-h-10 items-center gap-2 rounded-2xl border border-sky-200 bg-white px-4 text-sm font-bold text-slate-700 hover:bg-sky-50" to={`${rolePrefix}/notifications`}><ArrowRight size={16} />Mở hộp thông báo</Link>}</div>{notifications.isLoading && <p className="py-3 text-sm text-slate-500">Đang tải thông báo...</p>}{notifications.isError && <EmptyState title="Lỗi tải thông báo" description="Không thể tải danh sách thông báo. Vui lòng thử lại." />}{!notifications.isLoading && !notifications.isError && classNotifications.length === 0 && <EmptyState title="Chưa có thông báo" description="Lớp này chưa có thông báo nào." />}{notifPageItems.map((n) => <div key={n.id} className={`border-b border-sky-50 py-3 ${n.isRead ? 'opacity-60' : ''}`}><b className="text-sm text-slate-900">{n.title}</b><p className="mt-1 text-xs text-slate-600">{n.content}</p><p className="mt-1 text-xs text-slate-400">{fmtDate(n.createdAt)}{n.isRead ? '' : ' · Mới'}</p></div>)}{notifTotalPages > 1 && <div className="mt-3"><PaginationControls page={notifPage} totalPages={notifTotalPages} onPageChange={setNotifPage} /></div>}</Card>}
     {tab === 'Hoạt động' && <Card><h2 className="font-black">Hoạt động</h2><div className="mt-3 divide-y divide-sky-50">{activityPageData.items.map((item) => <div key={item.id} className="py-3"><b>{item.message}</b><p className="text-xs text-slate-500">{item.actorName} · {fmtDate(item.createdAt)}</p></div>)}{activityPageData.items.length === 0 && <EmptyState title="Chưa có hoạt động" description="Nhật ký thao tác của lớp sẽ hiển thị tại đây." />}</div>{activityPageData.totalPages > 1 && <div className="mt-3"><PaginationControls page={activityPage} totalPages={activityPageData.totalPages} onPageChange={setActivityPage} /></div>}</Card>}
+    {editToast && <div className={`fixed bottom-6 right-6 z-[60] rounded-2xl px-5 py-3 text-sm font-bold shadow-lg ${editToast.type === 'success' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-rose-50 text-rose-700 ring-1 ring-rose-200'}`}>{editToast.message}</div>}
+    {editOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEditOpen(false)}>
+        <Card className="w-full max-w-lg shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-black text-slate-950">Sửa lớp học</h2>
+            <button type="button" onClick={() => setEditOpen(false)} className="rounded-xl p-1 text-slate-400 hover:bg-slate-100"><X size={18} /></button>
+          </div>
+          <form className="grid gap-3" onSubmit={(e) => { e.preventDefault(); editClass.mutate() }}>
+            <div>
+              <FieldLabel htmlFor="edit-name">Tên lớp <span className="text-rose-500">*</span></FieldLabel>
+              <Input id="edit-name" value={editName} onChange={(e) => setEditName(e.target.value)} />
+              {editErrors.name && <p className="mt-1 text-xs text-rose-500">{editErrors.name}</p>}
+            </div>
+            <div>
+              <FieldLabel htmlFor="edit-desc">Mô tả</FieldLabel>
+              <TextArea id="edit-desc" rows={3} value={editDesc} onChange={(e) => setEditDesc((e.target as HTMLTextAreaElement).value)} />
+            </div>
+            <div>
+              <FieldLabel htmlFor="edit-status">Trạng thái</FieldLabel>
+              <select id="edit-status" className="min-h-11 w-full rounded-2xl border border-sky-100 bg-white px-4 text-sm font-bold text-slate-600 outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" value={editStatus} onChange={(e) => setEditStatus(e.target.value as ClassStatus)}>
+                <option value="DRAFT">Nháp</option>
+                <option value="ACTIVE">Đang học</option>
+                <option value="COMPLETED">Hoàn thành</option>
+                <option value="ARCHIVED">Lưu trữ</option>
+              </select>
+            </div>
+            {editClass.isError && !(editClass.error instanceof Error && editClass.error.message === 'validation') && (
+              <div className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                {editClass.error instanceof ApiClientError ? editClass.error.message : 'Không thể cập nhật. Vui lòng thử lại.'}
+              </div>
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="secondary" onClick={() => setEditOpen(false)}>Huỷ</Button>
+              <Button disabled={editClass.isPending}>{editClass.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}</Button>
+            </div>
+          </form>
+        </Card>
+      </div>
+    )}
     <LessonFormDialog open={lessonDialogOpen} title={editingLesson ? 'Sửa buổi học' : 'Tạo buổi học'} form={lessonForm} onChange={setLessonForm} saving={lessonSaving} onSave={saveLesson} onClose={() => setLessonDialogOpen(false)} />
     <ConfirmDialog open={Boolean(lessonDeleteTarget)} title={`Xoá "${lessonDeleteTarget?.title}"?`} description="Buổi học sẽ bị xoá mềm. Dữ liệu điểm danh liên quan vẫn được giữ." confirmLabel={deleteLessonMutation.isPending ? 'Đang xoá...' : 'Xoá buổi học'} onCancel={() => setLessonDeleteTarget(null)} onConfirm={() => { if (lessonDeleteTarget) deleteLessonMutation.mutate(lessonDeleteTarget.id) }} />
   </div>
