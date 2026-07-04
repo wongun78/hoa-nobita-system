@@ -16,38 +16,39 @@ type MenuItem = {
 }
 
 const menuItems: MenuItem[] = [
-  { to: '/teacher/dashboard', label: 'Dashboard', roles: ['TEACHER_OWNER'] },
-  { to: '/teacher/users', label: 'Users', roles: ['TEACHER_OWNER'] },
-  { to: '/teacher/classes', label: 'Classes', roles: ['TEACHER_OWNER'] },
-  { to: '/teacher/assignments', label: 'Assignments', roles: ['TEACHER_OWNER'] },
-  { to: '/teacher/grading', label: 'Grading Center', roles: ['TEACHER_OWNER'] },
-  { to: '/teacher/materials', label: 'Materials', roles: ['TEACHER_OWNER'] },
-  { to: '/teacher/notifications', label: 'Notifications', roles: ['TEACHER_OWNER'] },
-  { to: '/teacher/attendance', label: 'Attendance', roles: ['TEACHER_OWNER'] },
-  { to: '/teacher/calendar', label: 'Calendar', roles: ['TEACHER_OWNER'] },
-  { to: '/teacher/reports', label: 'Reports', roles: ['TEACHER_OWNER'] },
-  { to: '/admin/dashboard', label: 'Dashboard', roles: ['CLASS_ADMIN'] },
-  { to: '/admin/classes', label: 'My Classes', roles: ['CLASS_ADMIN'] },
-  { to: '/admin/assignments', label: 'Assignments', roles: ['CLASS_ADMIN'] },
-  { to: '/admin/grading', label: 'Grading', roles: ['CLASS_ADMIN'] },
-  { to: '/admin/materials', label: 'Materials', roles: ['CLASS_ADMIN'] },
-  { to: '/admin/notifications', label: 'Notifications', roles: ['CLASS_ADMIN'] },
-  { to: '/admin/attendance', label: 'Attendance', roles: ['CLASS_ADMIN'] },
-  { to: '/admin/calendar', label: 'Calendar', roles: ['CLASS_ADMIN'] },
-  { to: '/admin/reports', label: 'Reports', roles: ['CLASS_ADMIN'] },
-  { to: '/student/home', label: 'Home', roles: ['STUDENT'] },
-  { to: '/student/classes', label: 'My Classes', roles: ['STUDENT'] },
-  { to: '/student/assignments', label: 'Assignments', roles: ['STUDENT'] },
-  { to: '/student/submissions', label: 'My Submissions', roles: ['STUDENT'] },
-  { to: '/student/grades', label: 'Grades', roles: ['STUDENT'] },
-  { to: '/student/attendance', label: 'Attendance', roles: ['STUDENT'] },
-  { to: '/student/materials', label: 'Materials', roles: ['STUDENT'] },
-  { to: '/student/calendar', label: 'Calendar', roles: ['STUDENT'] },
-  { to: '/student/notifications', label: 'Notifications', roles: ['STUDENT'] },
-  { to: '/student/profile', label: 'Profile', roles: ['STUDENT'] },
+  { to: '/teacher/dashboard', label: 'Bảng điều khiển', roles: ['TEACHER_OWNER'] },
+  { to: '/teacher/users', label: 'Người dùng', roles: ['TEACHER_OWNER'] },
+  { to: '/teacher/classes', label: 'Lớp học', roles: ['TEACHER_OWNER'] },
+  { to: '/teacher/assignments', label: 'Bài tập', roles: ['TEACHER_OWNER'] },
+  { to: '/teacher/grading', label: 'Chấm bài', roles: ['TEACHER_OWNER'] },
+  { to: '/teacher/materials', label: 'Tài liệu', roles: ['TEACHER_OWNER'] },
+  { to: '/teacher/notifications', label: 'Thông báo', roles: ['TEACHER_OWNER'] },
+  { to: '/teacher/attendance', label: 'Điểm danh', roles: ['TEACHER_OWNER'] },
+  { to: '/teacher/calendar', label: 'Lịch học', roles: ['TEACHER_OWNER'] },
+  { to: '/teacher/reports', label: 'Báo cáo', roles: ['TEACHER_OWNER'] },
+  { to: '/admin/dashboard', label: 'Bảng điều khiển', roles: ['CLASS_ADMIN'] },
+  { to: '/admin/classes', label: 'Lớp học', roles: ['CLASS_ADMIN'] },
+  { to: '/admin/assignments', label: 'Bài tập', roles: ['CLASS_ADMIN'] },
+  { to: '/admin/grading', label: 'Chấm bài', roles: ['CLASS_ADMIN'] },
+  { to: '/admin/materials', label: 'Tài liệu', roles: ['CLASS_ADMIN'] },
+  { to: '/admin/notifications', label: 'Thông báo', roles: ['CLASS_ADMIN'] },
+  { to: '/admin/attendance', label: 'Điểm danh', roles: ['CLASS_ADMIN'] },
+  { to: '/admin/calendar', label: 'Lịch học', roles: ['CLASS_ADMIN'] },
+  { to: '/admin/reports', label: 'Báo cáo', roles: ['CLASS_ADMIN'] },
+  { to: '/student/home', label: 'Trang chủ', roles: ['STUDENT'] },
+  { to: '/student/classes', label: 'Lớp học', roles: ['STUDENT'] },
+  { to: '/student/assignments', label: 'Bài tập', roles: ['STUDENT'] },
+  { to: '/student/submissions', label: 'Bài đã nộp', roles: ['STUDENT'] },
+  { to: '/student/grades', label: 'Điểm số', roles: ['STUDENT'] },
+  { to: '/student/attendance', label: 'Điểm danh', roles: ['STUDENT'] },
+  { to: '/student/materials', label: 'Tài liệu', roles: ['STUDENT'] },
+  { to: '/student/calendar', label: 'Lịch học', roles: ['STUDENT'] },
+  { to: '/student/notifications', label: 'Thông báo', roles: ['STUDENT'] },
+  { to: '/student/profile', label: 'Hồ sơ', roles: ['STUDENT'] },
 ]
 
-const mobileStudentItems = menuItems.filter((item) => ['Home', 'My Classes', 'Assignments', 'Grades', 'Attendance'].includes(item.label) && item.roles?.includes('STUDENT'))
+const mobileStudentRoutes = ['/student/home', '/student/classes', '/student/assignments', '/student/grades', '/student/attendance']
+const mobileStudentItems = menuItems.filter((item) => mobileStudentRoutes.includes(item.to) && item.roles?.includes('STUDENT'))
 
 type AppShellProps = Readonly<{ children: React.ReactNode }>
 
@@ -154,7 +155,7 @@ export function AppShell({ children }: AppShellProps) {
         <div className="min-w-0 space-y-5">
           <header className="sticky top-3 z-30 flex items-center justify-between gap-3 rounded-3xl border border-white/70 bg-white/80 p-3 shadow-sm backdrop-blur">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-500">안녕하세요</p>
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-500">XIN CHÀO</p>
               <p className="text-sm font-semibold text-slate-600">Hôm nay học tập thật gọn gàng và hiệu quả.</p>
             </div>
             <div className="flex items-center gap-2">
@@ -178,7 +179,7 @@ export function AppShell({ children }: AppShellProps) {
         <nav className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-5 gap-1 rounded-3xl border border-white/80 bg-white/90 p-2 shadow-2xl backdrop-blur lg:hidden" aria-label="Điều hướng học viên">
           {mobileStudentItems.map((item) => {
             const active = pathname === item.to || pathname.startsWith(`${item.to}/`)
-            return <Link key={item.to} to={item.to} className={active ? 'rounded-2xl bg-indigo-50 px-2 py-2 text-center text-[11px] font-black text-indigo-700' : 'rounded-2xl px-2 py-2 text-center text-[11px] font-bold text-slate-500'}>{item.label.replace('My ', '')}</Link>
+            return <Link key={item.to} to={item.to} className={active ? 'rounded-2xl bg-indigo-50 px-2 py-2 text-center text-[11px] font-black text-indigo-700' : 'rounded-2xl px-2 py-2 text-center text-[11px] font-bold text-slate-500'}>{item.label}</Link>
           })}
         </nav>
       )}
