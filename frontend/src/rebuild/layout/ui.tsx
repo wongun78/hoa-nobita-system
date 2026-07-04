@@ -24,12 +24,12 @@ export function Button({ variant = 'primary', className, ...props }: ButtonProps
   )
 }
 
-export function Input(props: InputProps) {
-  return <input className="w-full rounded-2xl border border-sky-100 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" {...props} />
+export function Input({ className, ...props }: InputProps) {
+  return <input {...props} className={clsx('w-full rounded-2xl border border-sky-100 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100', className)} />
 }
 
-export function TextArea(props: TextAreaProps) {
-  return <textarea className="w-full rounded-2xl border border-sky-100 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" {...props} />
+export function TextArea({ className, ...props }: TextAreaProps) {
+  return <textarea {...props} className={clsx('w-full rounded-2xl border border-sky-100 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100', className)} />
 }
 
 export function Card({ children, className }: CardProps) {
