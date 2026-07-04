@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { Download, FileText, MessageSquareText, Search } from 'lucide-react'
+import { Download, ExternalLink, FileText, MessageSquareText, Search } from 'lucide-react'
 import { api } from '../core/api'
 import { EmptyState, ErrorState, FilterBar, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { Button, Card, Input } from '../layout/ui'
@@ -46,8 +46,19 @@ function StudentSubmissionDetail({ submissionId }: Readonly<{ submissionId: stri
           {item.contentText ? <div className="mt-4 whitespace-pre-line rounded-2xl bg-slate-50 p-4 text-sm leading-7 text-slate-700">{item.contentText}</div> : <EmptyState title="Không có nội dung văn bản" description="Bài nộp có thể dùng URL hoặc tệp đính kèm." />}
           <div className="mt-4 flex flex-wrap gap-2">
             {item.contentUrl && <a className="inline-flex min-h-11 items-center rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700" href={item.contentUrl} target="_blank" rel="noreferrer">Mở URL</a>}
-            {item.fileId && <Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(item.fileId!, item.assignmentTitle)}><Download size={16} />Tải tệp</Button>}
+            {item.fileId && <Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadSubmissionFile(item.id, item.fileName || item.assignmentTitle)}><Download size={16} />Tải tệp</Button>}
           </div>
+          {(item.feedbackFileId || item.feedbackLink) && (
+            <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-3 space-y-2">
+              <h3 className="text-xs font-bold text-indigo-700">Tệp đính kèm từ giáo viên</h3>
+              {item.feedbackFileId && (
+                <Button type="button" variant="secondary" className="min-h-9" onClick={() => api.downloadFeedbackFile(item.id, item.feedbackFileName || `feedback-${item.id}`)}>
+                  <Download size={14} /> {item.feedbackFileName || 'Tải tệp phản hồi'}
+                </Button>
+              )}
+              {item.feedbackLink && <a className="inline-flex items-center gap-1 text-sm font-bold text-indigo-600" href={item.feedbackLink} target="_blank" rel="noreferrer"><ExternalLink size={14} /> {item.feedbackLink}</a>}
+            </div>
+          )}
         </Card>
         <Card className="rounded-3xl bg-gradient-to-br from-white to-emerald-50/60">
           <h2 className="text-lg font-black text-slate-950">Điểm & phản hồi</h2>
