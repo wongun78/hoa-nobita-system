@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Download, ExternalLink } from 'lucide-react'
 import { api } from '../core/api'
 import { Button, Card, Input, TextArea } from '../layout/ui'
+import { fmtDate } from './phase2-utils'
 import type { AssignmentItem, CalendarEvent, ClassItem, SubmissionItem } from '../core/types'
 
 function SectionHeader({ title, eyebrow, description }: Readonly<{ title: string; eyebrow?: string; description?: string }>) {
@@ -205,8 +207,10 @@ export function ProfilePage() {
 export function StudentAssignmentSubmitPage() {
   const [assignmentId, setAssignmentId] = useState('')
   const [contentText, setContentText] = useState('')
+  const [contentUrl, setContentUrl] = useState('')
   const assignments = useQuery({ queryKey: ['assignments', 'student-submit'], queryFn: () => api.assignments() })
-  const submit = useMutation({ mutationFn: () => api.submitAssignment(assignmentId, { contentText }) })
+  const selected = useMemo(() => (assignments.data ?? []).find((item: AssignmentItem) => item.id === assignmentId), [assignmentId, assignments.data])
+  const submit = useMutation({ mutationFn: () => api.submitAssignment(assignmentId, { contentText: contentText || undefined, contentUrl: contentUrl || undefined }) })
 
   return (
     <div className="space-y-5">
@@ -216,8 +220,22 @@ export function StudentAssignmentSubmitPage() {
           <option value="">Chọn bài tập</option>
           {(assignments.data ?? []).map((item: AssignmentItem) => <option key={item.id} value={item.id}>{item.title}</option>)}
         </select>
-        <TextArea rows={8} placeholder="Nội dung bài làm" value={contentText} onChange={(e) => setContentText(e.target.value)} />
-        <Button disabled={!assignmentId || !contentText || submit.isPending} onClick={() => submit.mutate()}>Gửi bài</Button>
+        {selected && (
+          <div className="rounded-2xl bg-sky-50 p-4 space-y-2">
+            <h2 className="font-black text-slate-950">{selected.title}</h2>
+            <p className="text-sm leading-6 text-slate-600">{selected.description || selected.instruction || 'Chưa có hướng dẫn chi tiết.'}</p>
+            <div className="flex flex-wrap gap-2 text-xs font-bold text-slate-600">
+              {selected.dueAt && <span className="rounded-full bg-white px-3 py-1">Hạn: {fmtDate(selected.dueAt)}</span>}
+              <span className="rounded-full bg-white px-3 py-1">Điểm tối đa: {selected.maxScore}</span>
+              {selected.skill && <span className="rounded-xl bg-violet-50 px-2 py-0.5 text-violet-700">{selected.skill}</span>}
+            </div>
+            {selected.externalLink && <a className="inline-flex items-center gap-1 text-sm font-bold text-indigo-600" href={selected.externalLink} target="_blank" rel="noreferrer"><ExternalLink size={14} />Tài liệu tham khảo</a>}
+            {selected.fileId && <a className="inline-flex items-center gap-1 text-sm font-bold text-indigo-600" href={api.downloadFileUrl(selected.fileId)}><Download size={14} />Tải tệp đính kèm</a>}
+          </div>
+        )}
+        <TextArea rows={6} placeholder="Nội dung bài làm" value={contentText} onChange={(e) => setContentText(e.target.value)} />
+        <Input placeholder="URL bài làm ngoài (nếu có)" value={contentUrl} onChange={(e) => setContentUrl(e.target.value)} />
+        <Button disabled={!assignmentId || (!contentText.trim() && !contentUrl.trim()) || submit.isPending} onClick={() => submit.mutate()}>Gửi bài</Button>
       </Card>
     </div>
   )
