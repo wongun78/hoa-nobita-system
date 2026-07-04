@@ -78,6 +78,29 @@ select:focus-visible {
   .student-animate-in {
     animation: student-fade-in-up 0.4s ease-out both;
   }
+  @keyframes login-blob-drift {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -20px) scale(1.05); }
+    66% { transform: translate(-20px, 15px) scale(0.95); }
+  }
+  @keyframes login-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+  @keyframes login-card-in {
+    from { opacity: 0; transform: translateY(24px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes login-shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+  .login-blob { animation: login-blob-drift 18s ease-in-out infinite; }
+  .login-blob-alt { animation: login-blob-drift 22s ease-in-out infinite reverse; }
+  .login-float { animation: login-float 6s ease-in-out infinite; }
+  .login-float-alt { animation: login-float 7s ease-in-out infinite 1s; }
+  .login-float-slow { animation: login-float 8s ease-in-out infinite 2s; }
+  .login-card-in { animation: login-card-in 0.6s ease-out both; }
 }
 
 @media (prefers-reduced-motion: reduce) {
