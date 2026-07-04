@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, ExternalLink } from 'lucide-react'
 import { api } from '../core/api'
@@ -24,16 +24,19 @@ export function MaterialsPage() {
   const [classId, setClassId] = useState('')
   const classes = useQuery({ queryKey: ['classes', 'materials-filter'], queryFn: () => api.classes() })
   const materials = useQuery({ queryKey: ['materials', classId], queryFn: () => api.materialsByClass(classId), enabled: Boolean(classId) })
+  const classList = classes.data ?? []
+  useEffect(() => { if (!classId && classes.data && classes.data.length > 0) setClassId(classes.data[0].id) }, [classId, classes.data])
 
   return (
     <div className="space-y-5">
       <SectionHeader title="Thư viện tài liệu" eyebrow="Thư viện tài liệu" description="Xem và tải tài liệu học tập, tệp đính kèm và liên kết ngoài theo từng lớp." />
-      <Card className="max-w-md">
-        <select className="w-full rounded-xl border border-sky-100 bg-white px-3 py-2 text-sm" value={classId} onChange={(e) => setClassId(e.target.value)}>
-          <option value="">Chọn lớp học</option>
-          {(classes.data ?? []).map((item: ClassItem) => <option key={item.id} value={item.id}>{item.name}</option>)}
-        </select>
-      </Card>
+      {classList.length > 1 && (
+        <Card className="max-w-md">
+          <select className="w-full rounded-xl border border-sky-100 bg-white px-3 py-2 text-sm" value={classId} onChange={(e) => setClassId(e.target.value)}>
+            {classList.map((item: ClassItem) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+        </Card>
+      )}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {(materials.data ?? []).map((item) => (
           <Card key={item.id} className="rounded-3xl">
