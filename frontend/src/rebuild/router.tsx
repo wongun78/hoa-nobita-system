@@ -1,12 +1,10 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { RequireAuth, RequireRole } from './auth/guards'
 import { AppShell } from './layout/app-shell'
-import { AssignmentsPage } from './pages/assignments-page'
 import { AssignmentsV2Page } from './pages/assignments-v2'
 import { AttendanceMarkingPage } from './pages/attendance-marking-page'
 import { ChangePasswordPage } from './pages/change-password-page'
 import { ClassDetailV2Page } from './pages/class-detail-v2'
-import { ClassDetailPage } from './pages/class-detail-page'
 import { ClassesPage } from './pages/classes-page'
 import { DashboardPage } from './pages/dashboard-page'
 import { GradingV2Page } from './pages/grading-v2'
@@ -87,8 +85,8 @@ export function NewAppRouter() {
 
       <Route path="/bang-dieu-khien" element={<AppFrame><DashboardPage /></AppFrame>} />
       <Route path="/lop-hoc" element={<AppFrame><ClassesPage /></AppFrame>} />
-      <Route path="/lop-hoc/:classId" element={<AppFrame><ClassDetailPage /></AppFrame>} />
-      <Route path="/bai-tap" element={<AppFrame><AssignmentsPage /></AppFrame>} />
+      <Route path="/lop-hoc/:classId" element={<AppFrame><ClassDetailV2Page /></AppFrame>} />
+      <Route path="/bai-tap" element={<AppFrame><AssignmentsV2Page /></AppFrame>} />
       <Route path="/tai-lieu" element={<AppFrame><MaterialsPage /></AppFrame>} />
       <Route path="/thong-bao" element={<AppFrame><NotificationsInboxPage /></AppFrame>} />
       <Route path="/notifications" element={<AppFrame><NotificationsInboxPage /></AppFrame>} />
