@@ -8,6 +8,7 @@ import com.hoanobita.topikplatform.user.repository.RoleRepository;
 import com.hoanobita.topikplatform.user.repository.UserRepository;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Set;
 
 @Component
+@ConditionalOnProperty(name = "app.seed.enabled", havingValue = "false", matchIfMissing = true)
 public class DataInitializer implements ApplicationRunner {
     private final UserRepository users;
     private final RoleRepository roles;
@@ -44,7 +46,10 @@ public class DataInitializer implements ApplicationRunner {
     }
 
     private User user(String fullName, String email, String phone, Role role) {
-        return users.findByEmailOrPhone(email).orElseGet(() -> {
+        // Check by email OR phone to avoid unique constraint violations
+        return users.findByEmailOrPhone(email)
+                .or(() -> users.findByEmailOrPhone(phone))
+                .orElseGet(() -> {
             User u = new User();
             u.setFullName(fullName);
             u.setEmail(email);

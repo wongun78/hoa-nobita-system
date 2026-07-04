@@ -28,6 +28,8 @@ app:
   upload-dir: ${UPLOAD_DIR:uploads}
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
+  seed:
+    enabled: ${APP_SEED_ENABLED:false}
 
 springdoc:
   api-docs:

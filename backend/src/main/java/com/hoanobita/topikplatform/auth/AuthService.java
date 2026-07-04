@@ -26,7 +26,17 @@ public class AuthService {
 
     public LoginResponse login(LoginRequest request) {
         var user = userRepository.findByEmailOrPhone(request.identifier())
-                .orElseThrow(() -> BusinessException.unauthorized("Invalid credentials"));
+                .orElse(null);
+
+        // Support username login: "d01" → try "d01@hoanobita.edu.vn"
+        if (user == null && !request.identifier().contains("@")) {
+            user = userRepository.findByEmailOrPhone(request.identifier() + "@hoanobita.edu.vn")
+                    .orElse(null);
+        }
+
+        if (user == null) {
+            throw BusinessException.unauthorized("Invalid credentials");
+        }
 
         if (user.getStatus() == UserStatus.SUSPENDED) {
             throw BusinessException.unauthorized("Account is suspended");
