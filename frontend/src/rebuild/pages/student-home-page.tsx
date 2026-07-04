@@ -7,6 +7,7 @@ import { Card } from '../layout/ui'
 import { fmtDate } from './phase2-utils'
 import { useNewAuth } from '../auth/use-auth'
 import type { AssignmentItem, NotificationItem, SubmissionItem } from '../core/types'
+import { getStudentAvatarUrl, studentAvatarSeed } from './phase2-utils'
 
 function isDueSoon(item: AssignmentItem) {
   if (!item.dueAt) return false
@@ -71,6 +72,7 @@ export function StudentHomePage() {
             <h1 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">Hôm nay bạn học gì{user?.fullName ? `, ${user.fullName.split(' ').slice(-1).join('')}` : ''}?</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">Một góc học tập nhẹ nhàng để theo dõi lớp TOPIK, deadline, điểm số và thông báo mới.</p>
           </div>
+          {user && <img src={getStudentAvatarUrl(studentAvatarSeed(user))} alt={user.fullName || 'Học viên'} className="hidden h-20 w-20 rounded-2xl border-2 border-white/30 shadow-lg md:block" />}
         </div>
       </div>
 

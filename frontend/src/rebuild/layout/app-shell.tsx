@@ -7,6 +7,7 @@ import { useNewAuth } from '../auth/use-auth'
 import { api } from '../core/api'
 import type { NotificationItem, RoleName } from '../core/types'
 import { RoleBadge } from '../components/foundation'
+import { getStudentAvatarUrl, studentAvatarSeed } from '../pages/phase2-utils'
 import { Button } from './ui'
 
 type MenuItem = {
@@ -105,13 +106,14 @@ function UserMenu() {
   return (
     <div className="relative">
       <button type="button" onClick={() => setOpen((value) => !value)} className="flex items-center gap-2 rounded-2xl border border-sky-100 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-sky-50 focus:outline-none focus:ring-4 focus:ring-indigo-100">
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-sky-300 text-xs font-black text-white">{user?.fullName?.slice(0, 1) ?? 'U'}</span>
+        {user?.roles.includes('STUDENT') ? <img src={getStudentAvatarUrl(studentAvatarSeed(user))} alt={user.fullName || 'Học viên'} className="h-8 w-8 rounded-full border border-white shadow-sm" /> : <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-sky-300 text-xs font-black text-white">{user?.fullName?.slice(0, 1) ?? 'U'}</span>}
         <span className="hidden max-w-32 truncate md:inline">{user?.fullName}</span>
         <ChevronDown size={14} />
       </button>
       {open && (
         <div className="absolute right-0 z-40 mt-3 w-64 rounded-3xl border border-sky-100 bg-white/95 p-3 shadow-2xl backdrop-blur">
           <div className="border-b border-sky-50 pb-3">
+            {user?.roles.includes('STUDENT') && <img src={getStudentAvatarUrl(studentAvatarSeed(user))} alt={user.fullName || 'Học viên'} className="mb-2 h-12 w-12 rounded-xl border border-white shadow-sm" />}
             <p className="font-bold text-slate-950">{user?.fullName}</p>
             <div className="mt-2 flex flex-wrap gap-1">{user?.roles.map((role) => <RoleBadge key={role} role={role} />)}</div>
           </div>

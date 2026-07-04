@@ -4,7 +4,7 @@ import { Download, ExternalLink, FileText, Link2, Upload } from 'lucide-react'
 import { api } from '../core/api'
 import { Button, Card, Input, TextArea } from '../layout/ui'
 import { EmptyState } from '../components/foundation'
-import { fmtDate } from './phase2-utils'
+import { fmtDate, getStudentAvatarUrl, studentAvatarSeed } from './phase2-utils'
 import type { AssignmentItem, CalendarEvent, ClassItem, SubmissionItem } from '../core/types'
 
 function SectionHeader({ title, eyebrow, description }: Readonly<{ title: string; eyebrow?: string; description?: string }>) {
@@ -198,7 +198,7 @@ export function ProfilePage() {
       <SectionHeader title="Hồ sơ cá nhân" eyebrow="Hồ sơ" description="Cập nhật thông tin cá nhân và bảo mật tài khoản." />
       <Card className="max-w-2xl rounded-3xl">
         <div className="flex items-center gap-4">
-          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-sky-400 text-2xl font-black text-white">{(me.data?.fullName || 'U')[0].toUpperCase()}</div>
+          {me.data ? <img src={getStudentAvatarUrl(studentAvatarSeed(me.data))} alt={me.data.fullName || 'Học viên'} className="h-16 w-16 shrink-0 rounded-full border-2 border-white shadow-md" /> : <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-sky-400 text-2xl font-black text-white">U</div>}
           <div>
             <h2 className="text-lg font-black text-slate-950">{me.data?.fullName || 'Học viên'}</h2>
             <p className="text-sm text-slate-500">{me.data?.email || me.data?.phone || 'Chưa cập nhật'}</p>

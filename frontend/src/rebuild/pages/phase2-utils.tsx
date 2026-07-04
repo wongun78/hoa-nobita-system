@@ -4,6 +4,14 @@ import { EmptyState } from '../components/foundation'
 import { Card } from '../layout/ui'
 import type { PageResponse } from '../core/types'
 
+export function getStudentAvatarUrl(seed: string): string {
+  return `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(seed)}`
+}
+
+export function studentAvatarSeed(user: { email?: string | null; id?: string; fullName?: string; studentCode?: string | null }): string {
+  return user.studentCode || user.email || user.id || user.fullName || 'student'
+}
+
 export function asPage<T>(payload: PageResponse<T> | T[] | undefined, page = 0, size = 10): PageResponse<T> {
   if (!payload) return { items: [], page, size, totalItems: 0, totalPages: 0 }
   if (Array.isArray(payload)) return { items: payload, page, size, totalItems: payload.length, totalPages: payload.length ? 1 : 0 }
