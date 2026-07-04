@@ -34,7 +34,7 @@ public class DataInitializer implements ApplicationRunner {
         Role teacherRole = role(RoleName.TEACHER_OWNER);
         role(RoleName.CLASS_ADMIN);
         role(RoleName.STUDENT);
-        user("Anh Hoà", "teacher@hoanobita.com", "0900000001", teacherRole);
+        user("Nguyễn Tuấn Hoà", "hoateacher@hoanobita.com", "0900000001", teacherRole);
     }
 
     private Role role(RoleName name) {

@@ -22,18 +22,18 @@ BEGIN;
 
 -- Clean everything except mandatory roles and the stable teacher account.
 TRUNCATE TABLE activity_logs, grades, submissions, assignments, materials, lessons, class_members, class_admins, classes, notifications, files RESTART IDENTITY CASCADE;
-DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users WHERE email <> 'teacher@hoanobita.com');
-DELETE FROM users WHERE email <> 'teacher@hoanobita.com';
+DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users WHERE email <> 'hoateacher@hoanobita.com');
+DELETE FROM users WHERE email <> 'hoateacher@hoanobita.com';
 
 -- Ensure roles exist and teacher has the canonical profile/password created by DataInitializer.
 INSERT INTO roles (name) VALUES ('TEACHER_OWNER'), ('CLASS_ADMIN'), ('STUDENT') ON CONFLICT (name) DO NOTHING;
-UPDATE users SET full_name = 'Anh Hoà', phone = '0900000001', status = 'ACTIVE', first_login = false, deleted_at = NULL WHERE email = 'teacher@hoanobita.com';
+UPDATE users SET full_name = 'Nguyễn Tuấn Hoà', phone = '0900000001', status = 'ACTIVE', first_login = false, deleted_at = NULL WHERE email = 'hoateacher@hoanobita.com';
 INSERT INTO user_roles (user_id, role_id)
-SELECT u.id, r.id FROM users u, roles r WHERE u.email = 'teacher@hoanobita.com' AND r.name = 'TEACHER_OWNER'
+SELECT u.id, r.id FROM users u, roles r WHERE u.email = 'hoateacher@hoanobita.com' AND r.name = 'TEACHER_OWNER'
 ON CONFLICT DO NOTHING;
 
 -- Stable admins and 60 stable students. All use the same bcrypt hash as teacher => Password123!.
-WITH teacher_hash AS (SELECT password_hash FROM users WHERE email = 'teacher@hoanobita.com'),
+WITH teacher_hash AS (SELECT password_hash FROM users WHERE email = 'hoateacher@hoanobita.com'),
 admin_rows(full_name,email,phone) AS (
   VALUES ('Admin Kiên','admin.chieu@hoanobita.com','0901000001'), ('Admin Quân','admin.dem@hoanobita.com','0901000002')
 ),
@@ -61,7 +61,7 @@ INSERT INTO user_roles(user_id, role_id)
 SELECT i.id, r.id FROM inserted i JOIN all_rows a ON a.email = i.email JOIN roles r ON r.name = a.role_name;
 
 -- Four exact classes.
-WITH teacher AS (SELECT id FROM users WHERE email = 'teacher@hoanobita.com'),
+WITH teacher AS (SELECT id FROM users WHERE email = 'hoateacher@hoanobita.com'),
 klass_rows(name,code,description,level_from,level_to,start_date,end_date) AS (
   VALUES
     ('TOPIK 2-3 Foundation','TOPIK23-FOUNDATION','Lớp TOPIK 2-3 nền tảng: củng cố ngữ pháp và từ vựng cơ bản.', 2, 3, CURRENT_DATE, CURRENT_DATE + INTERVAL '90 days'),
@@ -137,7 +137,7 @@ WHERE (abs(hashtext(u.email || a.title)) % 5) <> 0;
 
 -- Notifications.
 INSERT INTO notifications(title,content,target_type,target_id,created_by,created_at)
-SELECT 'Chào mừng đến với Hoà Nobita Korean Platform','Chúc các bạn học TOPIK hiệu quả, nộp bài đúng hạn và theo dõi phản hồi sau mỗi buổi học.','ALL',NULL,u.id,NOW() FROM users u WHERE u.email='teacher@hoanobita.com';
+SELECT 'Chào mừng đến với Hoà Nobita Korean Platform','Chúc các bạn học TOPIK hiệu quả, nộp bài đúng hạn và theo dõi phản hồi sau mỗi buổi học.','ALL',NULL,u.id,NOW() FROM users u WHERE u.email='hoateacher@hoanobita.com';
 INSERT INTO notifications(title,content,target_type,target_id,created_by,created_at)
 SELECT 'Lịch học lớp Chiều tuần này','Lớp Chiều học lúc 14:00, vui lòng xem trước tài liệu nghe tuần 1.','CLASS',c.id,u.id,NOW() FROM classes c JOIN users u ON u.email='admin.chieu@hoanobita.com' WHERE c.code='TOPIK34-CHIEU';
 INSERT INTO notifications(title,content,target_type,target_id,created_by,created_at)
@@ -146,7 +146,7 @@ SELECT 'Lịch học lớp Đêm tuần này','Lớp Đêm học lúc 19:30, chu
 -- Activity feed evidence.
 INSERT INTO activity_logs(id,actor_id,actor_name,action_type,target_type,target_id,target_name,class_id,message,created_at)
 SELECT gen_random_uuid(), u.id, u.full_name, 'DEMO_SEEDED', 'CLASS', c.id, c.name, c.id, 'Đã chuẩn bị dữ liệu demo ổn định cho ' || c.name, NOW()
-FROM classes c JOIN users u ON u.email='teacher@hoanobita.com';
+FROM classes c JOIN users u ON u.email='hoateacher@hoanobita.com';
 INSERT INTO activity_logs(id,actor_id,actor_name,action_type,target_type,target_id,target_name,class_id,message,created_at)
 SELECT gen_random_uuid(), u.id, u.full_name, 'GRADE_CREATED', 'ASSIGNMENT', a.id, a.title, a.class_id, 'Đã chấm một nhóm bài nộp cho ' || a.title, NOW() - INTERVAL '1 hour'
 FROM assignments a JOIN classes c ON c.id=a.class_id JOIN class_admins ca ON ca.class_id=c.id JOIN users u ON u.id=ca.admin_id
@@ -171,7 +171,7 @@ SQL
 
 cat <<'INFO'
 [seed] Demo accounts ready (all password: Password123!)
-[seed] teacher@hoanobita.com      — Anh Hoà / TEACHER_OWNER
+[seed] hoateacher@hoanobita.com      — Nguyễn Tuấn Hoà / TEACHER_OWNER
 [seed] admin.chieu@hoanobita.com  — Admin Kiên / CLASS_ADMIN / TOPIK34-CHIEU
 [seed] admin.dem@hoanobita.com    — Admin Quân / CLASS_ADMIN / TOPIK34-DEM
 [seed] student.chieu1@hoanobita.com, student.chieu2@hoanobita.com — sample Chiều students

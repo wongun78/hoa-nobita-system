@@ -78,7 +78,7 @@ public class DevDataSeeder implements ApplicationRunner {
         Role studentRole = seedRole(RoleName.STUDENT);
 
         // Step 3: Seed users
-        User teacher = seedUser("Trần Thị Hoà", "hoateacher", "0900000000", teacherRole);
+        User teacher = seedUser("Nguyễn Tuấn Hoà", "hoateacher", "0900000000", teacherRole);
         User adminKien = seedUser("Nguyễn Kiên", "kienadmin", "0900000001", adminRole);
         User adminQuan = seedUser("Nguyễn Quân", "quanadmin", "0900000002", adminRole);
 

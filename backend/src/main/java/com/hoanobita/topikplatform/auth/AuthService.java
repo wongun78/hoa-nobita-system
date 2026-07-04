@@ -33,6 +33,11 @@ public class AuthService {
             user = userRepository.findByEmailOrPhone(request.identifier() + "@hoanobita.edu.vn")
                     .orElse(null);
         }
+        // Also try @hoanobita.com domain (e.g. hoateacher)
+        if (user == null && !request.identifier().contains("@")) {
+            user = userRepository.findByEmailOrPhone(request.identifier() + "@hoanobita.com")
+                    .orElse(null);
+        }
 
         if (user == null) {
             throw BusinessException.unauthorized("Invalid credentials");

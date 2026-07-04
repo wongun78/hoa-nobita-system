@@ -80,7 +80,7 @@ export function LoginPage() {
         {/* Hero image */}
         <div className="relative z-10 flex flex-1 items-center justify-center">
           <div className="relative h-72 w-72 overflow-hidden rounded-[2.5rem] border border-white/10 shadow-2xl xl:h-80 xl:w-80">
-            <img src="/hoa-nobita-hero.jpg" alt="Nguyễn Tuấn Hoà" className="h-full w-full object-cover" />
+            <img src="/hoa-nobita-hero.jpg" alt="Hoà Nobita" className="h-full w-full object-cover" />
             <div className="absolute inset-0 rounded-[2.5rem] ring-1 ring-inset ring-white/10" />
           </div>
         </div>
@@ -88,7 +88,7 @@ export function LoginPage() {
         {/* Brand text */}
         <div className="relative z-10 mt-8">
           <h1 className="text-4xl font-black tracking-tight text-white xl:text-5xl">
-            Nguyễn Tuấn <span className="bg-gradient-to-r from-sky-300 via-indigo-300 to-pink-300 bg-clip-text text-transparent">Hoà</span>
+            Hoà <span className="bg-gradient-to-r from-sky-300 via-indigo-300 to-pink-300 bg-clip-text text-transparent">Nobita</span>
           </h1>
           <p className="mt-3 max-w-md text-lg leading-7 text-white/60">
             Nền tảng học TOPIK thông minh — học tiếng Hàn có lộ trình, có phản hồi, có tiến bộ mỗi ngày.
@@ -116,7 +116,7 @@ export function LoginPage() {
               한
             </div>
             <h1 className="text-2xl font-black tracking-tight text-white">
-              Nguyễn Tuấn <span className="bg-gradient-to-r from-sky-300 to-pink-300 bg-clip-text text-transparent">Hoà</span>
+              Hoà <span className="bg-gradient-to-r from-sky-300 to-pink-300 bg-clip-text text-transparent">Nobita</span>
             </h1>
             <p className="mt-1 text-sm text-white/50">Nền tảng học TOPIK thông minh</p>
           </div>
