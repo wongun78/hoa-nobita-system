@@ -220,7 +220,8 @@ export function ClassDetailV2Page() {
     {editToast && <div className={`fixed bottom-6 right-6 z-[60] rounded-2xl px-5 py-3 text-sm font-bold shadow-lg ${editToast.type === 'success' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-rose-50 text-rose-700 ring-1 ring-rose-200'}`}>{editToast.message}</div>}
     {editOpen && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEditOpen(false)}>
-        <Card className="w-full max-w-lg shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+        <Card className="shadow-2xl">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-black text-slate-950">Sửa lớp học</h2>
             <button type="button" onClick={() => setEditOpen(false)} className="rounded-xl p-1 text-slate-400 hover:bg-slate-100"><X size={18} /></button>
@@ -255,6 +256,7 @@ export function ClassDetailV2Page() {
             </div>
           </form>
         </Card>
+        </div>
       </div>
     )}
     <LessonFormDialog open={lessonDialogOpen} title={editingLesson ? 'Sửa buổi học' : 'Tạo buổi học'} form={lessonForm} onChange={setLessonForm} saving={lessonSaving} onSave={saveLesson} onClose={() => setLessonDialogOpen(false)} />
