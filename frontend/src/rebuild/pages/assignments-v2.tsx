@@ -1,17 +1,160 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bell, Copy, Eye, Trash2, X } from 'lucide-react'
+import { Bell, Check, Copy, Eye, FileText, LinkIcon, Plus, Trash2, X } from 'lucide-react'
 import { ConfirmDialog, EmptyState, ErrorState, FilterBar, MetricCard, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { api } from '../core/api'
 import { ApiClientError } from '../core/http'
-import { Button, Card } from '../layout/ui'
+import { StudentFileUpload } from '../components/student-file-upload'
+import { Button, Card, FieldLabel, Input, TextArea } from '../layout/ui'
 import { asPage, fmtDate } from './phase2-utils'
-import type { AssignmentItem, PageResponse } from '../core/types'
+import type { AssignmentItem, ClassItem, FileItem, PageResponse } from '../core/types'
 
 function patchItemInPage(old: PageResponse<AssignmentItem> | AssignmentItem[] | undefined, id: string, patch: Partial<AssignmentItem>) {
   if (!old) return old
   if (Array.isArray(old)) return old.map((item) => item.id === id ? { ...item, ...patch } : item)
   return { ...old, items: old.items.map((item) => item.id === id ? { ...item, ...patch } : item) }
+}
+
+const SKILL_OPTIONS = ['듣기 (Nghe)', 'Đọc (Đọc)', '쓰기 (Viết)', '말하기 (Nói)', 'Tổng hợp'] as const
+
+function CreateAssignmentModal({ onClose }: Readonly<{ onClose: () => void }>) {
+  const qc = useQueryClient()
+  const classes = useQuery({ queryKey: ['classes', 'create-assignment'], queryFn: () => api.classesPage({ page: 0, size: 100 }) })
+  const classesList = asPage(classes.data, 0, 100).items as ClassItem[]
+
+  const [selectedClassIds, setSelectedClassIds] = useState<string[]>([])
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [instruction, setInstruction] = useState('')
+  const [dueAt, setDueAt] = useState('')
+  const [maxScore, setMaxScore] = useState('100')
+  const [allowResubmit, setAllowResubmit] = useState(false)
+  const [skill, setSkill] = useState('')
+  const [externalLink, setExternalLink] = useState('')
+  const [file, setFile] = useState<FileItem | null>(null)
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
+  const toggleClass = (id: string) => setSelectedClassIds((prev) => prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id])
+
+  const create = useMutation({
+    mutationFn: () => api.createAssignmentsMulti({
+      classIds: selectedClassIds,
+      title: title.trim(),
+      description: description.trim() || undefined,
+      instruction: instruction.trim() || undefined,
+      dueAt: dueAt ? new Date(dueAt).toISOString() : undefined,
+      maxScore: Number(maxScore) || 100,
+      allowResubmit,
+      skill: skill || undefined,
+      fileId: file?.id || undefined,
+      externalLink: externalLink.trim() || undefined,
+    }),
+    onSuccess: async (data) => {
+      await qc.invalidateQueries({ queryKey: ['assignments-v2'] })
+      setToast({ type: 'success', message: `Đã tạo ${data.length} bài tập.` })
+      setTimeout(() => onClose(), 1200)
+    },
+    onError: () => setToast({ type: 'error', message: 'Không thể tạo bài tập. Kiểm tra dữ liệu và thử lại.' }),
+  })
+
+  const canSubmit = selectedClassIds.length > 0 && title.trim()
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-sky-100 bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-black text-slate-950">Tạo bài tập mới</h2>
+          <button type="button" onClick={onClose} className="rounded-xl p-1 text-slate-400 hover:bg-slate-100"><X size={18} /></button>
+        </div>
+
+        <div className="space-y-4">
+          {/* Multi-class select */}
+          <div>
+            <FieldLabel>Chọn lớp (có thể chọn nhiều)</FieldLabel>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {classesList.map((cls) => {
+                const active = selectedClassIds.includes(cls.id)
+                return (
+                  <button key={cls.id} type="button" onClick={() => toggleClass(cls.id)}
+                    className={`inline-flex items-center gap-1.5 rounded-2xl border px-3 py-2 text-sm font-bold transition ${active ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-sky-100 bg-white text-slate-600 hover:bg-sky-50'}`}>
+                    {active && <Check size={14} />} {cls.name}
+                  </button>
+                )
+              })}
+              {classesList.length === 0 && <p className="text-sm text-slate-400">Đang tải danh sách lớp...</p>}
+            </div>
+          </div>
+
+          {/* Title */}
+          <div>
+            <FieldLabel htmlFor="asn-title">Tiêu đề *</FieldLabel>
+            <Input id="asn-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="VD: Đề thi TOPIK II - lần 1" />
+          </div>
+
+          {/* Skill */}
+          <div>
+            <FieldLabel htmlFor="asn-skill">Kỹ năng</FieldLabel>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {SKILL_OPTIONS.map((s) => (
+                <button key={s} type="button" onClick={() => setSkill(skill === s ? '' : s)}
+                  className={`rounded-2xl border px-3 py-1.5 text-xs font-bold transition ${skill === s ? 'border-violet-300 bg-violet-50 text-violet-700' : 'border-sky-100 bg-white text-slate-500 hover:bg-sky-50'}`}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Description */}
+          <div>
+            <FieldLabel htmlFor="asn-desc">Mô tả</FieldLabel>
+            <TextArea id="asn-desc" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả ngắn về bài tập..." />
+          </div>
+
+          {/* Instruction */}
+          <div>
+            <FieldLabel htmlFor="asn-inst">Hướng dẫn</FieldLabel>
+            <TextArea id="asn-inst" rows={3} value={instruction} onChange={(e) => setInstruction(e.target.value)} placeholder="Hướng dẫn chi tiết cho học viên..." />
+          </div>
+
+          {/* Due date + Max score row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <FieldLabel htmlFor="asn-due">Hạn nộp</FieldLabel>
+              <Input id="asn-due" type="datetime-local" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
+            </div>
+            <div>
+              <FieldLabel htmlFor="asn-score">Điểm tối đa</FieldLabel>
+              <Input id="asn-score" type="number" value={maxScore} onChange={(e) => setMaxScore(e.target.value)} min="1" />
+            </div>
+          </div>
+
+          {/* File upload */}
+          <div>
+            <FieldLabel>Tệp đính kèm</FieldLabel>
+            <StudentFileUpload value={file} onUploaded={setFile} disabled={create.isPending} />
+          </div>
+
+          {/* External link */}
+          <div>
+            <FieldLabel htmlFor="asn-link">Liên kết ngoài</FieldLabel>
+            <Input id="asn-link" value={externalLink} onChange={(e) => setExternalLink(e.target.value)} placeholder="https://..." />
+          </div>
+
+          {/* Allow resubmit */}
+          <label className="flex min-h-11 items-center gap-3 rounded-2xl border border-sky-100 bg-sky-50/50 px-4 text-sm font-bold text-slate-700">
+            <input type="checkbox" checked={allowResubmit} onChange={(e) => setAllowResubmit(e.target.checked)} className="h-4 w-4 rounded border-sky-200 text-indigo-600" />
+            Cho phép nộp lại
+          </label>
+
+          {toast && <div className={`rounded-2xl px-4 py-3 text-sm font-bold ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>{toast.message}</div>}
+
+          <Button className="min-h-11 w-full" disabled={!canSubmit || create.isPending} onClick={() => create.mutate()}>
+            {create.isPending ? 'Đang tạo...' : `Tạo bài tập${selectedClassIds.length > 1 ? ` (${selectedClassIds.length} lớp)` : ''}`}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export function AssignmentsV2Page() {
@@ -22,6 +165,7 @@ export function AssignmentsV2Page() {
   const [classId, setClassId] = useState('')
   const [selectedId, setSelectedId] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const assignmentsQueryKey = ['assignments-v2', page, search, status, classId] as const
 
@@ -111,7 +255,7 @@ export function AssignmentsV2Page() {
 
   return <>
     <div className="space-y-5">
-      <PageHeader eyebrow="Quản lý bài tập" title="Bài tập" description="Phân trang server-side, lọc theo trạng thái/lớp, xem progress và missing students." />
+      <PageHeader eyebrow="Quản lý bài tập" title="Bài tập" description="Phân trang server-side, lọc theo trạng thái/lớp, xem progress và missing students." actions={<Button className="min-h-11" onClick={() => setShowCreate(true)}><Plus size={16} /> Tạo bài tập</Button>} />
       <FilterBar>
         <SearchInput value={search} onChange={(e) => { setPage(0); setSearch(e.target.value) }} placeholder="Tìm bài tập" />
         <select className="rounded-2xl border border-sky-100 bg-white px-3 py-2.5 text-sm" value={status} onChange={(e) => { setPage(0); setStatus(e.target.value) }}>
@@ -136,6 +280,7 @@ export function AssignmentsV2Page() {
                 <tr className="border-b border-sky-100 text-left text-slate-500">
                   <th className="px-3 py-3">Bài tập</th>
                   <th className="px-3 py-3">Lớp</th>
+                  <th className="px-3 py-3">Kỹ năng</th>
                   <th className="px-3 py-3">Hạn</th>
                   <th className="px-3 py-3">Trạng thái</th>
                   <th className="px-3 py-3">Điểm</th>
@@ -147,6 +292,7 @@ export function AssignmentsV2Page() {
                   <tr key={item.id} className="border-b border-sky-50">
                     <td className="px-3 py-3 font-bold">{item.title}</td>
                     <td className="px-3 py-3">{item.className || item.classId}</td>
+                    <td className="px-3 py-3">{item.skill ? <span className="rounded-xl bg-violet-50 px-2 py-0.5 text-xs font-bold text-violet-700">{item.skill}</span> : <span className="text-slate-300">—</span>}</td>
                     <td className="px-3 py-3">{fmtDate(item.dueAt)}</td>
                     <td className="px-3 py-3"><StatusBadge value={item.status} /></td>
                     <td className="px-3 py-3">{item.maxScore}</td>
@@ -173,6 +319,13 @@ export function AssignmentsV2Page() {
           {selectedAssignment && (
             <div className="space-y-4">
               <p className="text-sm text-slate-500">{selectedAssignment.description || 'Không có mô tả'}</p>
+              {(selectedAssignment.skill || selectedAssignment.fileId || selectedAssignment.externalLink) && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedAssignment.skill && <span className="inline-flex items-center gap-1 rounded-2xl bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700"><FileText size={12} /> {selectedAssignment.skill}</span>}
+                  {selectedAssignment.fileId && <span className="inline-flex items-center gap-1 rounded-2xl bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-700">Tệp đính kèm</span>}
+                  {selectedAssignment.externalLink && <a href={selectedAssignment.externalLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-2xl bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100"><LinkIcon size={12} /> Liên kết ngoài</a>}
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <MetricCard label="Đã nộp" value={progress.data?.submittedCount ?? '-'} />
                 <MetricCard label="Thiếu" value={progress.data?.missingCount ?? '-'} />
@@ -206,5 +359,7 @@ export function AssignmentsV2Page() {
     )}
 
     <ConfirmDialog open={confirmDelete} title="Xoá bài tập này?" description="Bài tập sẽ bị xoá khỏi danh sách. Hãy kiểm tra bài nộp liên quan trước khi xác nhận." confirmLabel={remove.isPending ? 'Đang xoá...' : 'Xoá bài tập'} onCancel={() => setConfirmDelete(false)} onConfirm={() => remove.mutate()} />
+
+    {showCreate && <CreateAssignmentModal onClose={() => setShowCreate(false)} />}
   </>
 }
