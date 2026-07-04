@@ -57,7 +57,7 @@ export function StudentGradesPage() {
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <div className="relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
+      <div className="student-animate-in relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
         <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
         <div className="relative">
           <h1 className="text-2xl font-black tracking-tight md:text-3xl">Điểm của tôi</h1>
@@ -74,7 +74,7 @@ export function StudentGradesPage() {
       {summaries.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {summaries.map((item) => (
-            <Card key={item.classId} className="rounded-3xl bg-gradient-to-br from-white to-emerald-50/50">
+            <Card key={item.classId} className="rounded-3xl bg-gradient-to-br from-white to-emerald-50/50 transition hover:-translate-y-0.5 hover:shadow-lg">
               <div className="flex items-start justify-between gap-3"><div><h2 className="font-black text-slate-950">{item.className}</h2><p className="mt-1 text-xs text-slate-500">{item.gradedCount} bài đã chấm</p></div><div className={`text-3xl font-black ${scoreColor(item.average).accent}`}>{item.average.toFixed(1)}</div></div>
               {item.latest && <p className="mt-4 text-sm text-slate-600">Mới nhất: <b>{item.latest.assignmentTitle}</b> · {item.latest.score}/{item.latest.maxScore ?? '-'}</p>}
             </Card>
@@ -90,7 +90,7 @@ export function StudentGradesPage() {
         <div className="space-y-3">
           {filtered.map((item) => (
             <a key={item.id} href={`/student/submissions/${item.id}`} className="block rounded-3xl focus:outline-none focus:ring-4 focus:ring-indigo-100">
-              <Card className="rounded-3xl">
+              <Card className="rounded-3xl transition hover:-translate-y-0.5 hover:shadow-lg">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="font-black text-slate-950">{item.assignmentTitle}</h2><StatusBadge value={item.status} /></div><p className="mt-1 text-sm text-slate-500">{item.className} · {fmtDate(item.submittedAt)}</p></div>
                   <div className={`rounded-2xl ${scoreColor(Number(item.score), item.maxScore).bg} px-4 py-2 text-sm font-black ${scoreColor(Number(item.score), item.maxScore).text}`}>{item.score}/{item.maxScore ?? '-'}</div>

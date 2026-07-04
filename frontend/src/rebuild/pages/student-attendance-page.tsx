@@ -31,7 +31,7 @@ function attendanceRate(items: AttendanceItem[]) {
 function AttendanceTimelineItem({ item }: Readonly<{ item: AttendanceItem }>) {
   const meta = statusMeta[item.status]
   return (
-    <Card className="rounded-3xl">
+    <Card className="rounded-3xl transition hover:-translate-y-0.5 hover:shadow-lg">
       <div className="flex gap-3">
         <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl border ${meta.className}`}>{meta.icon}</div>
         <div className="min-w-0 flex-1">
@@ -67,7 +67,7 @@ export function StudentAttendancePage() {
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <div className="relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
+      <div className="student-animate-in relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
         <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
         <div className="relative">
           <h1 className="text-2xl font-black tracking-tight md:text-3xl">Điểm danh của tôi</h1>

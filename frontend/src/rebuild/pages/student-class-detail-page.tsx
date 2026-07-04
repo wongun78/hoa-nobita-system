@@ -85,7 +85,7 @@ export function StudentClassDetailPage() {
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <div className="relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
+      <div className="student-animate-in relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
         <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
         <div className="absolute -left-6 bottom-0 h-28 w-28 rounded-full bg-white/10 blur-xl" />
         <div className="relative">
@@ -127,16 +127,16 @@ export function StudentClassDetailPage() {
             <Card className="rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-sky-50">
               <h2 className="text-lg font-black text-slate-950">Tiến độ học tập</h2>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl bg-white/80 p-4"><div className="text-xs text-slate-500">Đã nộp</div><div className="mt-1 text-2xl font-black">{submissionStats.related.length}</div></div>
-                <div className="rounded-2xl bg-white/80 p-4"><div className="text-xs text-slate-500">Đã chấm</div><div className="mt-1 text-2xl font-black">{submissionStats.graded.length}</div></div>
-                <div className="rounded-2xl bg-white/80 p-4"><div className="text-xs text-slate-500">Điểm TB</div><div className="mt-1 text-2xl font-black">{submissionStats.average == null ? '-' : submissionStats.average.toFixed(1)}</div></div>
+                <div className="rounded-2xl bg-white/80 p-4 transition hover:-translate-y-0.5 hover:shadow-sm"><div className="text-xs text-slate-500">Đã nộp</div><div className="mt-1 text-2xl font-black">{submissionStats.related.length}</div></div>
+                <div className="rounded-2xl bg-white/80 p-4 transition hover:-translate-y-0.5 hover:shadow-sm"><div className="text-xs text-slate-500">Đã chấm</div><div className="mt-1 text-2xl font-black">{submissionStats.graded.length}</div></div>
+                <div className="rounded-2xl bg-white/80 p-4 transition hover:-translate-y-0.5 hover:shadow-sm"><div className="text-xs text-slate-500">Điểm TB</div><div className="mt-1 text-2xl font-black">{submissionStats.average == null ? '-' : submissionStats.average.toFixed(1)}</div></div>
               </div>
             </Card>
             <Card className="rounded-3xl">
               <h2 className="text-lg font-black text-slate-950">Deadline gần</h2>
               <div className="mt-4 space-y-3">
                 {assignmentItems.filter(isDueSoon).slice(0, 3).map((item) => (
-                  <a key={item.id} href={`/student/assignments/${item.id}`} className="block min-h-14 rounded-2xl border border-amber-100 bg-amber-50/50 p-3">
+                  <a key={item.id} href={`/student/assignments/${item.id}`} className="block min-h-14 rounded-2xl border border-amber-100 bg-amber-50/50 p-3 transition hover:-translate-y-0.5 hover:shadow-md">
                     <div className="text-sm font-bold text-slate-900">{item.title}</div>
                     <div className="mt-1 text-xs text-amber-700">Hạn: {fmtDate(item.dueAt)}</div>
                   </a>
@@ -163,7 +163,7 @@ function LessonsTab({ items }: Readonly<{ items: LessonItem[] }>) {
   return (
     <div className="space-y-3">
       {items.map((item, index) => (
-        <Card key={item.id} className="rounded-3xl">
+        <Card key={item.id} className="rounded-3xl transition hover:-translate-y-0.5 hover:shadow-lg">
           <div className="flex gap-3">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-sm font-black text-indigo-600">{String(index + 1).padStart(2, '0')}</div>
             <div className="min-w-0 flex-1">
@@ -183,7 +183,7 @@ function MaterialsTab({ items }: Readonly<{ items: MaterialItem[] }>) {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {items.map((item) => (
-        <Card key={item.id} className="rounded-3xl">
+        <Card key={item.id} className="rounded-3xl transition hover:-translate-y-0.5 hover:shadow-lg">
           <div className="flex items-start gap-3">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-indigo-100 text-sky-600"><FileText size={22} /></div>
             <div className="min-w-0 flex-1"><h2 className="font-black text-slate-950">{item.title}</h2><p className="mt-1 line-clamp-3 text-sm leading-6 text-slate-500">{item.description || 'Tài liệu học tập'}</p></div>
@@ -233,7 +233,7 @@ function SubmissionsTab({ items }: Readonly<{ items: SubmissionItem[] }>) {
     <div className="space-y-3">
       {items.map((item) => (
         <a key={item.id} href={`/student/submissions/${item.id}`} className="block rounded-3xl focus:outline-none focus:ring-4 focus:ring-indigo-100">
-          <Card className="rounded-3xl">
+          <Card className="rounded-3xl transition hover:-translate-y-0.5 hover:shadow-lg">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div><h2 className="font-black text-slate-950">{item.assignmentTitle}</h2><p className="mt-1 text-sm text-slate-500">Nộp lúc {fmtDate(item.submittedAt)}</p></div>
               <StatusBadge value={item.status} />
@@ -262,7 +262,7 @@ function AttendanceTab({ items, lessons, rate }: Readonly<{ items: AttendanceIte
         {items.map((item) => {
           const lesson = item.lessonId ? lessons.find((l) => l.id === item.lessonId) : null
           return (
-            <Card key={item.id} className="rounded-3xl">
+            <Card key={item.id} className="rounded-3xl transition hover:-translate-y-0.5 hover:shadow-lg">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="font-bold text-slate-950">{lesson ? lesson.title : 'Buổi học'}</div>
@@ -284,7 +284,7 @@ function NotificationsTab({ items }: Readonly<{ items: NotificationItem[] }>) {
   return (
     <div className="space-y-3">
       {items.map((item) => (
-        <Card key={item.id} className="rounded-3xl">
+        <Card key={item.id} className="rounded-3xl transition hover:-translate-y-0.5 hover:shadow-lg">
           <div className="flex items-start gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><MessageSquareText size={19} /></div>
             <div className="min-w-0 flex-1"><h2 className="font-black text-slate-950">{item.title}</h2><p className="mt-1 text-sm leading-6 text-slate-500">{item.content}</p><div className="mt-2 text-xs text-slate-400">{fmtDate(item.createdAt)}</div></div>

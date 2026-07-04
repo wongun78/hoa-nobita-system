@@ -63,7 +63,7 @@ export function StudentHomePage() {
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <div className="relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
+      <div className="student-animate-in relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
         <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
         <div className="absolute -left-6 bottom-0 h-28 w-28 rounded-full bg-white/10 blur-xl" />
         <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -119,7 +119,7 @@ export function StudentHomePage() {
           </div>
           <div className="mt-4 space-y-3">
             {overdue.map((item) => (
-              <a key={item.id} href={`/student/assignments/${item.id}`} className="block min-h-16 rounded-2xl border border-rose-100 bg-rose-50/50 p-3 transition hover:bg-rose-50">
+              <a key={item.id} href={`/student/assignments/${item.id}`} className="block min-h-16 rounded-2xl border border-rose-100 bg-rose-50/50 p-3 transition hover:-translate-y-0.5 hover:bg-rose-50 hover:shadow-md">
                 <div className="text-sm font-black text-slate-900">{item.title}</div>
                 <div className="mt-1 text-xs text-rose-600">Đã quá hạn: {fmtDate(item.dueAt)}</div>
               </a>
@@ -135,7 +135,7 @@ export function StudentHomePage() {
           <div className="flex items-center gap-3"><GraduationCap className="text-emerald-600" /><h2 className="text-lg font-black text-slate-950">Điểm gần đây</h2></div>
           <div className="mt-4 space-y-3">
             {recentGrades.map((item) => (
-              <a key={item.id} href={`/student/submissions/${item.id}`} className="block rounded-2xl border border-sky-100 p-3">
+              <a key={item.id} href={`/student/submissions/${item.id}`} className="block rounded-2xl border border-sky-100 p-3 transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0"><div className="truncate text-sm font-bold">{item.assignmentTitle}</div><div className="text-xs text-slate-500">{item.className}</div></div>
                   <div className="text-sm font-black text-emerald-600">{item.score ?? '-'}/{item.maxScore ?? '-'}</div>
@@ -151,7 +151,7 @@ export function StudentHomePage() {
           <div className="flex items-center gap-3"><Bell className="text-indigo-600" /><h2 className="text-lg font-black text-slate-950">Thông báo</h2></div>
           <div className="mt-4 space-y-3">
             {(notificationItems as NotificationItem[]).map((item) => (
-              <a key={item.id} href="/student/notifications" className="block min-h-14 rounded-2xl border border-sky-100 p-3">
+              <a key={item.id} href="/student/notifications" className="block min-h-14 rounded-2xl border border-sky-100 p-3 transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="text-sm font-bold text-slate-900">{item.title}</div>
                 <div className="mt-1 line-clamp-2 text-xs text-slate-500">{item.content}</div>
               </a>
@@ -165,7 +165,7 @@ export function StudentHomePage() {
           <div className="flex items-center gap-3"><CheckCircle2 className="text-emerald-600" /><h2 className="text-lg font-black text-slate-950">Chuyên cần</h2></div>
           <div className="mt-6 text-5xl font-black text-slate-950">{attendanceRate == null ? '-' : `${attendanceRate}%`}</div>
           <p className="mt-2 text-sm text-slate-500">Tỷ lệ có mặt/tính cả đi muộn từ dữ liệu điểm danh cá nhân.</p>
-          <a href="/student/attendance" className="mt-5 inline-flex min-h-11 items-center rounded-2xl bg-white px-4 text-sm font-bold text-slate-700 shadow-sm">Xem lịch sử điểm danh</a>
+          <a href="/student/attendance" className="mt-5 inline-flex min-h-11 items-center rounded-2xl bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">Xem lịch sử điểm danh</a>
         </Card>
       </div>
     </div>

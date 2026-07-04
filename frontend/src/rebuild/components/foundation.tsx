@@ -59,20 +59,20 @@ function statusTone(value: string): Tone {
 export function StatusBadge({ value }: Readonly<{ value?: string | null }>) {
   const normalized = value ?? 'UNKNOWN'
   const labelMap: Record<string, string> = { ACTIVE: 'Đang học', COMPLETED: 'Hoàn thành', DRAFT: 'Nháp', UPCOMING: 'Sắp khai giảng', ARCHIVED: 'Lưu trữ', PUBLISHED: 'Đã xuất bản', CLOSED: 'Đã đóng', SUBMITTED: 'Đã nộp', GRADED: 'Đã chấm', LATE: 'Nộp trễ', OVERDUE: 'Quá hạn', INACTIVE: 'Ngưng', SUSPENDED: 'Đã khoá', RESUBMIT_REQUESTED: 'Yêu cầu nộp lại' }
-  return <span className={clsx('inline-flex rounded-full border px-2.5 py-1 text-xs font-bold', toneClasses[statusTone(normalized)])}>{labelMap[normalized] ?? normalized}</span>
+  return <span className={clsx('inline-flex rounded-full border px-2.5 py-1 text-xs font-bold transition-colors', toneClasses[statusTone(normalized)])}>{labelMap[normalized] ?? normalized}</span>
 }
 
 export function RoleBadge({ role }: Readonly<{ role: RoleName }>) {
   const toneByRole: Record<RoleName, Tone> = { TEACHER_OWNER: 'violet', CLASS_ADMIN: 'sky', STUDENT: 'emerald' }
   const labelByRole: Record<RoleName, string> = { TEACHER_OWNER: 'Giảng viên chính', CLASS_ADMIN: 'Trợ giảng', STUDENT: 'Học viên' }
-  return <span className={clsx('inline-flex rounded-full border px-2.5 py-1 text-xs font-bold', toneClasses[toneByRole[role]])}>{labelByRole[role]}</span>
+  return <span className={clsx('inline-flex rounded-full border px-2.5 py-1 text-xs font-bold transition-colors', toneClasses[toneByRole[role]])}>{labelByRole[role]}</span>
 }
 
 export function RiskBadge({ risk }: Readonly<{ risk?: RiskLevel | null }>) {
   const value = risk ?? 'LOW'
   const toneByRisk: Record<RiskLevel, Tone> = { LOW: 'emerald', MEDIUM: 'amber', HIGH: 'rose' }
   const labelMap: Record<RiskLevel, string> = { HIGH: 'Cao', MEDIUM: 'Trung bình', LOW: 'Thấp' }
-  return <span className={clsx('inline-flex rounded-full border px-2.5 py-1 text-xs font-bold', toneClasses[toneByRisk[value]])}>{labelMap[value] ?? value}</span>
+  return <span className={clsx('inline-flex rounded-full border px-2.5 py-1 text-xs font-bold transition-colors', toneClasses[toneByRisk[value]])}>{labelMap[value] ?? value}</span>
 }
 
 export function EmptyState({ title, description, action }: Readonly<{ title: string; description?: string; action?: React.ReactNode }>) {
