@@ -11,6 +11,9 @@ export interface Assignment {
   maxScore: number
   status: AssignmentStatus
   allowResubmit: boolean
+  skill?: string
+  fileId?: string
+  externalLink?: string
   dueAt?: string
   createdAt?: string
 }
@@ -22,6 +25,9 @@ export interface AssignmentRequest {
   maxScore: number
   status?: AssignmentStatus
   allowResubmit?: boolean
+  skill?: string
+  fileId?: string
+  externalLink?: string
   dueAt?: string
 }
 

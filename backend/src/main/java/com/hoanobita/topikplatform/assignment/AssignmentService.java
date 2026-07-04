@@ -4,6 +4,7 @@ import com.hoanobita.topikplatform.activity.ActivityService;
 import com.hoanobita.topikplatform.assignment.dto.AssignmentProgressResponse;
 import com.hoanobita.topikplatform.assignment.dto.AssignmentRequest;
 import com.hoanobita.topikplatform.assignment.dto.AssignmentResponse;
+import com.hoanobita.topikplatform.assignment.dto.CreateAssignmentMultiRequest;
 import com.hoanobita.topikplatform.assignment.dto.AssignmentReminderDispatchResponse;
 import com.hoanobita.topikplatform.assignment.dto.AssignmentReminderPreviewResponse;
 import com.hoanobita.topikplatform.assignment.dto.AssignmentReminderRequest;
@@ -312,6 +313,33 @@ public class AssignmentService {
     }
 
     @Transactional
+    public List<AssignmentResponse> createMulti(CreateAssignmentMultiRequest req) {
+        User user = security.currentUser();
+        if (req.maxScore() != null && req.maxScore().compareTo(BigDecimal.ZERO) <= 0) {
+            throw BusinessException.badRequest("maxScore must be greater than 0");
+        }
+        List<AssignmentResponse> results = new ArrayList<>();
+        for (UUID classId : req.classIds()) {
+            permissions.requireManageClass(user, classId);
+            Assignment a = new Assignment();
+            a.setClassId(classId);
+            a.setTitle(req.title());
+            a.setDescription(req.description());
+            a.setInstruction(req.instruction());
+            a.setDueAt(req.dueAt() == null || req.dueAt().isBlank() ? null : Instant.parse(req.dueAt()));
+            a.setMaxScore(req.maxScore() != null ? req.maxScore() : BigDecimal.TEN);
+            a.setAllowResubmit(Boolean.TRUE.equals(req.allowResubmit()));
+            a.setSkill(req.skill());
+            a.setFileId(req.fileId());
+            a.setExternalLink(req.externalLink());
+            repo.save(a);
+            activityService.log("ASSIGNMENT_CREATED", ENTITY_ASSIGNMENT, a.getId(), a.getTitle(), classId, "Đã tạo bài tập mới: " + a.getTitle());
+            results.add(toResponse(a));
+        }
+        return results;
+    }
+
+    @Transactional
     public AssignmentResponse update(UUID id, AssignmentRequest req) {
         Assignment a = find(id);
         permissions.requireManageClass(security.currentUser(), a.getClassId());
@@ -364,6 +392,9 @@ public class AssignmentService {
         a.setMaxScore(src.getMaxScore());
         a.setAllowResubmit(src.isAllowResubmit());
         a.setDueAt(src.getDueAt());
+        a.setSkill(src.getSkill());
+        a.setFileId(src.getFileId());
+        a.setExternalLink(src.getExternalLink());
         a.setStatus(AssignmentStatus.DRAFT);
         repo.save(a);
         activityService.log("ASSIGNMENT_COPIED", ENTITY_ASSIGNMENT, a.getId(), a.getTitle(), a.getClassId(), "Đã sao chép bài tập: " + src.getTitle());
@@ -386,11 +417,14 @@ public class AssignmentService {
         a.setMaxScore(req.maxScore());
         a.setStatus(req.status() == null || req.status().isBlank() ? AssignmentStatus.DRAFT : AssignmentStatus.valueOf(req.status()));
         a.setAllowResubmit(Boolean.TRUE.equals(req.allowResubmit()));
+        a.setSkill(req.skill());
+        a.setFileId(req.fileId());
+        a.setExternalLink(req.externalLink());
     }
 
     public AssignmentResponse toResponse(Assignment a) {
         String className = klasses.findById(a.getClassId()).map(k -> k.getName()).orElse(null);
-        return new AssignmentResponse(a.getId(), a.getClassId(), className, a.getLessonId(), a.getTitle(), a.getDescription(), a.getInstruction(), a.getDueAt(), a.getMaxScore(), a.getStatus().name(), a.isAllowResubmit(), a.getCreatedAt());
+        return new AssignmentResponse(a.getId(), a.getClassId(), className, a.getLessonId(), a.getTitle(), a.getDescription(), a.getInstruction(), a.getDueAt(), a.getMaxScore(), a.getStatus().name(), a.isAllowResubmit(), a.getSkill(), a.getFileId(), a.getExternalLink(), a.getCreatedAt());
     }
 
     private boolean containsIgnoreCase(String value, String keyword) {

@@ -16,5 +16,8 @@ public record AssignmentResponse(
         BigDecimal maxScore,
         String status,
         boolean allowResubmit,
+        String skill,
+        UUID fileId,
+        String externalLink,
         Instant createdAt
 ) {}

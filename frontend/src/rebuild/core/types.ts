@@ -92,6 +92,9 @@ export type AssignmentItem = {
   maxScore: number
   status: AssignmentStatus
   allowResubmit: boolean
+  skill?: string | null
+  fileId?: string | null
+  externalLink?: string | null
   createdAt?: string | null
 }
 

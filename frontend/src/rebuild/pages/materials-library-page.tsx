@@ -2,11 +2,11 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, Eye, EyeOff, FileText, LinkIcon, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { api } from '../core/api'
-import { EmptyState, ErrorState, FilterBar, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
+import { ConfirmDialog, EmptyState, ErrorState, FilterBar, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { StudentFileUpload } from '../components/student-file-upload'
 import { Button, Card, FieldLabel, Input, TextArea } from '../layout/ui'
 import { asPage, fmtDate } from './phase2-utils'
-import type { ClassItem, FileItem, MaterialItem } from '../core/types'
+import type { ClassItem, FileItem, MaterialItem, PageResponse } from '../core/types'
 
 type MaterialForm = {
   title: string
@@ -104,12 +104,33 @@ function MaterialEditor({
 
 function MaterialCard({ item, classId, onEdit }: Readonly<{ item: MaterialItem; classId: string; onEdit: (item: MaterialItem) => void }>) {
   const qc = useQueryClient()
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const invalidate = async () => qc.invalidateQueries({ queryKey: ['materials-library', classId] })
-  const remove = useMutation({ mutationFn: () => api.deleteMaterial(item.id), onSuccess: invalidate })
+  const remove = useMutation({
+    mutationFn: () => api.deleteMaterial(item.id),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ['materials-library', classId] })
+      const snapshots = qc.getQueriesData<PageResponse<MaterialItem> | MaterialItem[]>({ queryKey: ['materials-library', classId] })
+      qc.setQueriesData<PageResponse<MaterialItem> | MaterialItem[]>({ queryKey: ['materials-library', classId] }, (old) => {
+        if (!old) return old
+        if (Array.isArray(old)) return old.filter((material) => material.id !== item.id)
+        return { ...old, items: old.items.filter((material) => material.id !== item.id), totalItems: Math.max(old.totalItems - 1, 0) }
+      })
+      return { snapshots }
+    },
+    onError: (_error, _variables, context) => {
+      context?.snapshots.forEach(([queryKey, data]) => qc.setQueryData(queryKey, data))
+    },
+    onSuccess: async () => {
+      setConfirmOpen(false)
+      await invalidate()
+    },
+  })
   const toggle = useMutation({ mutationFn: () => api.updateMaterialVisibility(item.id, !item.visible), onSuccess: invalidate })
 
   return (
-    <Card className="rounded-3xl transition hover:-translate-y-0.5 hover:shadow-lg">
+    <>
+      <Card className="rounded-3xl transition hover:-translate-y-0.5 hover:shadow-lg">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -122,14 +143,16 @@ function MaterialCard({ item, classId, onEdit }: Readonly<{ item: MaterialItem; 
         <div className="flex shrink-0 flex-row gap-2 sm:flex-col">
           <Button type="button" variant="secondary" className="min-h-11 px-3" onClick={() => onEdit(item)} aria-label="Sửa tài liệu"><Pencil size={16} /></Button>
           <Button type="button" variant="secondary" className="min-h-11 px-3" disabled={toggle.isPending} onClick={() => toggle.mutate()} aria-label="Đổi trạng thái hiển thị">{item.visible ? <EyeOff size={16} /> : <Eye size={16} />}</Button>
-          <Button type="button" variant="ghost" className="min-h-11 px-3 text-rose-600 hover:bg-rose-50" disabled={remove.isPending} onClick={() => globalThis.confirm('Xoá tài liệu này?') && remove.mutate()} aria-label="Xoá tài liệu"><Trash2 size={16} /></Button>
+          <Button type="button" variant="ghost" className="min-h-11 px-3 text-rose-600 hover:bg-rose-50" disabled={remove.isPending} onClick={() => setConfirmOpen(true)} aria-label="Xoá tài liệu"><Trash2 size={16} /></Button>
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         {item.externalUrl && <a className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-sky-200 bg-white px-4 text-sm font-bold text-slate-700 hover:bg-sky-50" href={item.externalUrl} target="_blank" rel="noreferrer"><LinkIcon size={16} />Mở liên kết</a>}
         {item.fileId && <Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(item.fileId!, item.title)}><Download size={16} />Tải xuống</Button>}
       </div>
-    </Card>
+      </Card>
+      <ConfirmDialog open={confirmOpen} title={`Xoá tài liệu “${item.title}”?`} description="Tài liệu sẽ bị xoá khỏi thư viện lớp. Học viên sẽ không còn thấy tài liệu này sau khi xác nhận." confirmLabel={remove.isPending ? 'Đang xoá...' : 'Xoá tài liệu'} onCancel={() => setConfirmOpen(false)} onConfirm={() => remove.mutate()} />
+    </>
   )
 }
 

@@ -8,6 +8,7 @@ import com.hoanobita.topikplatform.assignment.dto.AssignmentReminderPreviewRespo
 import com.hoanobita.topikplatform.assignment.dto.AssignmentReminderRequest;
 import com.hoanobita.topikplatform.assignment.dto.BatchAssignmentReminderDispatchResponse;
 import com.hoanobita.topikplatform.assignment.dto.BatchAssignmentReminderRequest;
+import com.hoanobita.topikplatform.assignment.dto.CreateAssignmentMultiRequest;
 import com.hoanobita.topikplatform.common.ApiResponse;
 import com.hoanobita.topikplatform.common.PageResponse;
 import jakarta.validation.Valid;
@@ -44,6 +45,12 @@ public class AssignmentController {
                                                               @RequestParam(required = false) String search,
                                                               @RequestParam(required = false) String status) {
         return ApiResponse.ok(service.list(classId, page, size, sort, search, status));
+    }
+
+    @PostMapping("/assignments")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<List<AssignmentResponse>> createMulti(@Valid @RequestBody CreateAssignmentMultiRequest req) {
+        return ApiResponse.created(service.createMulti(req));
     }
 
     @PostMapping("/classes/{classId}/assignments")

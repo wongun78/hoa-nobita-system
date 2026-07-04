@@ -39,6 +39,15 @@ public class Assignment extends BaseEntity {
     @Column(name = "allow_resubmit", nullable = false)
     private boolean allowResubmit = false;
 
+    @Column(columnDefinition = "text")
+    private String skill;
+
+    @Column(name = "file_id")
+    private UUID fileId;
+
+    @Column(name = "external_link", columnDefinition = "text")
+    private String externalLink;
+
     // Getters and setters
     public UUID getClassId() { return classId; }
     public void setClassId(UUID classId) { this.classId = classId; }
@@ -58,4 +67,10 @@ public class Assignment extends BaseEntity {
     public void setStatus(AssignmentStatus status) { this.status = status; }
     public boolean isAllowResubmit() { return allowResubmit; }
     public void setAllowResubmit(boolean allowResubmit) { this.allowResubmit = allowResubmit; }
+    public String getSkill() { return skill; }
+    public void setSkill(String skill) { this.skill = skill; }
+    public UUID getFileId() { return fileId; }
+    public void setFileId(UUID fileId) { this.fileId = fileId; }
+    public String getExternalLink() { return externalLink; }
+    public void setExternalLink(String externalLink) { this.externalLink = externalLink; }
 }

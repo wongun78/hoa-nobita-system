@@ -3,11 +3,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { AlertTriangle, CheckCircle2, Clock3, Download, Sparkles, Trash2 } from 'lucide-react'
 import { api } from '../core/api'
-import { EmptyState, ErrorState, PageHeader, SkeletonCard, StatusBadge } from '../components/foundation'
+import { ConfirmDialog, EmptyState, ErrorState, PageHeader, SkeletonCard, StatusBadge } from '../components/foundation'
 import { StudentFileUpload } from '../components/student-file-upload'
 import { Button, Card, Input, TextArea } from '../layout/ui'
 import { fmtDate } from './phase2-utils'
-import type { AssignmentItem, FileItem, SubmissionItem } from '../core/types'
+import type { AssignmentItem, FileItem, PageResponse, SubmissionItem } from '../core/types'
 
 function deadlineText(dueAt?: string | null) {
   if (!dueAt) return 'Không giới hạn hạn nộp'
@@ -65,6 +65,7 @@ export function StudentAssignmentDetailPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [successPulse, setSuccessPulse] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const assignment = useQuery({ queryKey: ['student', 'assignment', assignmentId], queryFn: () => api.assignmentById(assignmentId), enabled: Boolean(assignmentId) })
   const submissions = useQuery({ queryKey: ['student', 'assignment', assignmentId, 'my-submissions'], queryFn: () => api.mySubmissionsPage({ page: 0, size: 100 }), enabled: Boolean(assignmentId) })
@@ -103,7 +104,21 @@ export function StudentAssignmentDetailPage() {
 
   const remove = useMutation({
     mutationFn: () => api.deleteSubmission(mySubmission!.id),
-    onSuccess: () => onSuccess('Đã xoá bài nộp.'),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ['student', 'assignment', assignmentId, 'my-submissions'] })
+      const previous = qc.getQueryData<PageResponse<SubmissionItem> | SubmissionItem[]>(['student', 'assignment', assignmentId, 'my-submissions'])
+      qc.setQueryData(['student', 'assignment', assignmentId, 'my-submissions'], (old: PageResponse<SubmissionItem> | SubmissionItem[] | undefined) => {
+        if (!old || !mySubmission) return old
+        if (Array.isArray(old)) return old.filter((item) => item.id !== mySubmission.id)
+        return { ...old, items: old.items.filter((item) => item.id !== mySubmission.id), totalItems: Math.max(old.totalItems - 1, 0) }
+      })
+      return { previous }
+    },
+    onError: (_error, _variables, context) => qc.setQueryData(['student', 'assignment', assignmentId, 'my-submissions'], context?.previous),
+    onSuccess: () => {
+      setConfirmDelete(false)
+      onSuccess('Đã xoá bài nộp.')
+    },
   })
 
   if (assignment.isLoading || submissions.isLoading) return <div className="space-y-4 pb-20 md:pb-0"><SkeletonCard lines={5} /><SkeletonCard lines={6} /></div>
@@ -168,11 +183,12 @@ export function StudentAssignmentDetailPage() {
           {mySubmission && editable && !isEditing && (
             <div className="mt-4 flex flex-wrap gap-2">
               <Button type="button" variant="secondary" className="min-h-11" onClick={() => { setIsEditing(true); setContentText(mySubmission.contentText || ''); setContentUrl(mySubmission.contentUrl || '') }}>Sửa bài nộp</Button>
-              <Button type="button" variant="ghost" className="min-h-11 text-rose-600" onClick={() => { if (globalThis.confirm('Bạn chắc chắn muốn xoá bài nộp?')) remove.mutate() }} disabled={remove.isPending}><Trash2 size={16} />Xoá</Button>
+              <Button type="button" variant="ghost" className="min-h-11 text-rose-600" onClick={() => setConfirmDelete(true)} disabled={remove.isPending}><Trash2 size={16} />Xoá</Button>
             </div>
           )}
         </Card>
       </div>
+      <ConfirmDialog open={confirmDelete} title="Xoá bài nộp này?" description="Bài nộp sẽ được xoá khỏi danh sách của bạn. Nếu bài tập còn mở, bạn có thể nộp lại sau." confirmLabel={remove.isPending ? 'Đang xoá...' : 'Xoá bài nộp'} onCancel={() => setConfirmDelete(false)} onConfirm={() => remove.mutate()} />
     </div>
   )
 }

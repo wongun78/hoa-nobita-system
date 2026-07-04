@@ -151,7 +151,7 @@ export function ReportsPage() {
 
       <FilterBar>
         <div className="min-w-0 flex-1">
-          <FieldLabel htmlFor="report-class">Lớp báo cáo</FieldLabel>
+          {/* <FieldLabel htmlFor="report-class">Lớp báo cáo</FieldLabel> */}
           <select id="report-class" className="min-h-11 w-full rounded-2xl border border-sky-100 bg-white px-4 text-sm font-bold text-slate-600 outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" value={classId} onChange={(event) => setClassId(event.target.value)}>
             <option value="">Chọn lớp</option>
             {classesPage.items.map((item: ClassItem) => <option key={item.id} value={item.id}>{item.name} · {item.code}</option>)}

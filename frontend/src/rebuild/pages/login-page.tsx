@@ -38,15 +38,15 @@ export function LoginPage() {
       <div className="absolute bottom-10 right-10 text-7xl font-black text-white/50">봄</div>
       <Card className="relative w-full max-w-md border-white/80 bg-white/85 shadow-[0_30px_90px_rgba(79,70,229,0.16)] backdrop-blur-xl">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-500 via-sky-300 to-pink-300 text-xl font-black text-white shadow-lg">한</div>
-          <div className="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-500">Hoa Nobita</div>
-          <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950">Đăng nhập LMS</h1>
+          {/* <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-500 via-sky-300 to-pink-300 text-xl font-black text-white shadow-lg">한</div> */}
+          <div className="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-500">Study with Hoa Nobita</div>
+          {/* <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950">Đăng nhập</h1> */}
           <p className="mt-2 text-sm text-slate-500">안녕하세요! Tiếp tục hành trình TOPIK hôm nay.</p>
         </div>
 
         <form className="space-y-4" onSubmit={onSubmit}>
           <div>
-            <FieldLabel htmlFor="identifier">Email hoặc số điện thoại</FieldLabel>
+            <FieldLabel htmlFor="identifier">Tên tài khoản</FieldLabel>
             <Input id="identifier" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required autoComplete="username" />
           </div>
 
