@@ -34,10 +34,11 @@ public class UserController {
                                        @RequestParam(required = false) Integer size,
                                        @RequestParam(required = false) String sort,
                                        @RequestParam(required = false) String search,
-                                       @RequestParam(required = false) String status) {
+                                       @RequestParam(required = false) String status,
+                                       @RequestParam(required = false) String role) {
         var currentUser = securityUtils.getCurrentUser();
         permissionService.requireTeacher(currentUser);
-        return ResponseEntity.ok(ApiResponse.ok(userService.listUsers(page, size, sort, search, status)));
+        return ResponseEntity.ok(ApiResponse.ok(userService.listUsers(page, size, sort, search, status, role)));
     }
 
     @PostMapping

@@ -59,13 +59,14 @@ public class UserService {
         this.activityService = activityService;
     }
 
-        public PageResponse<UserResponse> listUsers(Integer page, Integer size, String sort, String search, String status) {
+        public PageResponse<UserResponse> listUsers(Integer page, Integer size, String sort, String search, String status, String role) {
         int normalizedPage = PaginationUtil.normalizePage(page);
         int normalizedSize = PaginationUtil.normalizeSize(size);
 
         List<UserResponse> filtered = userRepository.findAllActive().stream()
             .map(this::toResponse)
             .filter(user -> status == null || status.isBlank() || user.status().equalsIgnoreCase(status))
+            .filter(user -> role == null || role.isBlank() || user.roles().stream().anyMatch(r -> r.equalsIgnoreCase(role)))
             .filter(user -> {
                 if (search == null || search.isBlank()) return true;
                 String keyword = search.toLowerCase();
