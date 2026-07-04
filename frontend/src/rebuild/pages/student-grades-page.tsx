@@ -33,7 +33,6 @@ function buildClassSummaries(items: SubmissionItem[]): ClassGradeSummary[] {
 
 export function StudentGradesPage() {
   const [search, setSearch] = useState('')
-  const [selectedClass, setSelectedClass] = useState('ALL')
   const query = useQuery({ queryKey: ['student', 'grades', 'submissions'], queryFn: () => api.mySubmissionsPage({ page: 0, size: 200, status: 'GRADED' }) })
 
   const submissions = useMemo(() => Array.isArray(query.data) ? query.data : query.data?.items ?? [], [query.data])
@@ -42,12 +41,8 @@ export function StudentGradesPage() {
   const overallAverage = useMemo(() => graded.length ? graded.reduce((sum, item) => sum + Number(item.score), 0) / graded.length : null, [graded])
   const filtered = useMemo(() => {
     const keyword = search.trim().toLowerCase()
-    return graded.filter((item) => {
-      const matchesClass = selectedClass === 'ALL' || item.className === selectedClass
-      const matchesSearch = !keyword || [item.assignmentTitle, item.className, item.feedback].some((value) => value?.toLowerCase().includes(keyword))
-      return matchesClass && matchesSearch
-    })
-  }, [graded, search, selectedClass])
+    return graded.filter((item) => !keyword || [item.assignmentTitle, item.className, item.feedback].some((value) => value?.toLowerCase().includes(keyword)))
+  }, [graded, search])
 
   if (query.isLoading) return <div className="space-y-4 pb-20 md:pb-0"><SkeletonCard lines={4} /><SkeletonCard /><SkeletonCard /></div>
   if (query.isError) return <ErrorState title="Không tải được điểm số" description="Vui lòng thử lại sau ít phút." onRetry={() => query.refetch()} />
@@ -75,10 +70,6 @@ export function StudentGradesPage() {
 
       <FilterBar>
         <div className="min-w-0 flex-1"><SearchInput value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm bài đã chấm, lớp, nhận xét..." aria-label="Tìm điểm" /></div>
-        <select className="min-h-11 rounded-2xl border border-sky-100 bg-white px-4 text-sm font-bold text-slate-600" value={selectedClass} onChange={(event) => setSelectedClass(event.target.value)}>
-          <option value="ALL">Tất cả lớp</option>
-          {summaries.map((item) => <option key={item.classId} value={item.className}>{item.className}</option>)}
-        </select>
       </FilterBar>
 
       {filtered.length ? (
