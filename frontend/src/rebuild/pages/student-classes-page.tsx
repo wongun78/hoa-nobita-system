@@ -39,7 +39,7 @@ export function StudentClassesPage() {
   return (
     <div className="space-y-5 pb-20 md:pb-0">
       <PageHeader
-        eyebrow="나의 수업"
+        eyebrow="Lớp học của tôi"
         title="Lớp học của tôi"
         description="Danh sách lớp bạn đang tham gia. Chọn một lớp để xem bài học, tài liệu và bài tập."
       />

@@ -67,7 +67,7 @@ export function StudentAttendancePage() {
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <PageHeader eyebrow="출석" title="Điểm danh của tôi" description="Theo dõi tỷ lệ tham gia lớp học và lịch sử điểm danh cá nhân từ tài khoản hiện tại." />
+      <PageHeader eyebrow="Chuyên cần" title="Điểm danh của tôi" description="Theo dõi tỷ lệ tham gia lớp học và lịch sử điểm danh cá nhân từ tài khoản hiện tại." />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Tỷ lệ tham gia" value={rate == null ? '-' : `${rate}%`} hint="Có mặt + đi muộn / tổng buổi" icon={<CalendarCheck2 size={20} />} tone="emerald" />

@@ -142,7 +142,7 @@ export function StudentAssignmentDetailPage() {
   return (
     <div className="space-y-5 pb-20 md:pb-0">
       <PageHeader
-        eyebrow="과제 제출"
+        eyebrow="Nộp bài tập"
         title={assignment.data.title}
         description={`${assignment.data.className || 'Lớp học'} · Hạn nộp ${fmtDate(assignment.data.dueAt)} · ${deadlineText(assignment.data.dueAt)}`}
         actions={<StatusBadge value={assignment.data.status} />}

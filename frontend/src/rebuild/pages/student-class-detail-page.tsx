@@ -12,13 +12,13 @@ import type { AssignmentItem, AttendanceItem, LessonItem, MaterialItem, Notifica
 type StudentClassTab = 'overview' | 'lessons' | 'materials' | 'assignments' | 'submissions' | 'attendance' | 'notifications'
 
 const tabs: Array<{ id: StudentClassTab; label: string; icon: React.ReactNode }> = [
-  { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={16} /> },
-  { id: 'lessons', label: 'Lessons', icon: <BookOpen size={16} /> },
-  { id: 'materials', label: 'Materials', icon: <FileText size={16} /> },
-  { id: 'assignments', label: 'Assignments', icon: <ClipboardList size={16} /> },
-  { id: 'submissions', label: 'My Submissions', icon: <GraduationCap size={16} /> },
-  { id: 'attendance', label: 'Attendance', icon: <CalendarCheck2 size={16} /> },
-  { id: 'notifications', label: 'Notifications', icon: <Bell size={16} /> },
+  { id: 'overview', label: 'Tổng quan', icon: <LayoutDashboard size={16} /> },
+  { id: 'lessons', label: 'Bài học', icon: <BookOpen size={16} /> },
+  { id: 'materials', label: 'Tài liệu', icon: <FileText size={16} /> },
+  { id: 'assignments', label: 'Bài tập', icon: <ClipboardList size={16} /> },
+  { id: 'submissions', label: 'Bài nộp', icon: <GraduationCap size={16} /> },
+  { id: 'attendance', label: 'Điểm danh', icon: <CalendarCheck2 size={16} /> },
+  { id: 'notifications', label: 'Thông báo', icon: <Bell size={16} /> },
 ]
 
 function isDueSoon(item: AssignmentItem) {
@@ -86,7 +86,7 @@ export function StudentClassDetailPage() {
   return (
     <div className="space-y-5 pb-20 md:pb-0">
       <PageHeader
-        eyebrow="나의 수업"
+        eyebrow="Lớp học của tôi"
         title={classQuery.data.name}
         description={`${classQuery.data.code} · Giáo viên ${classQuery.data.teacherName}. Theo dõi bài học, tài liệu, bài tập và tiến độ của riêng bạn.`}
         actions={<StatusBadge value={classQuery.data.status} />}
@@ -171,16 +171,17 @@ function LessonsTab({ items }: Readonly<{ items: LessonItem[] }>) {
 }
 
 function MaterialsTab({ items }: Readonly<{ items: MaterialItem[] }>) {
-  if (!items.length) return <EmptyState title="Chưa có tài liệu hiển thị" description="Tài liệu visible từ giáo viên sẽ xuất hiện tại đây." />
+  if (!items.length) return <EmptyState title="Chưa có tài liệu hiển thị" description="Tài liệu từ giáo viên sẽ xuất hiện tại đây khi được phát hành." />
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {items.map((item) => (
         <Card key={item.id} className="rounded-3xl">
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-600"><FileText size={20} /></div>
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-indigo-100 text-sky-600"><FileText size={22} /></div>
             <div className="min-w-0 flex-1"><h2 className="font-black text-slate-950">{item.title}</h2><p className="mt-1 line-clamp-3 text-sm leading-6 text-slate-500">{item.description || 'Tài liệu học tập'}</p></div>
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-3 text-xs text-slate-400">Đăng ngày {fmtDate(item.createdAt)}</div>
+          <div className="mt-3 flex flex-wrap gap-2">
             {item.externalUrl && <a className="inline-flex min-h-11 items-center rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700" href={item.externalUrl} target="_blank" rel="noreferrer">Mở liên kết</a>}
             {item.fileId && <Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(item.fileId!, item.title)}><Download size={16} />Tải xuống</Button>}
           </div>

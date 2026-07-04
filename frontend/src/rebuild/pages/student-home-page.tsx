@@ -63,7 +63,7 @@ export function StudentHomePage() {
   return (
     <div className="space-y-5 pb-20 md:pb-0">
       <PageHeader
-        eyebrow="오늘의 학습"
+        eyebrow="Học tập hôm nay"
         title={`Hôm nay bạn học gì${user?.fullName ? `, ${user.fullName.split(' ').slice(-1).join('')}` : ''}?`}
         description="Một góc học tập nhẹ nhàng để theo dõi lớp TOPIK, deadline, điểm số và thông báo mới."
         actions={<div className="rounded-full bg-gradient-to-r from-indigo-500 to-pink-400 px-4 py-2 text-sm font-black text-white shadow-sm"><Sparkles size={16} className="mr-1 inline" /> TOPIK Journey</div>}

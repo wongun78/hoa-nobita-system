@@ -54,7 +54,7 @@ export function StudentGradesPage() {
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <PageHeader eyebrow="성적" title="Điểm của tôi" description="Tổng hợp điểm đã chấm từ các bài nộp của bạn, kèm trung bình theo từng lớp." />
+      <PageHeader eyebrow="Điểm số" title="Điểm của tôi" description="Tổng hợp điểm đã chấm từ các bài nộp của bạn, kèm trung bình theo từng lớp." />
 
       <div className="grid gap-3 sm:grid-cols-3">
         <MetricCard label="Điểm trung bình" value={overallAverage == null ? '-' : overallAverage.toFixed(1)} hint="Tất cả bài đã chấm" icon={<TrendingUp size={20} />} tone="emerald" />

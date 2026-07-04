@@ -58,7 +58,7 @@ function statusTone(value: string): Tone {
 
 export function StatusBadge({ value }: Readonly<{ value?: string | null }>) {
   const normalized = value ?? 'UNKNOWN'
-  const labelMap: Record<string, string> = { ACTIVE: 'Hoạt động', COMPLETED: 'Đã hoàn thành', DRAFT: 'Nháp', UPCOMING: 'Sắp khai giảng', ARCHIVED: 'Đã lưu trữ', PUBLISHED: 'Đã đăng', CLOSED: 'Đã đóng', SUBMITTED: 'Đã nộp', GRADED: 'Đã chấm', LATE: 'Nộp trễ', OVERDUE: 'Quá hạn', INACTIVE: 'Ngưng', SUSPENDED: 'Đã khoá' }
+  const labelMap: Record<string, string> = { ACTIVE: 'Đang học', COMPLETED: 'Hoàn thành', DRAFT: 'Nháp', UPCOMING: 'Sắp khai giảng', ARCHIVED: 'Lưu trữ', PUBLISHED: 'Đã xuất bản', CLOSED: 'Đã đóng', SUBMITTED: 'Đã nộp', GRADED: 'Đã chấm', LATE: 'Nộp trễ', OVERDUE: 'Quá hạn', INACTIVE: 'Ngưng', SUSPENDED: 'Đã khoá', RESUBMIT_REQUESTED: 'Yêu cầu nộp lại' }
   return <span className={clsx('inline-flex rounded-full border px-2.5 py-1 text-xs font-bold', toneClasses[statusTone(normalized)])}>{labelMap[normalized] ?? normalized}</span>
 }
 

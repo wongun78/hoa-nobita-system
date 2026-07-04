@@ -108,13 +108,13 @@ export function StudentAssignmentsPage() {
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <PageHeader eyebrow="과제" title="Bài tập của tôi" description="Theo dõi deadline, trạng thái nộp bài và điểm số cho các lớp bạn đang tham gia." />
+      <PageHeader eyebrow="Bài tập" title="Bài tập của tôi" description="Theo dõi deadline, trạng thái nộp bài và điểm số cho các lớp bạn đang tham gia." />
 
       <FilterBar>
         <div className="min-w-0 flex-1"><SearchInput value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm bài tập, lớp học..." aria-label="Tìm bài tập" /></div>
         <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0">
           {(['ALL', 'CHƯA NỘP', 'ĐÃ NỘP', 'ĐÃ CHẤM', 'NỘP LẠI', 'QUÁ HẠN'] as const).map((item) => (
-            <button key={item} type="button" onClick={() => setFilter(item)} className={`min-h-11 shrink-0 rounded-2xl px-4 text-sm font-bold transition ${filter === item ? 'bg-indigo-600 text-white' : 'border border-sky-100 bg-white text-slate-600 hover:bg-sky-50'}`}>{item}</button>
+            <button key={item} type="button" onClick={() => setFilter(item)} className={`min-h-11 shrink-0 rounded-2xl px-4 text-sm font-bold transition ${filter === item ? 'bg-indigo-600 text-white' : 'border border-sky-100 bg-white text-slate-600 hover:bg-sky-50'}`}>{item === 'ALL' ? 'Tất cả' : item}</button>
           ))}
         </div>
       </FilterBar>
