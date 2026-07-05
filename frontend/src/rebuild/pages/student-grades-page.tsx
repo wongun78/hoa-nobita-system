@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Award, BarChart3, GraduationCap, TrendingUp } from 'lucide-react'
+import { Award, GraduationCap, TrendingUp } from 'lucide-react'
 import { api } from '../core/api'
 import { EmptyState, ErrorState, FilterBar, MetricCard, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { Card } from '../layout/ui'
@@ -68,19 +68,13 @@ export function StudentGradesPage() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <MetricCard label="Điểm trung bình" value={overallAverage == null ? '-' : overallAverage.toFixed(1)} hint="Tất cả bài đã chấm" icon={<TrendingUp size={20} />} tone="emerald" />
         <MetricCard label="Bài đã chấm" value={graded.length} hint="Có điểm hoặc phản hồi" icon={<Award size={20} />} tone="indigo" />
-        <MetricCard label="Số lớp có điểm" value={summaries.length} hint="Tổng hợp theo lớp" icon={<BarChart3 size={20} />} tone="sky" />
+        {summaries.length > 0 && summaries.map((item) => (
+          <Card key={item.classId} className="rounded-3xl bg-gradient-to-br from-white to-sky-50/50 transition hover:-translate-y-0.5 hover:shadow-lg">
+            <div className="flex items-start justify-between gap-3"><div><h2 className="font-black text-slate-950">{item.className}</h2><p className="mt-1 text-xs text-slate-500">{item.gradedCount} bài đã chấm</p></div><div className={`text-3xl font-black ${scoreColor(item.average).accent}`}>{item.average.toFixed(1)}</div></div>
+            {item.latest && <p className="mt-4 text-sm text-slate-600">Mới nhất: <b>{item.latest.assignmentTitle}</b> · {item.latest.score}/{item.latest.maxScore ?? '-'}</p>}
+          </Card>
+        ))}
       </div>
-
-      {summaries.length > 0 && (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {summaries.map((item) => (
-            <Card key={item.classId} className="rounded-3xl bg-gradient-to-br from-white to-emerald-50/50 transition hover:-translate-y-0.5 hover:shadow-lg">
-              <div className="flex items-start justify-between gap-3"><div><h2 className="font-black text-slate-950">{item.className}</h2><p className="mt-1 text-xs text-slate-500">{item.gradedCount} bài đã chấm</p></div><div className={`text-3xl font-black ${scoreColor(item.average).accent}`}>{item.average.toFixed(1)}</div></div>
-              {item.latest && <p className="mt-4 text-sm text-slate-600">Mới nhất: <b>{item.latest.assignmentTitle}</b> · {item.latest.score}/{item.latest.maxScore ?? '-'}</p>}
-            </Card>
-          ))}
-        </div>
-      )}
 
       <FilterBar>
         <div className="min-w-0 flex-1"><SearchInput value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm bài đã chấm, lớp, nhận xét..." aria-label="Tìm điểm" /></div>
