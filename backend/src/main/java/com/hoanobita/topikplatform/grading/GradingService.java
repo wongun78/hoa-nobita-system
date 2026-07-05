@@ -238,10 +238,16 @@ public class GradingService {
     public byte[] exportSubmissionsZip(UUID assignmentId, UUID classId) {
         var currentUser = security.currentUser();
         permissions.requireTeacherOrAdmin(currentUser);
-        permissions.requireManageClass(currentUser, classId);
 
         Assignment assignment = assignments.findActiveById(assignmentId)
                 .orElseThrow(() -> BusinessException.notFound("Bài tập không tồn tại"));
+
+        // Derive classId from assignment if not provided
+        if (classId == null) {
+            classId = assignment.getClassId();
+        }
+        permissions.requireManageClass(currentUser, classId);
+
         if (!assignment.getClassId().equals(classId)) {
             throw BusinessException.badRequest("Bài tập không thuộc lớp này");
         }
@@ -373,6 +379,9 @@ public class GradingService {
 
     public String buildExportFilename(UUID assignmentId, UUID classId) {
         Assignment a = assignments.findActiveById(assignmentId).orElse(null);
+        if (classId == null && a != null) {
+            classId = a.getClassId();
+        }
         Klass k = klasses.findById(classId).orElse(null);
         String className = k != null ? sanitizeFilenamePart(k.getName()) : "class";
         String title = a != null ? sanitizeFilenamePart(a.getTitle()) : "assignment";

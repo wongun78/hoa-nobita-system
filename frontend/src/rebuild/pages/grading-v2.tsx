@@ -95,10 +95,10 @@ export function GradingV2Page() {
   }
 
   const handleExportZip = async () => {
-    if (!assignmentId || !classId) return
+    if (!assignmentId) return
     setDownloadingZip(true)
     try {
-      await api.downloadSubmissionsZip(assignmentId, classId)
+      await api.downloadSubmissionsZip(assignmentId, classId || undefined)
       setToast({ type: 'success', message: 'Đã tải ZIP bài nộp thành công.' })
     } catch (err) {
       showError(err, 'Không thể tải ZIP. Vui lòng thử lại.')
@@ -165,7 +165,7 @@ export function GradingV2Page() {
         </select>
         <SearchInput value={search} onChange={(e) => { setPage(0); setSearch(e.target.value) }} placeholder="Tìm học viên/bài tập" />
         {(isTeacher || hasRole('CLASS_ADMIN')) && (
-          <Button type="button" variant="secondary" disabled={!classId || !assignmentId || downloadingZip} onClick={handleExportZip}>
+          <Button type="button" variant="secondary" disabled={!assignmentId || downloadingZip} onClick={handleExportZip}>
             <Download size={16} /> {downloadingZip ? 'Đang tạo ZIP...' : 'Tải tất cả bài nộp (.zip)'}
           </Button>
         )}

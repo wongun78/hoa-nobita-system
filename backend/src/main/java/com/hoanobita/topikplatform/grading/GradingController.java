@@ -70,7 +70,7 @@ public class GradingController {
     }
 
     @GetMapping(value = "/assignments/{assignmentId}/submissions/export-zip", produces = "application/zip")
-    public ResponseEntity<byte[]> exportSubmissionsZip(@PathVariable UUID assignmentId, @RequestParam UUID classId) {
+    public ResponseEntity<byte[]> exportSubmissionsZip(@PathVariable UUID assignmentId, @RequestParam(required = false) UUID classId) {
         byte[] zip = service.exportSubmissionsZip(assignmentId, classId);
         String filename = service.buildExportFilename(assignmentId, classId);
         String encodedFilename = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
