@@ -185,7 +185,7 @@ export function MaterialsLibraryPage() {
   return (
     <div className="space-y-5 pb-20 md:pb-0">
       <PageHeader
-        eyebrow="자료실"
+        eyebrow="Quản lý tài liệu"
         title="Thư viện tài liệu"
         description="Quản lý tài liệu theo từng lớp, bao gồm tệp đính kèm, liên kết ngoài và trạng thái hiển thị cho học viên."
         actions={<Button type="button" className="min-h-11" disabled={!classId} onClick={openCreate}><Plus size={16} />Thêm tài liệu</Button>}

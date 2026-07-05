@@ -122,10 +122,10 @@ export function TeacherDashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="HOA NOBITA · Giáo viên"
+        eyebrow="Dashboard HOA NOBITA · Giáo viên"
         title={`Chào ${textValue(data.greetingName, 'Anh Hoà')}, hôm nay lớp học đang vận hành thế nào?`}
         description="Bảng điều khiển tập trung cho giáo viên: lớp học, bài tập, chấm điểm, rủi ro học viên."
-        actions={<><Link className="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-bold !text-white hover:bg-indigo-700" to="/teacher/classes">Quản lý lớp</Link><Link className="inline-flex items-center justify-center rounded-2xl border border-sky-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-sky-50" to="/teacher/grading">Mở Grading Center</Link></>}
+        actions={<><Link className="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-3 py-1.5 text-xs font-bold !text-white hover:bg-indigo-700 sm:px-4 sm:py-2 sm:text-sm" to="/teacher/classes">Quản lý lớp</Link><Link className="inline-flex items-center justify-center rounded-2xl border border-sky-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-sky-50 sm:px-4 sm:py-2 sm:text-sm" to="/teacher/grading">Mở Grading Center</Link></>}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

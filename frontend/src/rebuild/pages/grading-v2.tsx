@@ -143,7 +143,7 @@ export function GradingV2Page() {
 
   return (
     <div className="space-y-5">
-      <PageHeader eyebrow="Trung tâm chấm điểm" title="Chấm điểm" description={isTeacher ? 'Bạn có thể xem toàn bộ bài nộp toàn hệ thống.' : 'Chọn lớp và bài tập để bắt đầu chấm điểm.'} />
+      <PageHeader eyebrow="Quản lý chấm bài" title="Chấm điểm" description={isTeacher ? 'Bạn có thể xem toàn bộ bài nộp toàn hệ thống.' : 'Chọn lớp và bài tập để bắt đầu chấm điểm.'} />
 
       {/* Filters: Class → Assignment → Search */}
       <Card className="flex flex-col gap-3 md:flex-row">

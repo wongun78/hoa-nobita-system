@@ -138,7 +138,7 @@ export function ReportsPage() {
   return (
     <div className="space-y-5 pb-20 md:pb-0">
       <PageHeader
-        eyebrow="리포트 센터"
+        eyebrow="Quản lý báo cáo"
         title="Báo cáo học tập"
         description="Tổng hợp báo cáo theo lớp từ backend Reports API, bổ sung class stats và attendance summary theo đúng quyền truy cập lớp."
         actions={(

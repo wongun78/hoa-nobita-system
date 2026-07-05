@@ -149,7 +149,7 @@ export function AttendanceMarkingPage() {
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <PageHeader eyebrow="출석 관리" title="Chấm điểm danh" description="Chọn lớp và buổi học để chấm điểm danh hàng loạt cho học viên bằng trạng thái PRESENT / ABSENT / LATE." />
+      <PageHeader eyebrow="Quản lý điểm danh" title="Chấm điểm danh" description="Chọn lớp và buổi học để chấm điểm danh hàng loạt cho học viên bằng trạng thái PRESENT / ABSENT / LATE." />
 
       <FilterBar>
         <div className="min-w-0 flex-1">
