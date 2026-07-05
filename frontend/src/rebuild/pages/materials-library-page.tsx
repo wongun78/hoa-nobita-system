@@ -63,43 +63,45 @@ function MaterialEditor({
   const canSubmit = classId && form.title.trim() && (form.description.trim() || form.externalUrl.trim() || file?.id || editing?.fileId)
 
   return (
-    <Card className="rounded-3xl bg-white/95">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-black text-slate-950">{isEditing ? 'Sửa tài liệu' : 'Thêm tài liệu'}</h2>
-          <p className="mt-1 text-sm text-slate-500">Tạo tài liệu bằng tệp tải lên, liên kết ngoài hoặc mô tả văn bản.</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-sky-100 bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-black text-slate-950">{isEditing ? 'Sửa tài liệu' : 'Thêm tài liệu'}</h2>
+            <p className="mt-1 text-sm text-slate-500">Tạo tài liệu bằng tệp tải lên, liên kết ngoài hoặc mô tả văn bản.</p>
+          </div>
+          <Button type="button" variant="ghost" className="min-h-11" onClick={onClose}>Đóng</Button>
         </div>
-        {isEditing && <Button type="button" variant="ghost" className="min-h-11" onClick={onClose}>Đóng</Button>}
-      </div>
 
-      <div className="space-y-4">
-        <div>
-          <FieldLabel htmlFor="material-title">Tiêu đề</FieldLabel>
-          <Input id="material-title" value={form.title} onChange={(event) => setForm((value) => ({ ...value, title: event.target.value }))} placeholder="VD: Bài nghe TOPIK tuần 1" />
+        <div className="space-y-4">
+          <div>
+            <FieldLabel htmlFor="material-title">Tiêu đề</FieldLabel>
+            <Input id="material-title" value={form.title} onChange={(event) => setForm((value) => ({ ...value, title: event.target.value }))} placeholder="VD: Bài nghe TOPIK tuần 1" />
+          </div>
+          <div>
+            <FieldLabel htmlFor="material-description">Mô tả</FieldLabel>
+            <TextArea id="material-description" rows={4} value={form.description} onChange={(event) => setForm((value) => ({ ...value, description: event.target.value }))} placeholder="Ghi chú cách học, phạm vi sử dụng..." />
+          </div>
+          <div>
+            <FieldLabel htmlFor="material-url">Liên kết ngoài</FieldLabel>
+            <Input id="material-url" value={form.externalUrl} onChange={(event) => setForm((value) => ({ ...value, externalUrl: event.target.value }))} placeholder="https://..." />
+          </div>
+          <div>
+            <FieldLabel htmlFor="material-file">Tệp đính kèm</FieldLabel>
+            <StudentFileUpload value={file} onUploaded={setFile} disabled={pending} />
+            {editing?.fileId && !file && <p className="mt-2 text-xs font-semibold text-slate-500">Đang giữ tệp hiện có. Tải tệp mới nếu muốn thay thế.</p>}
+          </div>
+          <label className="flex min-h-11 items-center gap-3 rounded-2xl border border-sky-100 bg-sky-50/50 px-4 text-sm font-bold text-slate-700">
+            <input type="checkbox" checked={form.visible} onChange={(event) => setForm((value) => ({ ...value, visible: event.target.checked }))} className="h-4 w-4 rounded border-sky-200 text-indigo-600" />
+            Hiển thị cho học viên
+          </label>
+          {(create.isError || update.isError) && <ErrorState title="Không lưu được tài liệu" description="Kiểm tra dữ liệu và thử lại." />}
+          <Button type="button" className="min-h-11 w-full" disabled={!canSubmit || pending} onClick={() => isEditing ? update.mutate() : create.mutate()}>
+            {isEditing ? 'Lưu thay đổi' : 'Tạo tài liệu'}
+          </Button>
         </div>
-        <div>
-          <FieldLabel htmlFor="material-description">Mô tả</FieldLabel>
-          <TextArea id="material-description" rows={4} value={form.description} onChange={(event) => setForm((value) => ({ ...value, description: event.target.value }))} placeholder="Ghi chú cách học, phạm vi sử dụng..." />
-        </div>
-        <div>
-          <FieldLabel htmlFor="material-url">Liên kết ngoài</FieldLabel>
-          <Input id="material-url" value={form.externalUrl} onChange={(event) => setForm((value) => ({ ...value, externalUrl: event.target.value }))} placeholder="https://..." />
-        </div>
-        <div>
-          <FieldLabel htmlFor="material-file">Tệp đính kèm</FieldLabel>
-          <StudentFileUpload value={file} onUploaded={setFile} disabled={pending} />
-          {editing?.fileId && !file && <p className="mt-2 text-xs font-semibold text-slate-500">Đang giữ tệp hiện có. Tải tệp mới nếu muốn thay thế.</p>}
-        </div>
-        <label className="flex min-h-11 items-center gap-3 rounded-2xl border border-sky-100 bg-sky-50/50 px-4 text-sm font-bold text-slate-700">
-          <input type="checkbox" checked={form.visible} onChange={(event) => setForm((value) => ({ ...value, visible: event.target.checked }))} className="h-4 w-4 rounded border-sky-200 text-indigo-600" />
-          Hiển thị cho học viên
-        </label>
-        {(create.isError || update.isError) && <ErrorState title="Không lưu được tài liệu" description="Kiểm tra dữ liệu và thử lại." />}
-        <Button type="button" className="min-h-11 w-full" disabled={!canSubmit || pending} onClick={() => isEditing ? update.mutate() : create.mutate()}>
-          {isEditing ? 'Lưu thay đổi' : 'Tạo tài liệu'}
-        </Button>
       </div>
-    </Card>
+    </div>
   )
 }
 
@@ -210,9 +212,9 @@ export function MaterialsLibraryPage() {
       {!classId && !classes.isLoading && <EmptyState title="Chọn lớp để quản lý tài liệu" description="Thư viện được phân quyền theo lớp. Teacher Owner và Class Admin chỉ thao tác trong phạm vi lớp của mình." action={<FileText className="mx-auto text-indigo-400" />} />}
 
       {classId && (
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="space-y-4">
-            <Card className="rounded-3xl bg-gradient-to-r from-indigo-50 to-sky-50">
+        <>
+          {/* Single column - editor is now a modal */}
+          <Card className="rounded-3xl bg-gradient-to-r from-indigo-50 to-sky-50">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-500">Lớp đang chọn</p>
@@ -238,19 +240,10 @@ export function MaterialsLibraryPage() {
             ) : (
               <EmptyState title="Chưa có tài liệu phù hợp" description="Tạo tài liệu đầu tiên hoặc thay đổi từ khoá tìm kiếm." action={<FileText className="mx-auto text-indigo-400" />} />
             ))}
-            <PaginationControls page={pageData.page} totalPages={pageData.totalPages} onPageChange={setPage} />
-          </div>
+          <PaginationControls page={pageData.page} totalPages={pageData.totalPages} onPageChange={setPage} />
 
-          <div className="xl:sticky xl:top-24 xl:self-start">
-            {showEditor ? <MaterialEditor key={editing?.id ?? 'new'} classId={classId} editing={editing} onClose={() => { setShowEditor(false); setEditing(null) }} /> : (
-              <Card className="rounded-3xl border-dashed bg-white/70 text-center">
-                <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-indigo-50 text-indigo-600"><Plus size={22} /></div>
-                <h2 className="mt-3 text-lg font-black text-slate-950">Tạo hoặc sửa tài liệu</h2>
-                <p className="mt-2 text-sm leading-6 text-slate-500">Bấm “Thêm tài liệu” hoặc biểu tượng sửa trên từng thẻ để mở form quản lý.</p>
-              </Card>
-            )}
-          </div>
-        </div>
+          {showEditor && <MaterialEditor key={editing?.id ?? 'new'} classId={classId} editing={editing} onClose={() => { setShowEditor(false); setEditing(null) }} />}
+        </>
       )}
     </div>
   )
