@@ -209,6 +209,7 @@ export function AssignmentsV2Page() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
+  const [editingAssignment, setEditingAssignment] = useState<AssignmentItem | null>(null)
   const [previewFile, setPreviewFile] = useState<{ id: string; name: string; type?: string } | null>(null)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const assignmentsQueryKey = ['assignments-v2', page, search, status, classId] as const
@@ -386,7 +387,7 @@ export function AssignmentsV2Page() {
                 <MetricCard label="Cần chấm" value={progress.data?.needGradingCount ?? '-'} />
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button variant="secondary" onClick={() => { setSelectedId(''); setShowEdit(true) }}><Edit3 size={14} /> Chỉnh sửa</Button>
+                <Button variant="secondary" onClick={() => { setEditingAssignment(selectedAssignment ?? null); setSelectedId(''); setShowEdit(true) }}><Edit3 size={14} /> Chỉnh sửa</Button>
                 <Button variant="secondary" disabled={publish.isPending || selectedAssignment.status === 'PUBLISHED'} onClick={() => publish.mutate()}>Xuất bản</Button>
                 <Button variant="secondary" disabled={close.isPending || selectedAssignment.status === 'CLOSED'} onClick={() => close.mutate()}>Đóng bài</Button>
                 <Button variant="secondary" disabled={copy.isPending} onClick={() => copy.mutate()}><Copy size={14} /> Sao chép</Button>
@@ -415,7 +416,7 @@ export function AssignmentsV2Page() {
     <ConfirmDialog open={confirmDelete} title="Xoá bài tập này?" description="Bài tập sẽ bị xoá khỏi danh sách. Hãy kiểm tra bài nộp liên quan trước khi xác nhận." confirmLabel={remove.isPending ? 'Đang xoá...' : 'Xoá bài tập'} onCancel={() => setConfirmDelete(false)} onConfirm={() => remove.mutate()} />
 
     {showCreate && <AssignmentFormModal onClose={() => setShowCreate(false)} />}
-    {showEdit && selectedAssignment && <AssignmentFormModal assignment={selectedAssignment} onClose={() => setShowEdit(false)} />}
+    {showEdit && editingAssignment && <AssignmentFormModal assignment={editingAssignment} onClose={() => { setShowEdit(false); setEditingAssignment(null) }} />}
     {previewFile && <FilePreviewModal fileId={previewFile.id} fileName={previewFile.name} contentType={previewFile.type} onClose={() => setPreviewFile(null)} />}
   </>
 }

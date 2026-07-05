@@ -249,16 +249,17 @@ export function CalendarPage() {
             {(classes.data ?? []).map((item: ClassItem) => <option key={item.id} value={item.id}>{item.name} · {item.code}</option>)}
           </select>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <ViewButton active={view === 'AGENDA'} icon={<ListChecks size={16} />} label="Agenda" onClick={() => setView('AGENDA')} />
-          <ViewButton active={view === 'MONTH'} icon={<Grid3X3 size={16} />} label="Tháng" onClick={() => setView('MONTH')} />
-          <ViewButton active={view === 'WEEK'} icon={<Rows3 size={16} />} label="Tuần" onClick={() => setView('WEEK')} />
-        </div>
-        <div className="flex items-end">
-          <Button type="button" variant="secondary" className="min-h-11" onClick={() => void calendar.refetch()}>Làm mới</Button>
-        </div>
       </FilterBar>
       )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <ViewButton active={view === 'AGENDA'} icon={<ListChecks size={16} />} label="Agenda" onClick={() => setView('AGENDA')} />
+        <ViewButton active={view === 'MONTH'} icon={<Grid3X3 size={16} />} label="Tháng" onClick={() => setView('MONTH')} />
+        <ViewButton active={view === 'WEEK'} icon={<Rows3 size={16} />} label="Tuần" onClick={() => setView('WEEK')} />
+        <div className="ml-auto">
+          <Button type="button" variant="secondary" className="min-h-11" onClick={() => void calendar.refetch()}>Làm mới</Button>
+        </div>
+      </div>
 
       {classes.isError && <ErrorState title="Không tải được danh sách lớp" description="Agenda vẫn có thể hiển thị tất cả lớp được phép; thử lại nếu cần lọc lớp." onRetry={() => classes.refetch()} />}
       {calendar.isLoading && <div className="space-y-3"><SkeletonCard lines={3} /><SkeletonCard lines={3} /><SkeletonCard lines={3} /></div>}

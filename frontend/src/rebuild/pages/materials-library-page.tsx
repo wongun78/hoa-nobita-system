@@ -103,17 +103,10 @@ function MaterialEditor({
   )
 }
 
-function fileAccent(item: MaterialItem) {
-  if (item.fileId) return { icon: <FileText size={20} />, bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-l-indigo-400' }
-  if (item.externalUrl) return { icon: <LinkIcon size={20} />, bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-l-emerald-400' }
-  return { icon: <FileText size={20} />, bg: 'bg-slate-50', text: 'text-slate-500', border: 'border-l-slate-300' }
-}
-
-function MaterialCard({ item, classId, onEdit }: Readonly<{ item: MaterialItem; classId: string; onEdit: (item: MaterialItem) => void }>) {
+function MaterialRow({ item, classId, onEdit }: Readonly<{ item: MaterialItem; classId: string; onEdit: (item: MaterialItem) => void }>) {
   const qc = useQueryClient()
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [previewFile, setPreviewFile] = useState<{ id: string; name: string; type?: string } | null>(null)
-  const accent = fileAccent(item)
   const invalidate = async () => qc.invalidateQueries({ queryKey: ['materials-library', classId] })
   const remove = useMutation({
     mutationFn: () => api.deleteMaterial(item.id),
@@ -137,32 +130,35 @@ function MaterialCard({ item, classId, onEdit }: Readonly<{ item: MaterialItem; 
   })
   const toggle = useMutation({ mutationFn: () => api.updateMaterialVisibility(item.id, !item.visible), onSuccess: invalidate })
 
+  const iconBg = item.fileId ? 'bg-indigo-50' : item.externalUrl ? 'bg-emerald-50' : 'bg-slate-50'
+  const icon = item.fileId ? <FileText size={16} className="text-indigo-600" /> : <LinkIcon size={16} className={item.externalUrl ? 'text-emerald-600' : 'text-slate-400'} />
+
   return (
     <>
-      <Card className={`rounded-3xl border-l-4 ${accent.border} transition hover:-translate-y-0.5 hover:shadow-lg`}>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex min-w-0 flex-1 gap-3">
-          <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${accent.bg} ${accent.text}`}>{accent.icon}</div>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="line-clamp-2 text-lg font-black text-slate-950">{item.title}</h2>
-              <StatusBadge value={item.visible ? 'VISIBLE' : 'HIDDEN'} />
+      <tr className="transition hover:bg-sky-50/40">
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${iconBg}`}>{icon}</div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="min-w-0 truncate font-bold text-slate-900">{item.title}</span>
+                <StatusBadge value={item.visible ? 'VISIBLE' : 'HIDDEN'} />
+              </div>
+              <p className="mt-0.5 text-xs text-slate-400">Cập nhật {fmtDate(item.createdAt)}</p>
             </div>
-            <p className="mt-1 text-xs text-slate-500">Cập nhật {fmtDate(item.createdAt)}</p>
-            <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{item.description || 'Chưa có mô tả cho tài liệu này.'}</p>
           </div>
-        </div>
-        <div className="flex shrink-0 flex-row gap-2 sm:flex-col">
-          <Button type="button" variant="secondary" className="min-h-11 px-3" onClick={() => onEdit(item)} aria-label="Sửa tài liệu"><Pencil size={16} /></Button>
-          <Button type="button" variant="secondary" className="min-h-11 px-3" disabled={toggle.isPending} onClick={() => toggle.mutate()} aria-label="Đổi trạng thái hiển thị">{item.visible ? <EyeOff size={16} /> : <Eye size={16} />}</Button>
-          <Button type="button" variant="ghost" className="min-h-11 px-3 text-rose-600 hover:bg-rose-50" disabled={remove.isPending} onClick={() => setConfirmOpen(true)} aria-label="Xoá tài liệu"><Trash2 size={16} /></Button>
-        </div>
-      </div>
-      <div className="mt-4 flex flex-wrap gap-2 border-t border-sky-50 pt-3">
-        {item.externalUrl && <a className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-bold text-emerald-700 hover:bg-emerald-100" href={item.externalUrl} target="_blank" rel="noreferrer"><LinkIcon size={16} />Mở liên kết</a>}
-        {item.fileId && <><Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(item.fileId!, item.title)}><Download size={16} />Tải xuống</Button><Button type="button" variant="secondary" className="min-h-11" onClick={async () => { const meta = await api.fileMetadata(item.fileId!); setPreviewFile({ id: meta.id, name: meta.originalFileName, type: meta.contentType }) }}><Eye size={16} />Xem trước</Button></>}
-      </div>
-      </Card>
+        </td>
+        <td className="hidden max-w-xs truncate px-4 py-3 text-slate-500 lg:table-cell">{item.description || '—'}</td>
+        <td className="px-4 py-3">
+          <div className="flex justify-end gap-1">
+            {item.externalUrl && <a className="inline-flex h-8 items-center gap-1 rounded-xl border border-emerald-200 px-2.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50" href={item.externalUrl} target="_blank" rel="noreferrer"><LinkIcon size={13} /></a>}
+            {item.fileId && <><Button type="button" variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => api.downloadFile(item.fileId!, item.title)}><Download size={13} /></Button><Button type="button" variant="secondary" className="h-8 px-2.5 text-xs" onClick={async () => { const meta = await api.fileMetadata(item.fileId!); setPreviewFile({ id: meta.id, name: meta.originalFileName, type: meta.contentType }) }}><Eye size={13} /></Button></>}
+            <Button type="button" variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => onEdit(item)} aria-label="Sửa"><Pencil size={13} /></Button>
+            <Button type="button" variant="secondary" className="h-8 px-2.5 text-xs" disabled={toggle.isPending} onClick={() => toggle.mutate()} aria-label="Đổi hiển thị">{item.visible ? <EyeOff size={13} /> : <Eye size={13} />}</Button>
+            <Button type="button" variant="ghost" className="h-8 px-2.5 text-xs text-rose-600 hover:bg-rose-50" disabled={remove.isPending} onClick={() => setConfirmOpen(true)} aria-label="Xoá"><Trash2 size={13} /></Button>
+          </div>
+        </td>
+      </tr>
       <ConfirmDialog open={confirmOpen} title={`Xoá tài liệu \u201c${item.title}\u201d?`} description="Tài liệu sẽ bị xoá khỏi thư viện lớp. Học viên sẽ không còn thấy tài liệu này sau khi xác nhận." confirmLabel={remove.isPending ? 'Đang xoá...' : 'Xoá tài liệu'} onCancel={() => setConfirmOpen(false)} onConfirm={() => remove.mutate()} />
       {previewFile && <FilePreviewModal fileId={previewFile.id} fileName={previewFile.name} contentType={previewFile.type} onClose={() => setPreviewFile(null)} />}
     </>
@@ -229,8 +225,15 @@ export function MaterialsLibraryPage() {
             {materials.isLoading && <div className="space-y-3"><SkeletonCard lines={4} /><SkeletonCard lines={4} /></div>}
             {materials.isError && <ErrorState title="Không tải được tài liệu" description="Vui lòng thử lại sau ít phút." onRetry={() => materials.refetch()} />}
             {!materials.isLoading && !materials.isError && (pageData.items.length ? (
-              <div className="space-y-3">
-                {pageData.items.map((item) => <MaterialCard key={item.id} item={item} classId={classId} onEdit={openEdit} />)}
+              <div className="overflow-hidden rounded-2xl border border-sky-100">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-sky-50/60 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <tr><th className="px-4 py-3">Tài liệu</th><th className="hidden px-4 py-3 lg:table-cell">Mô tả</th><th className="px-4 py-3 text-right">Thao tác</th></tr>
+                  </thead>
+                  <tbody className="divide-y divide-sky-50">
+                    {pageData.items.map((item) => <MaterialRow key={item.id} item={item} classId={classId} onEdit={openEdit} />)}
+                  </tbody>
+                </table>
               </div>
             ) : (
               <EmptyState title="Chưa có tài liệu phù hợp" description="Tạo tài liệu đầu tiên hoặc thay đổi từ khoá tìm kiếm." action={<FileText className="mx-auto text-indigo-400" />} />

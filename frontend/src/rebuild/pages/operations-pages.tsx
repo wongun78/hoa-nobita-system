@@ -40,22 +40,32 @@ export function MaterialsPage() {
           </select>
         </Card>
       )}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {(materials.data ?? []).map((item) => (
-          <Card key={item.id} className="rounded-3xl transition hover:-translate-y-0.5 hover:shadow-lg">
-            <div className="flex items-start gap-3">
-              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-indigo-50 text-indigo-600">{item.externalUrl ? <Link2 size={20} /> : <FileText size={20} />}</div>
-              <div className="min-w-0 flex-1">
-                <h2 className="font-bold text-slate-950">{item.title}</h2>
-                <p className="mt-1 line-clamp-2 text-sm text-slate-500">{item.description || 'Tài liệu học tập'}</p>
-              </div>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {item.externalUrl && <a className="inline-flex min-h-10 items-center gap-1 rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700 transition hover:bg-sky-50" href={item.externalUrl} target="_blank" rel="noreferrer"><ExternalLink size={14} />Mở liên kết</a>}
-              {item.fileId && <><a className="inline-flex min-h-10 items-center gap-1 rounded-2xl bg-indigo-600 px-4 text-sm font-bold text-white transition hover:bg-indigo-700" href={api.downloadFileUrl(item.fileId)}><Download size={14} />Tải xuống</a><button type="button" className="inline-flex min-h-10 items-center gap-1 rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700 transition hover:bg-sky-50" onClick={async () => { const meta = await api.fileMetadata(item.fileId!); setPreviewFile({ id: meta.id, name: meta.originalFileName, type: meta.contentType }) }}><Eye size={14} />Xem trước</button></>}
-            </div>
-          </Card>
-        ))}
+      <div className="overflow-hidden rounded-2xl border border-sky-100">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-sky-50/60 text-xs font-bold uppercase tracking-wider text-slate-500">
+            <tr><th className="px-4 py-3">Tài liệu</th><th className="hidden px-4 py-3 md:table-cell">Mô tả</th><th className="hidden px-4 py-3 sm:table-cell">Ngày đăng</th><th className="px-4 py-3 text-right">Thao tác</th></tr>
+          </thead>
+          <tbody className="divide-y divide-sky-50">
+            {(materials.data ?? []).map((item) => (
+              <tr key={item.id} className="transition hover:bg-sky-50/40">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-600">{item.externalUrl ? <Link2 size={16} /> : <FileText size={16} />}</div>
+                    <span className="min-w-0 truncate font-bold text-slate-900">{item.title}</span>
+                  </div>
+                </td>
+                <td className="hidden max-w-xs truncate px-4 py-3 text-slate-500 md:table-cell">{item.description || '—'}</td>
+                <td className="hidden whitespace-nowrap px-4 py-3 text-slate-400 sm:table-cell">{fmtDate(item.createdAt)}</td>
+                <td className="px-4 py-3">
+                  <div className="flex justify-end gap-1">
+                    {item.externalUrl && <a className="inline-flex h-9 items-center gap-1 rounded-xl border border-sky-200 px-3 text-xs font-bold text-slate-700 transition hover:bg-sky-50" href={item.externalUrl} target="_blank" rel="noreferrer"><ExternalLink size={13} />Liên kết</a>}
+                    {item.fileId && <><a className="inline-flex h-9 items-center gap-1 rounded-xl bg-indigo-600 px-3 text-xs font-bold text-white transition hover:bg-indigo-700" href={api.downloadFileUrl(item.fileId)}><Download size={13} />Tải</a><button type="button" className="inline-flex h-9 items-center gap-1 rounded-xl border border-sky-200 px-3 text-xs font-bold text-slate-700 transition hover:bg-sky-50" onClick={async () => { const meta = await api.fileMetadata(item.fileId!); setPreviewFile({ id: meta.id, name: meta.originalFileName, type: meta.contentType }) }}><Eye size={13} />Xem</button></>}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
         {classId && !materials.isLoading && (materials.data ?? []).length === 0 && <EmptyState title="Chưa có tài liệu" description="Tài liệu học tập sẽ xuất hiện tại đây khi giáo viên tải lên." />}
       </div>
       {previewFile && <FilePreviewModal fileId={previewFile.id} fileName={previewFile.name} contentType={previewFile.type} onClose={() => setPreviewFile(null)} />}

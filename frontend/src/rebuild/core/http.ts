@@ -85,8 +85,11 @@ http.interceptors.response.use(
 )
 
 function toBackendParams(params?: Record<string, unknown>) {
-  if (!params || typeof params.page !== 'number') return params
-  return { ...params, page: params.page + 1 }
+  if (!params) return params
+  // Strip empty strings and undefined values so they don't confuse backend UUID/enum parsers
+  const cleaned = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '' && v !== undefined && v !== null))
+  if (typeof cleaned.page !== 'number') return cleaned
+  return { ...cleaned, page: cleaned.page + 1 }
 }
 
 function normalizeBackendPage<T>(data: T): T {
