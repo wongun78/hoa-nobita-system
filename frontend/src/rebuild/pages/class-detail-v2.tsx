@@ -22,7 +22,10 @@ function formatLessonLabel(item: LessonItem, _className?: string): string {
   return 'Buổi học'
 }
 
-const lessonStatusOptions: LessonStatus[] = ['DRAFT', 'PUBLISHED']
+const lessonStatusOptions: Array<{ value: LessonStatus; label: string }> = [
+  { value: 'DRAFT', label: 'Nháp' },
+  { value: 'PUBLISHED', label: 'Đã xuất bản' },
+]
 
 type LessonFormState = { title: string; description: string; lessonDate: string; orderIndex: number; status: LessonStatus }
 
@@ -58,7 +61,7 @@ function LessonFormDialog({ open, title, form, onChange, saving, onSave, onClose
             <div>
               <FieldLabel htmlFor="lesson-status">Trạng thái</FieldLabel>
               <select id="lesson-status" className="min-h-11 w-full rounded-2xl border border-sky-100 bg-white px-4 text-sm font-bold text-slate-600 outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" value={form.status} onChange={(e) => onChange({ ...form, status: e.target.value as LessonStatus })}>
-                {lessonStatusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+                {lessonStatusOptions.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>
           </div>
