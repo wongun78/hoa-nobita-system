@@ -76,12 +76,14 @@ function SubmissionSummary({ assignment, submission }: Readonly<{ assignment: As
         <div className="mt-3 rounded-2xl border border-indigo-100 bg-indigo-50 p-3 space-y-2">
           <h3 className="text-xs font-bold text-indigo-700">Tệp đính kèm từ giáo viên</h3>
           {submission.feedbackFileId && (
-            <><Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFeedbackFile(submission.id, submission.feedbackFileName || `feedback-${submission.id}`)}>
-              <Download size={16} /> {submission.feedbackFileName || 'Tải tệp phản hồi'}
-            </Button>
-            <Button type="button" variant="secondary" className="min-h-11" onClick={() => setPreviewFile({ id: submission.feedbackFileId!, name: submission.feedbackFileName || 'Phản hồi', type: submission.feedbackFileContentType ?? undefined })}>
-              <Eye size={16} /> Xem trước
-            </Button></>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFeedbackFile(submission.id, submission.feedbackFileName || `feedback-${submission.id}`)}>
+                <Download size={16} /> {submission.feedbackFileName || 'Tải tệp phản hồi'}
+              </Button>
+              <Button type="button" variant="secondary" className="min-h-11" onClick={() => setPreviewFile({ id: submission.feedbackFileId!, name: submission.feedbackFileName || 'Phản hồi', type: submission.feedbackFileContentType ?? undefined })}>
+                <Eye size={16} /> Xem trước
+              </Button>
+            </div>
           )}
           {submission.feedbackLink && <a className="inline-flex items-center gap-1 text-sm font-bold text-indigo-600" href={submission.feedbackLink} target="_blank" rel="noreferrer"><ExternalLink size={14} /> {submission.feedbackLink}</a>}
         </div>
@@ -94,7 +96,7 @@ function FileRow({ fileId, label, onPreview }: Readonly<{ fileId: string; label:
   const meta = useQuery({ queryKey: ['file-meta', fileId], queryFn: () => api.fileMetadata(fileId), enabled: Boolean(fileId) })
   const displayName = meta.data?.originalFileName || label
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-center gap-2">
       <Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(fileId, displayName)}><Download size={16} />{displayName}</Button>
       <Button type="button" variant="secondary" className="min-h-11" onClick={() => { if (meta.data) onPreview(meta.data.id, meta.data.originalFileName, meta.data.contentType) }}><Eye size={16} />Xem trước</Button>
     </div>
