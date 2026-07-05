@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { Plus, X, FileText } from 'lucide-react'
-import { StudentFileUpload } from './student-file-upload'
+import { useCallback, useRef, useState } from 'react'
+import { Plus, X, FileText, Loader2 } from 'lucide-react'
+import { api } from '../core/api'
 import type { FileItem } from '../core/types'
 
 type MultiFileUploadProps = Readonly<{
@@ -17,71 +17,115 @@ function formatBytes(bytes: number) {
   return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`
 }
 
-export function MultiFileUpload({ value = [], onChange, disabled, maxFiles = 10 }: MultiFileUploadProps) {
-  const [showUpload, setShowUpload] = useState(false)
+const ACCEPTED_EXTENSIONS = [
+  '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+  '.txt', '.csv', '.zip', '.rar', '.7z',
+  '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp',
+  '.mp3', '.wav', '.ogg',
+  '.mp4', '.webm', '.mov', '.avi',
+]
 
-  const handleUploaded = (file: FileItem | null) => {
-    if (file) {
-      onChange([...value, file])
-      setShowUpload(false)
+export function MultiFileUpload({ value = [], onChange, disabled, maxFiles = 10 }: MultiFileUploadProps) {
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadingName, setUploadingName] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+
+  const canAdd = value.length < maxFiles && !disabled && !uploading
+
+  const uploadFile = useCallback(async (file: File) => {
+    if (!canAdd) return
+    setUploading(true)
+    setUploadingName(file.name)
+    setError(null)
+    try {
+      const uploaded = await api.uploadFile(file)
+      onChange([...value, uploaded])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không thể tải tệp.')
+    } finally {
+      setUploading(false)
+      setUploadingName('')
+      if (inputRef.current) inputRef.current.value = ''
     }
-  }
+  }, [canAdd, onChange, value])
 
   const removeFile = (index: number) => {
     onChange(value.filter((_, i) => i !== index))
   }
 
   return (
-    <div className="space-y-3">
-      {/* List of already uploaded files */}
-      {value.map((f, i) => (
-        <div key={f.id} className="flex items-center gap-3 rounded-2xl border border-sky-100 bg-white p-3 shadow-sm">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
-            <FileText size={18} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-bold text-slate-950">{f.originalFileName}</div>
-            <div className="text-xs text-slate-500">{f.fileSize ? formatBytes(f.fileSize) : 'Đã tải lên'}</div>
-          </div>
-          {!disabled && (
-            <button
-              type="button"
-              onClick={() => removeFile(i)}
-              className="rounded-xl p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500"
-              aria-label="Xóa tệp"
+    <div
+      className="rounded-2xl border border-dashed transition-colors"
+      style={{
+        borderColor: isDragging ? '#818cf8' : error ? '#fda4af' : '#e0e7ff',
+        backgroundColor: isDragging ? '#eef2ff' : '#fafbff',
+      }}
+      onDragOver={(e) => { e.preventDefault(); if (canAdd) setIsDragging(true) }}
+      onDragLeave={() => setIsDragging(false)}
+      onDrop={(e) => {
+        e.preventDefault()
+        setIsDragging(false)
+        const file = e.dataTransfer.files.item(0)
+        if (file && canAdd) uploadFile(file)
+      }}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        className="hidden"
+        accept={ACCEPTED_EXTENSIONS.join(',')}
+        onChange={(e) => { const f = e.target.files?.item(0); if (f) uploadFile(f) }}
+      />
+
+      {/* Chip list */}
+      {(value.length > 0 || uploading) && (
+        <div className="flex flex-wrap gap-2 p-3 pb-0">
+          {value.map((f, i) => (
+            <span
+              key={f.id}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-white border border-sky-100 pl-2.5 pr-1.5 py-1.5 text-xs font-bold text-slate-700 shadow-sm group"
             >
-              <X size={16} />
-            </button>
+              <FileText size={13} className="shrink-0 text-indigo-400" />
+              <span className="max-w-[140px] truncate">{f.originalFileName}</span>
+              <span className="text-slate-400 font-normal">{formatBytes(f.fileSize ?? 0)}</span>
+              {!disabled && (
+                <button
+                  type="button"
+                  onClick={() => removeFile(i)}
+                  className="ml-0.5 rounded-md p-0.5 text-slate-300 opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-500 transition"
+                  aria-label="Xóa"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </span>
+          ))}
+          {uploading && (
+            <span className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-50 border border-indigo-100 px-2.5 py-1.5 text-xs font-bold text-indigo-600">
+              <Loader2 size={13} className="animate-spin" />
+              <span className="max-w-[120px] truncate">{uploadingName}</span>
+            </span>
           )}
         </div>
-      ))}
-
-      {/* Upload area (single file at a time) */}
-      {showUpload && (
-        <StudentFileUpload value={null} onUploaded={handleUploaded} disabled={disabled} />
       )}
 
-      {/* Add file button */}
-      {!showUpload && value.length < maxFiles && !disabled && (
+      {/* Inline add button */}
+      {canAdd && (
         <button
           type="button"
-          onClick={() => setShowUpload(true)}
-          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-sky-200 bg-sky-50/50 text-sm font-bold text-sky-600 hover:bg-sky-100 transition"
+          onClick={() => inputRef.current?.click()}
+          className="flex w-full items-center gap-2 px-3 py-2.5 text-xs font-bold text-indigo-500 hover:text-indigo-700 transition"
         >
-          <Plus size={16} />
-          Thêm tệp đính kèm ({value.length}/{maxFiles})
+          <Plus size={14} />
+          {value.length === 0 ? 'Chọn tệp đính kèm hoặc kéo thả vào đây' : `Thêm tệp (${value.length}/${maxFiles})`}
         </button>
       )}
 
-      {/* Close upload area if user wants to cancel */}
-      {showUpload && !disabled && (
-        <button
-          type="button"
-          onClick={() => setShowUpload(false)}
-          className="text-xs font-bold text-slate-400 hover:text-slate-600"
-        >
-          Hủy thêm tệp
-        </button>
+      {/* Error */}
+      {error && (
+        <div className="px-3 pb-2 text-xs font-bold text-rose-500">{error}</div>
       )}
     </div>
   )

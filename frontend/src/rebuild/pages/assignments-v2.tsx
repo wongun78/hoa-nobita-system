@@ -132,7 +132,9 @@ function CreateAssignmentModal({ onClose }: Readonly<{ onClose: () => void }>) {
           {/* File upload */}
           <div>
             <FieldLabel>Tệp đính kèm</FieldLabel>
-            <MultiFileUpload value={files} onChange={setFiles} disabled={create.isPending} />
+            <div className="mt-1">
+              <MultiFileUpload value={files} onChange={setFiles} disabled={create.isPending} />
+            </div>
           </div>
 
           {/* External link */}
