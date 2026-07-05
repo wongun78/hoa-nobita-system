@@ -1,6 +1,7 @@
-import { useCallback, useEffect } from 'react'
-import { X, Download, ExternalLink } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { X, Download, ExternalLink, Loader2 } from 'lucide-react'
 import { api } from '../core/api'
+import { http } from '../core/http'
 import { Button } from '../layout/ui'
 
 type FilePreviewModalProps = Readonly<{
@@ -35,9 +36,32 @@ function isPdf(ct: string | null) { return ct === PDF_TYPE }
 function isVideo(ct: string | null) { return ct ? VIDEO_TYPES.has(ct) : false }
 function isAudio(ct: string | null) { return ct ? AUDIO_TYPES.has(ct) : false }
 
+function useAuthBlobUrl(fileId: string | undefined) {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    if (!fileId) return
+    let revoked = ''
+    setLoading(true)
+    setError(false)
+    http.get(`/files/${fileId}/preview`, { responseType: 'blob' })
+      .then((res) => {
+        const url = URL.createObjectURL(res.data)
+        revoked = url
+        setBlobUrl(url)
+        setLoading(false)
+      })
+      .catch(() => { setError(true); setLoading(false) })
+    return () => { if (revoked) URL.revokeObjectURL(revoked) }
+  }, [fileId])
+
+  return { blobUrl, loading, error }
+}
+
 export function FilePreviewModal({ fileId, fileName, contentType, onClose }: FilePreviewModalProps) {
-  const previewUrl = api.previewFileUrl(fileId)
-  const downloadUrl = api.downloadFileUrl(fileId)
+  const { blobUrl, loading, error } = useAuthBlobUrl(fileId)
   const resolvedType = resolveContentType(contentType, fileName)
 
   const handleKeyDown = useCallback(
@@ -68,14 +92,13 @@ export function FilePreviewModal({ fileId, fileName, contentType, onClose }: Fil
         {/* Header */}
         <div className="flex items-center gap-3 border-b border-slate-200 px-5 py-3">
           <h2 className="flex-1 truncate text-sm font-bold text-slate-800">{fileName}</h2>
-          <a
-            href={downloadUrl}
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
+            onClick={() => api.downloadFile(fileId, fileName)}
             className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
           >
             <Download size={14} /> Tải xuống
-          </a>
+          </button>
           <button
             type="button"
             onClick={onClose}
@@ -87,25 +110,43 @@ export function FilePreviewModal({ fileId, fileName, contentType, onClose }: Fil
 
         {/* Content */}
         <div className="flex-1 overflow-auto">
-          {isImage(resolvedType) ? (
+          {loading ? (
+            <div className="flex flex-col items-center justify-center gap-4 bg-slate-50 p-16">
+              <Loader2 size={32} className="animate-spin text-indigo-500" />
+              <p className="text-sm text-slate-500">Đang tải xem trước...</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center gap-6 bg-slate-50 p-16">
+              <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-rose-50 text-rose-500">
+                <ExternalLink size={40} />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-bold text-slate-800">{fileName}</p>
+                <p className="mt-1 text-xs text-slate-500">Không thể tải xem trước. Tải xuống để xem.</p>
+              </div>
+              <Button type="button" onClick={() => api.downloadFile(fileId, fileName)}>
+                <Download size={16} /> Tải xuống
+              </Button>
+            </div>
+          ) : isImage(resolvedType) ? (
             <div className="flex items-center justify-center bg-slate-50 p-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={previewUrl}
+                src={blobUrl ?? undefined}
                 alt={fileName}
                 className="max-h-[80vh] max-w-full rounded-xl object-contain shadow-lg"
               />
             </div>
           ) : isPdf(resolvedType) ? (
             <iframe
-              src={previewUrl}
+              src={blobUrl ?? undefined}
               title={fileName}
               className="h-[85vh] w-full border-0"
             />
           ) : isVideo(resolvedType) ? (
             <div className="flex items-center justify-center bg-black p-4">
               <video
-                src={previewUrl}
+                src={blobUrl ?? undefined}
                 controls
                 className="max-h-[80vh] max-w-full rounded-xl"
               >
@@ -118,7 +159,7 @@ export function FilePreviewModal({ fileId, fileName, contentType, onClose }: Fil
                 <ExternalLink size={40} />
               </div>
               <p className="text-sm font-medium text-slate-700">{fileName}</p>
-              <audio src={previewUrl} controls className="w-full max-w-md">
+              <audio src={blobUrl ?? undefined} controls className="w-full max-w-md">
                 Trình duyệt không hỗ trợ phát audio.
               </audio>
             </div>
@@ -133,11 +174,9 @@ export function FilePreviewModal({ fileId, fileName, contentType, onClose }: Fil
                   Không thể preview loại tệp này. Nhấn &quot;Tải xuống&quot; để xem.
                 </p>
               </div>
-              <a href={downloadUrl} target="_blank" rel="noreferrer">
-                <Button type="button">
-                  <Download size={16} /> Tải xuống
-                </Button>
-              </a>
+              <Button type="button" onClick={() => api.downloadFile(fileId, fileName)}>
+                <Download size={16} /> Tải xuống
+              </Button>
             </div>
           )}
         </div>

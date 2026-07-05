@@ -52,7 +52,7 @@ function SubmissionSummary({ assignment, submission }: Readonly<{ assignment: As
       </div>
       {submission.contentText && <div className="mt-4 rounded-2xl bg-white p-3 text-sm leading-6 text-slate-700">{submission.contentText}</div>}
       {submission.contentUrl && <a className="mt-3 inline-flex min-h-11 items-center rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700" href={submission.contentUrl} target="_blank" rel="noreferrer">Mở URL bài làm</a>}
-      {submission.fileId && <><Button type="button" variant="secondary" className="mt-3 min-h-11" onClick={() => setPreviewFile({ id: submission.fileId!, name: submission.fileName || submission.assignmentTitle, type: submission.fileContentType ?? undefined })}><Eye size={16} />Xem trước</Button><Button type="button" variant="secondary" className="mt-3 min-h-11" onClick={() => api.downloadFile(submission.fileId!, submission.fileName || submission.assignmentTitle)}><Download size={16} />Tải tệp bài làm</Button></>}
+      {submission.fileId && <div className="mt-3 flex flex-wrap items-center gap-3"><Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(submission.fileId!, submission.fileName || submission.assignmentTitle)}><Download size={16} />Tải tệp bài làm</Button><Button type="button" variant="secondary" className="min-h-11" onClick={() => setPreviewFile({ id: submission.fileId!, name: submission.fileName || submission.assignmentTitle, type: submission.fileContentType ?? undefined })}><Eye size={16} />Xem trước</Button></div>}
       {previewFile && <FilePreviewModal fileId={previewFile.id} fileName={previewFile.name} contentType={previewFile.type} onClose={() => setPreviewFile(null)} />}
       {submission.feedback && <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-sm leading-6 text-emerald-800"><b>Nhận xét:</b> {submission.feedback}</div>}
       {(submission.feedbackFileId || submission.feedbackLink) && (
@@ -76,7 +76,7 @@ function FileRow({ fileId, label, onPreview }: Readonly<{ fileId: string; label:
   const meta = useQuery({ queryKey: ['file-meta', fileId], queryFn: () => api.fileMetadata(fileId), enabled: Boolean(fileId) })
   const displayName = meta.data?.originalFileName || label
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap items-center gap-3">
       <Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(fileId, displayName)}><Download size={16} />{displayName}</Button>
       <Button type="button" variant="secondary" className="min-h-11" onClick={() => { if (meta.data) onPreview(meta.data.id, meta.data.originalFileName, meta.data.contentType) }}><Eye size={16} />Xem trước</Button>
     </div>
