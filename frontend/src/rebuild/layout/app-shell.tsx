@@ -138,7 +138,7 @@ export function AppShell({ children }: AppShellProps) {
           <Link to={homePathForUser(user)} className="mb-6 flex items-center gap-3">
             <span className="grid h-11 w-11 place-items-center rounded-3xl bg-gradient-to-br from-indigo-500 via-sky-300 to-pink-300 text-lg font-black text-white shadow-lg">한</span>
             <span>
-              <span className="block text-xs font-bold uppercase tracking-[0.22em] text-indigo-500">Hoa Nobita</span>
+              <span className="block text-xs font-bold uppercase tracking-[0.08em] text-indigo-500">Hoa Nobita</span>
               <span className="block text-lg font-black tracking-tight text-slate-950">Korean LMS</span>
             </span>
           </Link>
@@ -157,7 +157,7 @@ export function AppShell({ children }: AppShellProps) {
         <div className="min-w-0 overflow-x-hidden space-y-5">
           <header className="sticky top-3 z-30 flex items-center justify-between gap-3 rounded-3xl border border-white/70 bg-white/80 p-3 shadow-sm backdrop-blur">
             <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-500">XIN CHÀO</p>
+              <p className="text-xs font-bold uppercase tracking-[0.08em] text-indigo-500">XIN CHÀO</p>
               <p className="text-sm font-semibold text-slate-600 truncate">Hôm nay học tập thật gọn gàng và hiệu quả.</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">

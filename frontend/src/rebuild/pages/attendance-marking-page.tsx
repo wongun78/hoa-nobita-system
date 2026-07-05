@@ -109,8 +109,8 @@ export function AttendanceMarkingPage() {
   const lessonAttendance = useQuery({ queryKey: ['lesson', lessonId, 'attendance'], queryFn: () => api.lessonAttendance(lessonId), enabled: Boolean(lessonId) })
   const summary = useQuery({ queryKey: ['attendance-summary', classId], queryFn: () => api.attendanceSummary(classId), enabled: Boolean(classId) })
 
-  const lessonPage = asPage(lessons.data, 0, 100)
-  const studentPage = asPage(students.data, 0, 200)
+  const lessonPage = useMemo(() => asPage(lessons.data, 0, 100), [lessons.data])
+  const studentPage = useMemo(() => asPage(students.data, 0, 200), [students.data])
   const selectedLesson = lessonPage.items.find((item: LessonItem) => item.id === lessonId)
   const counts = useMemo(() => countStatuses(draft), [draft])
   const total = studentPage.items.length

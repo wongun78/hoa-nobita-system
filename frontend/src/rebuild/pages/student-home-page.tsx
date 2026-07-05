@@ -87,7 +87,7 @@ export function StudentHomePage() {
         <Card className="overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-pink-50">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-500">Deadline sắp tới</p>
+              <p className="text-xs font-bold uppercase tracking-[0.08em] text-indigo-500">Deadline sắp tới</p>
               <h2 className="mt-1 text-xl font-black text-slate-950">Giữ nhịp học thật êm</h2>
             </div>
             <div className="rounded-2xl bg-white/80 p-3 text-indigo-600"><CalendarDays size={22} /></div>
@@ -112,7 +112,7 @@ export function StudentHomePage() {
         <Card className="rounded-3xl">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-500">Cần chú ý</p>
+              <p className="text-xs font-bold uppercase tracking-[0.08em] text-rose-500">Cần chú ý</p>
               <h2 className="mt-1 text-xl font-black text-slate-950">Bài quá hạn</h2>
             </div>
             <div className="rounded-2xl bg-rose-50 p-3 text-rose-500"><Clock3 size={22} /></div>
