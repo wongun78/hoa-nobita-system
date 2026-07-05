@@ -93,7 +93,7 @@ function groupByDay(events: AgendaEvent[]) {
 
 function eventHref(event: CalendarEvent, role: RoleName) {
   const prefix = rolePrefix(role)
-  if (event.type === 'ASSIGNMENT_DEADLINE') return `${prefix}/assignments/${event.id}`
+  if (event.type === 'ASSIGNMENT_DEADLINE') return `${prefix}/assignments?open=${event.id}`
   return `${prefix}/classes/${event.classId}`
 }
 
@@ -256,9 +256,7 @@ export function CalendarPage() {
         <ViewButton active={view === 'AGENDA'} icon={<ListChecks size={16} />} label="Agenda" onClick={() => setView('AGENDA')} />
         <ViewButton active={view === 'MONTH'} icon={<Grid3X3 size={16} />} label="Tháng" onClick={() => setView('MONTH')} />
         <ViewButton active={view === 'WEEK'} icon={<Rows3 size={16} />} label="Tuần" onClick={() => setView('WEEK')} />
-        <div className="ml-auto">
-          <Button type="button" variant="secondary" className="min-h-11" onClick={() => void calendar.refetch()}>Làm mới</Button>
-        </div>
+
       </div>
 
       {classes.isError && <ErrorState title="Không tải được danh sách lớp" description="Agenda vẫn có thể hiển thị tất cả lớp được phép; thử lại nếu cần lọc lớp." onRetry={() => classes.refetch()} />}

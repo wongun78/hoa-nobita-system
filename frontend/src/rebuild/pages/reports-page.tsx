@@ -158,15 +158,7 @@ export function ReportsPage() {
           </select>
         </div>
         <div className="flex items-end">
-          <Button type="button" variant="secondary" className="min-h-11" onClick={() => {
-            void classesQuery.refetch()
-            if (isTeacherOwner) void systemQuery.refetch()
-            if (classId) {
-              void classReportQuery.refetch()
-              void classStatsQuery.refetch()
-              void attendanceQuery.refetch()
-            }
-          }}>Làm mới</Button>
+
         </div>
       </FilterBar>
 

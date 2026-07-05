@@ -121,8 +121,10 @@ export function AttendanceMarkingPage() {
       setDraft({})
       return
     }
-    setDraft(buildDraft(studentPage.items, lessonAttendance.data))
-  }, [lessonId, lessonAttendance.data, studentPage.items])
+    if (lessonAttendance.isLoading) return
+    const records = Array.isArray(lessonAttendance.data) ? lessonAttendance.data : undefined
+    setDraft(buildDraft(studentPage.items, records))
+  }, [lessonId, lessonAttendance.data, lessonAttendance.isLoading, studentPage.items])
 
   const setAll = (status: AttendanceStatus) => {
     setDraft((current) => Object.fromEntries(studentPage.items.map((student) => [student.id, { status, note: current[student.id]?.note ?? '' }])))

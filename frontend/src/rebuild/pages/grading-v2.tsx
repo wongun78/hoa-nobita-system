@@ -207,12 +207,12 @@ export function GradingV2Page() {
                   <div className="flex flex-wrap items-center gap-2">
                     {fileMetas.map((fm) => (
                       <span key={fm.fileId} className="inline-flex items-center gap-2">
-                        <Button type="button" variant="secondary" onClick={() => setPreviewFile({ id: fm.fileId, name: fm.fileName || 'Bài nộp', type: fm.contentType ?? undefined })}>
-                          <Eye size={16} /> {fm.fileName || 'Xem trước'}
-                        </Button>
-                        <Button type="button" variant="secondary" onClick={() => api.downloadFile(fm.fileId, fm.fileName || `submission-${selected.id}`)}>
-                          <Download size={16} />
-                        </Button>
+                      <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-2xl border border-sky-200 px-3 text-sm font-bold text-slate-700 transition hover:bg-sky-50" onClick={() => setPreviewFile({ id: fm.fileId, name: fm.fileName || 'Bài nộp', type: fm.contentType ?? undefined })}>
+                        <Eye size={16} /> {fm.fileName || 'Xem trước'}
+                      </button>
+                      <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-2xl bg-indigo-600 px-3 text-sm font-bold text-white transition hover:bg-indigo-700" onClick={() => api.downloadFile(fm.fileId, fm.fileName || `submission-${selected.id}`)}>
+                        <Download size={16} />
+                      </button>
                       </span>
                     ))}
                   </div>
@@ -229,12 +229,12 @@ export function GradingV2Page() {
                 <h3 className="text-sm font-bold text-slate-700">Tệp đính kèm phản hồi</h3>
                 {selected.feedbackFileId && selected.feedbackFileName && (
                   <div className="flex items-center gap-2">
-                    <Button type="button" variant="secondary" onClick={() => setPreviewFile({ id: selected.feedbackFileId!, name: selected.feedbackFileName || 'Phản hồi', type: selected.feedbackFileContentType ?? undefined })}>
+                    <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-2xl border border-sky-200 px-3 text-sm font-bold text-slate-700 transition hover:bg-sky-50" onClick={() => setPreviewFile({ id: selected.feedbackFileId!, name: selected.feedbackFileName || 'Phản hồi', type: selected.feedbackFileContentType ?? undefined })}>
                       <Eye size={16} /> Xem trước
-                    </Button>
-                    <Button type="button" variant="secondary" onClick={handleDownloadFeedback}>
+                    </button>
+                    <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-2xl bg-indigo-600 px-3 text-sm font-bold text-white transition hover:bg-indigo-700" onClick={handleDownloadFeedback}>
                       <Download size={16} /> {selected.feedbackFileName}
-                    </Button>
+                    </button>
                     <span className="text-xs text-slate-500">({selected.feedbackFileSize ? Math.round(selected.feedbackFileSize / 1024) + ' KB' : ''})</span>
                   </div>
                 )}

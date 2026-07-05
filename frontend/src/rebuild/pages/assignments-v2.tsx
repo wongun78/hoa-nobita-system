@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { Bell, Check, Copy, Download, Edit3, Eye, FileText, LinkIcon, Plus, Trash2, X } from 'lucide-react'
 import { ConfirmDialog, EmptyState, ErrorState, FilterBar, MetricCard, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { api } from '../core/api'
@@ -23,10 +24,10 @@ function FileRow({ fileId, label, onPreview }: Readonly<{ fileId: string; label:
   const displayName = meta.data?.originalFileName || label
   return (
     <div className="flex items-center gap-2 rounded-2xl border border-sky-100 bg-sky-50/50 px-3 py-2">
-      <FileText size={16} className="shrink-0 text-sky-500" />
+      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-600"><FileText size={16} /></div>
       <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-700">{displayName}</span>
-      <Button type="button" variant="secondary" className="min-h-9" onClick={() => api.downloadFile(fileId, displayName)}><Download size={14} /> Tải</Button>
-      <Button type="button" variant="secondary" className="min-h-9" onClick={() => { if (meta.data) onPreview(meta.data.id, meta.data.originalFileName, meta.data.contentType) }}><Eye size={14} /></Button>
+      <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-2xl bg-indigo-600 px-3 text-sm font-bold text-white transition hover:bg-indigo-700" onClick={() => api.downloadFile(fileId, displayName)}><Download size={16} />Tải</button>
+      <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-2xl border border-sky-200 px-3 text-sm font-bold text-slate-700 transition hover:bg-sky-50" onClick={() => { if (meta.data) onPreview(meta.data.id, meta.data.originalFileName, meta.data.contentType) }}><Eye size={16} />Xem</button>
     </div>
   )
 }
@@ -201,11 +202,12 @@ function AssignmentFormModal({ assignment, onClose }: Readonly<{ assignment?: As
 
 export function AssignmentsV2Page() {
   const qc = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [page, setPage] = useState(0)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
   const [classId, setClassId] = useState('')
-  const [selectedId, setSelectedId] = useState('')
+  const [selectedId, setSelectedId] = useState(() => searchParams.get('open') ?? '')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
@@ -215,10 +217,15 @@ export function AssignmentsV2Page() {
   const assignmentsQueryKey = ['assignments-v2', page, search, status, classId] as const
 
   useEffect(() => {
-    if (!selectedId) return
-    document.body.style.overflow = 'hidden'
+    if (selectedId) {
+      document.body.style.overflow = 'hidden'
+      setSearchParams((prev) => { prev.set('open', selectedId); return prev }, { replace: true })
+    } else {
+      document.body.style.overflow = ''
+      setSearchParams((prev) => { prev.delete('open'); return prev }, { replace: true })
+    }
     return () => { document.body.style.overflow = '' }
-  }, [selectedId])
+  }, [selectedId, setSearchParams])
 
   useEffect(() => {
     if (!selectedId) return
