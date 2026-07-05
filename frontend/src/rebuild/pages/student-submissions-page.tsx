@@ -1,16 +1,23 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { Download, ExternalLink, Eye, FileText, MessageSquareText } from 'lucide-react'
+import { Download, ExternalLink, Eye, MessageSquareText, Search } from 'lucide-react'
 import { api } from '../core/api'
-import { EmptyState, ErrorState, FilterBar, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
+import { EmptyState, ErrorState, FilterBar, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { FilePreviewModal } from '../components/file-preview-modal'
 import { Button, Card } from '../layout/ui'
-import { asPage, fmtDate } from './phase2-utils'
-import type { SubmissionItem, SubmissionStatus } from '../core/types'
+import { fmtDate } from './phase2-utils'
+import type { SubmissionItem } from '../core/types'
 
-const statusOptions: Array<'ALL' | SubmissionStatus> = ['ALL', 'SUBMITTED', 'LATE', 'GRADED', 'RESUBMIT_REQUESTED']
-const statusFilterLabel: Record<string, string> = { ALL: 'Tất cả', SUBMITTED: 'Đã nộp', LATE: 'Nộp trễ', GRADED: 'Đã chấm', RESUBMIT_REQUESTED: 'Yêu cầu nộp lại' }
+type SubmissionFilterState = 'Tất cả' | 'Đã nộp' | 'Nộp trễ' | 'Đã chấm' | 'Yêu cầu nộp lại'
+const filterOptions: SubmissionFilterState[] = ['Tất cả', 'Đã nộp', 'Nộp trễ', 'Đã chấm', 'Yêu cầu nộp lại']
+
+function statusToFilter(status: string): SubmissionFilterState {
+  if (status === 'GRADED') return 'Đã chấm'
+  if (status === 'RESUBMIT_REQUESTED') return 'Yêu cầu nộp lại'
+  if (status === 'LATE') return 'Nộp trễ'
+  return 'Đã nộp'
+}
 
 function scoreTone(score: number, maxScore?: number | null) {
   if (!maxScore) return 'bg-slate-50 text-slate-700'
@@ -119,17 +126,20 @@ function StudentSubmissionDetail({ submissionId }: Readonly<{ submissionId: stri
 
 export function StudentSubmissionsPage() {
   const { submissionId } = useParams()
-  const [page, setPage] = useState(0)
-  const [status, setStatus] = useState<'ALL' | SubmissionStatus>('ALL')
+  const [filter, setFilter] = useState<SubmissionFilterState>('Tất cả')
   const [search, setSearch] = useState('')
 
-  const query = useQuery({ queryKey: ['student', 'submissions', page, status], queryFn: () => api.mySubmissionsPage({ page, size: 10, status: status === 'ALL' ? undefined : status }) })
-  const pageData = asPage(query.data, page, 10)
-  const filteredItems = useMemo(() => {
+  const query = useQuery({ queryKey: ['student', 'submissions', 'all'], queryFn: () => api.mySubmissionsPage({ page: 0, size: 200 }) })
+  const allItems = useMemo(() => Array.isArray(query.data) ? query.data : query.data?.items ?? [], [query.data])
+
+  const filtered = useMemo(() => {
     const keyword = search.trim().toLowerCase()
-    if (!keyword) return pageData.items
-    return pageData.items.filter((item) => [item.assignmentTitle, item.className, item.feedback].some((value) => value?.toLowerCase().includes(keyword)))
-  }, [pageData.items, search])
+    return allItems.filter((item) => {
+      const matchesFilter = filter === 'Tất cả' || statusToFilter(item.status) === filter
+      const matchesSearch = !keyword || [item.assignmentTitle, item.className, item.feedback].some((value) => value?.toLowerCase().includes(keyword))
+      return matchesFilter && matchesSearch
+    })
+  }, [allItems, filter, search])
 
   if (submissionId) return <StudentSubmissionDetail submissionId={submissionId} />
 
@@ -148,11 +158,12 @@ export function StudentSubmissionsPage() {
       <FilterBar>
         <div className="min-w-0 flex-1"><SearchInput value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm bài nộp, lớp, phản hồi..." aria-label="Tìm bài nộp" /></div>
         <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0">
-          {statusOptions.map((item) => <button key={item} type="button" onClick={() => { setStatus(item); setPage(0) }} className={`min-h-11 shrink-0 rounded-2xl px-4 text-sm font-bold ${status === item ? 'bg-indigo-600 text-white' : 'border border-sky-100 bg-white text-slate-600 hover:bg-sky-50'}`}>{statusFilterLabel[item] ?? item}</button>)}
+          {filterOptions.map((item) => (
+            <button key={item} type="button" onClick={() => setFilter(item)} className={`min-h-11 shrink-0 rounded-2xl px-4 text-sm font-bold transition ${filter === item ? 'bg-indigo-600 text-white' : 'border border-sky-100 bg-white text-slate-600 hover:bg-sky-50'}`}>{item}</button>
+          ))}
         </div>
       </FilterBar>
-      {filteredItems.length ? <div className="space-y-3">{filteredItems.map((item) => <SubmissionCard key={item.id} item={item} />)}</div> : <EmptyState title="Chưa có bài nộp phù hợp" description="Thử đổi bộ lọc hoặc quay lại sau khi bạn nộp bài." action={<FileText className="mx-auto text-indigo-400" />} />}
-      <PaginationControls page={pageData.page} totalPages={pageData.totalPages} onPageChange={setPage} />
+      {filtered.length ? <div className="space-y-3">{filtered.map((item) => <SubmissionCard key={item.id} item={item} />)}</div> : <EmptyState title="Chưa có bài nộp phù hợp" description="Thử đổi bộ lọc hoặc quay lại sau khi bạn nộp bài." action={<Search className="mx-auto text-indigo-400" />} />}
     </div>
   )
 }

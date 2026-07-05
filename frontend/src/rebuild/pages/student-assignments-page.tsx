@@ -9,6 +9,8 @@ import type { AssignmentItem, SubmissionItem } from '../core/types'
 
 type StudentAssignmentState = 'CHƯA NỘP' | 'ĐÃ NỘP' | 'ĐÃ CHẤM' | 'NỘP LẠI' | 'QUÁ HẠN'
 
+const filterDisplayLabel: Record<string, string> = { ALL: 'Tất cả', 'CHƯA NỘP': 'Chưa nộp', 'ĐÃ NỘP': 'Đã nộp', 'ĐÃ CHẤM': 'Đã chấm', 'NỘP LẠI': 'Nộp lại', 'QUÁ HẠN': 'Quá hạn' }
+
 function minutesUntil(dueAt?: string | null) {
   if (!dueAt) return null
   return Math.floor((new Date(dueAt).getTime() - Date.now()) / 60000)
@@ -68,7 +70,7 @@ function AssignmentCard({ item, submission }: Readonly<{ item: AssignmentItem; s
             </div>
           </div>
           <div className="flex flex-col items-start gap-2 sm:min-w-36 sm:items-end">
-            <span className={`inline-flex min-h-9 items-center rounded-full border px-3 text-xs font-black ${stateToneClass(state)}`}>{state}</span>
+            <span className={`inline-flex min-h-9 items-center rounded-full border px-3 text-xs font-black ${stateToneClass(state)}`}>{filterDisplayLabel[state] ?? state}</span>
             <span className="text-xs font-semibold text-slate-500">{locked ? 'Đã khóa sửa' : submission ? 'Có thể sửa khi còn hạn' : 'Sẵn sàng nộp'}</span>
             {submission?.score != null && <span className="text-sm font-black text-emerald-600">{submission.score}/{submission.maxScore ?? item.maxScore}</span>}
           </div>
@@ -121,7 +123,7 @@ export function StudentAssignmentsPage() {
         <div className="min-w-0 flex-1"><SearchInput value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm bài tập, lớp học..." aria-label="Tìm bài tập" /></div>
         <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0">
           {(['ALL', 'CHƯA NỘP', 'ĐÃ NỘP', 'ĐÃ CHẤM', 'NỘP LẠI', 'QUÁ HẠN'] as const).map((item) => (
-            <button key={item} type="button" onClick={() => setFilter(item)} className={`min-h-11 shrink-0 rounded-2xl px-4 text-sm font-bold transition ${filter === item ? 'bg-indigo-600 text-white' : 'border border-sky-100 bg-white text-slate-600 hover:bg-sky-50'}`}>{item === 'ALL' ? 'Tất cả' : item}</button>
+            <button key={item} type="button" onClick={() => setFilter(item)} className={`min-h-11 shrink-0 rounded-2xl px-4 text-sm font-bold transition ${filter === item ? 'bg-indigo-600 text-white' : 'border border-sky-100 bg-white text-slate-600 hover:bg-sky-50'}`}>{filterDisplayLabel[item] ?? item}</button>
           ))}
         </div>
       </FilterBar>
