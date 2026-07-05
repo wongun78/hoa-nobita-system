@@ -20,5 +20,6 @@ public record CreateAssignmentMultiRequest(
         Boolean allowResubmit,
         String skill,
         UUID fileId,
+        List<UUID> fileIds,
         String externalLink
 ) {}

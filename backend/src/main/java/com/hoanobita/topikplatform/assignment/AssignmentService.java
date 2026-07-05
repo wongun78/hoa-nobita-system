@@ -112,11 +112,7 @@ public class AssignmentService {
             int normalizedPage = PageableUtil.normalizePage(page);
             int normalizedSize = PageableUtil.normalizeSize(size);
             List<AssignmentResponse> mapped = allItems.stream().map(this::toResponse).toList();
-            int start = normalizedPage * normalizedSize;
-            int end = Math.min(start + normalizedSize, mapped.size());
-            List<AssignmentResponse> pageItems = start < mapped.size() ? mapped.subList(start, end) : List.of();
-            var springPage = new org.springframework.data.domain.PageImpl<>(pageItems, pageable, mapped.size());
-            return PageableUtil.toPageResponse(springPage);
+            return PageableUtil.paginateInMemory(mapped, normalizedPage, normalizedSize);
         }
 
         return PageableUtil.toPageResponse(assignmentPage.map(this::toResponse));
@@ -330,6 +326,7 @@ public class AssignmentService {
             a.setAllowResubmit(Boolean.TRUE.equals(req.allowResubmit()));
             a.setSkill(req.skill());
             a.setFileId(req.fileId());
+            a.setFileIds(encodeFileIds(req.fileIds()));
             a.setExternalLink(req.externalLink());
             repo.save(a);
             activityService.log("ASSIGNMENT_CREATED", ENTITY_ASSIGNMENT, a.getId(), a.getTitle(), classId, "Đã tạo bài tập mới: " + a.getTitle());
@@ -393,6 +390,7 @@ public class AssignmentService {
         a.setDueAt(src.getDueAt());
         a.setSkill(src.getSkill());
         a.setFileId(src.getFileId());
+        a.setFileIds(src.getFileIds());
         a.setExternalLink(src.getExternalLink());
         a.setStatus(AssignmentStatus.DRAFT);
         repo.save(a);
@@ -418,12 +416,28 @@ public class AssignmentService {
         a.setAllowResubmit(Boolean.TRUE.equals(req.allowResubmit()));
         a.setSkill(req.skill());
         a.setFileId(req.fileId());
+        a.setFileIds(encodeFileIds(req.fileIds()));
         a.setExternalLink(req.externalLink());
+    }
+
+    private String encodeFileIds(List<UUID> fileIds) {
+        if (fileIds == null || fileIds.isEmpty()) return null;
+        return String.join(",", fileIds.stream().map(UUID::toString).toList());
+    }
+
+    private List<UUID> decodeFileIds(String fileIdsStr) {
+        if (fileIdsStr == null || fileIdsStr.isBlank()) return List.of();
+        return java.util.Arrays.stream(fileIdsStr.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(UUID::fromString)
+                .toList();
     }
 
     public AssignmentResponse toResponse(Assignment a) {
         String className = klasses.findById(a.getClassId()).map(k -> k.getName()).orElse(null);
-        return new AssignmentResponse(a.getId(), a.getClassId(), className, a.getLessonId(), a.getTitle(), a.getDescription(), a.getInstruction(), a.getDueAt(), a.getMaxScore(), a.getStatus().name(), a.isAllowResubmit(), a.getSkill(), a.getFileId(), a.getExternalLink(), a.getCreatedAt());
+        List<UUID> fileIds = decodeFileIds(a.getFileIds());
+        return new AssignmentResponse(a.getId(), a.getClassId(), className, a.getLessonId(), a.getTitle(), a.getDescription(), a.getInstruction(), a.getDueAt(), a.getMaxScore(), a.getStatus().name(), a.isAllowResubmit(), a.getSkill(), a.getFileId(), fileIds, a.getExternalLink(), a.getCreatedAt());
     }
 
 }

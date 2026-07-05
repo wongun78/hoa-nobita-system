@@ -4,7 +4,7 @@ import { Bell, Check, Copy, Eye, FileText, LinkIcon, Plus, Trash2, X } from 'luc
 import { ConfirmDialog, EmptyState, ErrorState, FilterBar, MetricCard, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { api } from '../core/api'
 import { ApiClientError } from '../core/http'
-import { StudentFileUpload } from '../components/student-file-upload'
+import { MultiFileUpload } from '../components/multi-file-upload'
 import { Button, Card, FieldLabel, Input, TextArea } from '../layout/ui'
 import { asPage, fmtDate } from './phase2-utils'
 import type { AssignmentItem, ClassItem, FileItem, PageResponse } from '../core/types'
@@ -31,7 +31,7 @@ function CreateAssignmentModal({ onClose }: Readonly<{ onClose: () => void }>) {
   const [allowResubmit, setAllowResubmit] = useState(false)
   const [skill, setSkill] = useState('')
   const [externalLink, setExternalLink] = useState('')
-  const [file, setFile] = useState<FileItem | null>(null)
+  const [files, setFiles] = useState<FileItem[]>([])
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const toggleClass = (id: string) => setSelectedClassIds((prev) => prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id])
@@ -46,7 +46,8 @@ function CreateAssignmentModal({ onClose }: Readonly<{ onClose: () => void }>) {
       maxScore: Number(maxScore) || 100,
       allowResubmit,
       skill: skill || undefined,
-      fileId: file?.id || undefined,
+      fileId: files.length > 0 ? files[0].id : undefined,
+      fileIds: files.length > 0 ? files.map((f) => f.id) : undefined,
       externalLink: externalLink.trim() || undefined,
     }),
     onSuccess: async (data) => {
@@ -131,7 +132,7 @@ function CreateAssignmentModal({ onClose }: Readonly<{ onClose: () => void }>) {
           {/* File upload */}
           <div>
             <FieldLabel>Tệp đính kèm</FieldLabel>
-            <StudentFileUpload value={file} onUploaded={setFile} disabled={create.isPending} />
+            <MultiFileUpload value={files} onChange={setFiles} disabled={create.isPending} />
           </div>
 
           {/* External link */}
@@ -319,10 +320,11 @@ export function AssignmentsV2Page() {
           {selectedAssignment && (
             <div className="space-y-4">
               <p className="text-sm text-slate-500">{selectedAssignment.description || 'Không có mô tả'}</p>
-              {(selectedAssignment.skill || selectedAssignment.fileId || selectedAssignment.externalLink) && (
+              {(selectedAssignment.skill || selectedAssignment.fileId || (selectedAssignment.fileIds && selectedAssignment.fileIds.length > 0) || selectedAssignment.externalLink) && (
                 <div className="flex flex-wrap gap-2">
                   {selectedAssignment.skill && <span className="inline-flex items-center gap-1 rounded-2xl bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700"><FileText size={12} /> {selectedAssignment.skill}</span>}
                   {selectedAssignment.fileId && <span className="inline-flex items-center gap-1 rounded-2xl bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-700">Tệp đính kèm</span>}
+                  {selectedAssignment.fileIds && selectedAssignment.fileIds.length > 0 && <span className="inline-flex items-center gap-1 rounded-2xl bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-700">{selectedAssignment.fileIds.length} tệp đính kèm</span>}
                   {selectedAssignment.externalLink && <a href={selectedAssignment.externalLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-2xl bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100"><LinkIcon size={12} /> Liên kết ngoài</a>}
                 </div>
               )}

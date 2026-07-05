@@ -94,6 +94,7 @@ export type AssignmentItem = {
   allowResubmit: boolean
   skill?: string | null
   fileId?: string | null
+  fileIds?: string[] | null
   externalLink?: string | null
   createdAt?: string | null
 }

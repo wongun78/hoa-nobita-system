@@ -45,6 +45,9 @@ public class Assignment extends BaseEntity {
     @Column(name = "file_id")
     private UUID fileId;
 
+    @Column(name = "file_ids", columnDefinition = "text")
+    private String fileIds;
+
     @Column(name = "external_link", columnDefinition = "text")
     private String externalLink;
 
@@ -71,6 +74,8 @@ public class Assignment extends BaseEntity {
     public void setSkill(String skill) { this.skill = skill; }
     public UUID getFileId() { return fileId; }
     public void setFileId(UUID fileId) { this.fileId = fileId; }
+    public String getFileIds() { return fileIds; }
+    public void setFileIds(String fileIds) { this.fileIds = fileIds; }
     public String getExternalLink() { return externalLink; }
     public void setExternalLink(String externalLink) { this.externalLink = externalLink; }
 }

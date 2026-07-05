@@ -184,6 +184,12 @@ export function StudentAssignmentDetailPage() {
             {assignment.data.skill && <div className="mt-2"><span className="rounded-xl bg-violet-50 px-2 py-0.5 text-xs font-bold text-violet-700">{assignment.data.skill}</span></div>}
             {assignment.data.externalLink && <a className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700 transition hover:bg-sky-50" href={assignment.data.externalLink} target="_blank" rel="noreferrer"><ExternalLink size={14} />Tài liệu tham khảo</a>}
             {assignment.data.fileId && <><Button type="button" variant="secondary" className="mt-3 min-h-11" onClick={() => api.downloadFile(assignment.data.fileId!, assignment.data.title)}><Download size={16} />Tải tệp đính kèm</Button><Button type="button" variant="secondary" className="mt-3 min-h-11" onClick={async () => { const meta = await api.fileMetadata(assignment.data.fileId!); setPreviewFile({ id: meta.id, name: meta.originalFileName, type: meta.contentType }) }}><Eye size={16} />Xem trước</Button></>}
+            {assignment.data.fileIds && assignment.data.fileIds.length > 0 && assignment.data.fileIds.map((fid, idx) => (
+              <div key={fid} className="mt-2 flex gap-2">
+                <Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(fid, `Tệp ${idx + 1}`)}><Download size={16} />Tải tệp {idx + 1}</Button>
+                <Button type="button" variant="secondary" className="min-h-11" onClick={async () => { const meta = await api.fileMetadata(fid); setPreviewFile({ id: meta.id, name: meta.originalFileName, type: meta.contentType }) }}><Eye size={16} />Xem trước</Button>
+              </div>
+            ))}
           </Card>
 
           <SubmissionSummary assignment={assignment.data} submission={mySubmission} />

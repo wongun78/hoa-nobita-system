@@ -3,6 +3,7 @@ package com.hoanobita.topikplatform.assignment.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 public record AssignmentRequest(
@@ -17,5 +18,6 @@ public record AssignmentRequest(
         Boolean allowResubmit,
         String skill,
         UUID fileId,
+        List<UUID> fileIds,
         String externalLink
 ) {}

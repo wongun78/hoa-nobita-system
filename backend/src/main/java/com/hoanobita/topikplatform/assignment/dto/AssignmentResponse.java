@@ -2,6 +2,7 @@ package com.hoanobita.topikplatform.assignment.dto;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public record AssignmentResponse(
@@ -18,6 +19,7 @@ public record AssignmentResponse(
         boolean allowResubmit,
         String skill,
         UUID fileId,
+        List<UUID> fileIds,
         String externalLink,
         Instant createdAt
 ) {}
