@@ -26,7 +26,7 @@ class SubmissionControllerIT extends IntegrationTestBase {
 
     @Test
     void submit_asStudent_createsSubmission() throws Exception {
-        var req = new SubmissionRequest("My answer", null, null);
+        var req = new SubmissionRequest("My answer", null, null, null);
 
         mockMvc.perform(post("/api/v1/assignments/{assignmentId}/submissions", assignment.getId())
                         .header("Authorization", authHeader(student))
@@ -61,7 +61,7 @@ class SubmissionControllerIT extends IntegrationTestBase {
     @Test
     void updateSubmission_studentUpdatesOwn_works() throws Exception {
         var sub = createSubmission(assignment.getId(), student.getId(), SubmissionStatus.SUBMITTED);
-        var req = new SubmissionRequest("Updated answer", null, null);
+        var req = new SubmissionRequest("Updated answer", null, null, null);
 
         mockMvc.perform(patch("/api/v1/submissions/{submissionId}", sub.getId())
                         .header("Authorization", authHeader(student))
@@ -113,7 +113,7 @@ class SubmissionControllerIT extends IntegrationTestBase {
     @Test
     void submit_withResubmitRequested_transitionsToSubmitted() throws Exception {
         var sub = createSubmission(assignment.getId(), student.getId(), SubmissionStatus.RESUBMIT_REQUESTED);
-        var req = new SubmissionRequest("Resubmitted answer", null, null);
+        var req = new SubmissionRequest("Resubmitted answer", null, null, null);
 
         mockMvc.perform(patch("/api/v1/submissions/{submissionId}", sub.getId())
                         .header("Authorization", authHeader(student))
