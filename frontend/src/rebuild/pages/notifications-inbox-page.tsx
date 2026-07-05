@@ -223,7 +223,7 @@ export function NotificationsInboxPage() {
           {(['ALL', 'UNREAD'] as const).map((item) => <button key={item} type="button" onClick={() => { setTab(item); setPage(0) }} className={`min-h-11 shrink-0 rounded-2xl px-4 text-sm font-bold ${tab === item ? 'bg-indigo-600 text-white' : 'border border-sky-100 bg-white text-slate-600 hover:bg-sky-50'}`}>{item === 'ALL' ? 'Tất cả' : 'Chưa đọc'}</button>)}
         </div>
         <div className="min-w-0 flex-1"><SearchInput value={text} onChange={(event) => { setText(event.target.value); setPage(0) }} placeholder="Tìm tiêu đề, nội dung thông báo..." aria-label="Tìm thông báo" /></div>
-        <Button type="button" variant="secondary" className="min-h-11" disabled={markAll.isPending || (unread.data?.count ?? 0) === 0} onClick={() => markAll.mutate()}><CheckCheck size={16} />Đọc tất cả</Button>
+        <Button type="button" variant="secondary" className="min-h-11 w-full sm:w-auto" disabled={markAll.isPending || (unread.data?.count ?? 0) === 0} onClick={() => markAll.mutate()}><CheckCheck size={16} />Đọc tất cả</Button>
       </FilterBar>
 
       {composerOpen && canManage && <NotificationComposer onClose={() => setComposerOpen(false)} />}

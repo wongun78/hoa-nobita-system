@@ -31,7 +31,7 @@ export function MaterialsPage() {
   useEffect(() => { if (!classId && classes.data && classes.data.length > 0) setClassId(classes.data[0].id) }, [classId, classes.data])
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-20 md:pb-0">
       <SectionHeader title="Thư viện tài liệu" eyebrow="Thư viện tài liệu" description="Xem và tải tài liệu học tập, tệp đính kèm và liên kết ngoài theo từng lớp." />
       {classList.length > 1 && (
         <Card className="max-w-md">
@@ -197,7 +197,7 @@ export function ProfilePage() {
   const update = useMutation({ mutationFn: () => api.updateMe({ fullName: fullName || me.data?.fullName, phone }), onSuccess: async () => qc.invalidateQueries({ queryKey: ['me'] }) })
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-20 md:pb-0">
       <SectionHeader title="Hồ sơ cá nhân" eyebrow="Hồ sơ" description="Cập nhật thông tin cá nhân và bảo mật tài khoản." />
       <Card className="max-w-2xl rounded-3xl">
         <div className="flex items-center gap-4">
@@ -226,7 +226,7 @@ export function StudentAssignmentSubmitPage() {
   const submit = useMutation({ mutationFn: () => api.submitAssignment(assignmentId, { contentText: contentText || undefined, contentUrl: contentUrl || undefined }) })
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-20 md:pb-0">
       <SectionHeader title="Nộp bài" eyebrow="Nộp bài" description="Chọn bài tập đang mở và gửi nội dung bài làm." />
       <Card className="max-w-3xl rounded-3xl">
         <select className="w-full rounded-xl border border-sky-100 bg-white px-3 py-2 text-sm" value={assignmentId} onChange={(e) => setAssignmentId(e.target.value)}>

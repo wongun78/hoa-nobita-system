@@ -154,13 +154,13 @@ export function AppShell({ children }: AppShellProps) {
           </nav>
         </aside>
 
-        <div className="min-w-0 space-y-5">
+        <div className="min-w-0 overflow-x-hidden space-y-5">
           <header className="sticky top-3 z-30 flex items-center justify-between gap-3 rounded-3xl border border-white/70 bg-white/80 p-3 shadow-sm backdrop-blur">
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-500">XIN CHÀO</p>
-              <p className="text-sm font-semibold text-slate-600">Hôm nay học tập thật gọn gàng và hiệu quả.</p>
+              <p className="text-sm font-semibold text-slate-600 truncate">Hôm nay học tập thật gọn gàng và hiệu quả.</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               <Link aria-label="Mở lịch học" to={user?.roles.includes('STUDENT') ? '/student/calendar' : user?.roles.includes('CLASS_ADMIN') ? '/admin/calendar' : '/teacher/calendar'} className="rounded-2xl border border-sky-100 bg-white p-2.5 text-slate-600 shadow-sm hover:bg-sky-50"><CalendarDays size={18} /></Link>
               <NotificationBell />
               <UserMenu />

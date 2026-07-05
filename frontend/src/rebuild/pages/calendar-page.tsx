@@ -248,7 +248,7 @@ export function CalendarPage() {
             {(classes.data ?? []).map((item: ClassItem) => <option key={item.id} value={item.id}>{item.name} · {item.code}</option>)}
           </select>
         </div>
-        <div className="grid grid-cols-3 gap-2 md:flex md:items-end">
+        <div className="flex flex-wrap gap-2">
           <ViewButton active={view === 'AGENDA'} icon={<ListChecks size={16} />} label="Agenda" onClick={() => setView('AGENDA')} />
           <ViewButton active={view === 'MONTH'} icon={<Grid3X3 size={16} />} label="Tháng" onClick={() => setView('MONTH')} />
           <ViewButton active={view === 'WEEK'} icon={<Rows3 size={16} />} label="Tuần" onClick={() => setView('WEEK')} />
