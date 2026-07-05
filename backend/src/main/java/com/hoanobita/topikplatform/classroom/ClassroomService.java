@@ -35,7 +35,7 @@ import java.util.UUID;
 
 @Service
 public class ClassroomService {
-    private static final String CLASS_NOT_FOUND = "Class not found";
+    private static final String CLASS_NOT_FOUND = "Không tìm thấy lớp học";
     private static final String ENTITY_CLASS = "CLASS";
     private static final String UNKNOWN = "Unknown";
     private static final String TO_CLASS_SUFFIX = " vào lớp";
@@ -103,11 +103,11 @@ public class ClassroomService {
         permissionService.requireTeacher(currentUser);
 
         if (klassRepo.existsByCode(request.code())) {
-            throw BusinessException.conflict("Class code already exists");
+            throw BusinessException.conflict("Mã lớp đã tồn tại");
         }
 
         if (request.levelFrom() != null && request.levelTo() != null && request.levelFrom() > request.levelTo()) {
-            throw BusinessException.badRequest("level_from must be <= level_to");
+            throw BusinessException.badRequest("Level bắt đầu phải nhỏ hơn hoặc bằng level kết thúc");
         }
 
         var klass = new Klass();
@@ -122,7 +122,7 @@ public class ClassroomService {
             try {
                 klass.setStatus(ClassStatus.valueOf(request.status()));
             } catch (IllegalArgumentException e) {
-                throw BusinessException.badRequest("Invalid status: " + request.status());
+                throw BusinessException.badRequest("Trạng thái không hợp lệ: " + request.status());
             }
         }
         if (request.startDate() != null) klass.setStartDate(LocalDate.parse(request.startDate()));
@@ -143,7 +143,7 @@ public class ClassroomService {
         if (request.code() != null) {
             String newCode = request.code().trim();
             if (!newCode.equalsIgnoreCase(klass.getCode()) && klassRepo.existsByCode(newCode)) {
-                throw BusinessException.badRequest("Class code already exists: " + newCode);
+                throw BusinessException.badRequest("Mã lớp đã tồn tại: " + newCode);
             }
             klass.setCode(newCode);
         }
@@ -152,14 +152,14 @@ public class ClassroomService {
         if (request.levelTo() != null) klass.setLevelTo(request.levelTo());
 
         if (request.levelFrom() != null && request.levelTo() != null && request.levelFrom() > request.levelTo()) {
-            throw BusinessException.badRequest("level_from must be <= level_to");
+            throw BusinessException.badRequest("Level bắt đầu phải nhỏ hơn hoặc bằng level kết thúc");
         }
 
         if (request.status() != null) {
             try {
                 klass.setStatus(ClassStatus.valueOf(request.status()));
             } catch (IllegalArgumentException e) {
-                throw BusinessException.badRequest("Invalid status: " + request.status());
+                throw BusinessException.badRequest("Trạng thái không hợp lệ: " + request.status());
             }
         }
         if (request.startDate() != null) klass.setStartDate(LocalDate.parse(request.startDate()));
@@ -190,14 +190,14 @@ public class ClassroomService {
             .orElseThrow(() -> BusinessException.notFound(CLASS_NOT_FOUND));
 
         UUID adminId = request.resolvedAdminId();
-        if (adminId == null) throw BusinessException.badRequest("adminId is required");
+        if (adminId == null) throw BusinessException.badRequest("adminId là bắt buộc");
 
         var admin = userRepo.findActiveById(adminId)
-                .orElseThrow(() -> BusinessException.notFound("User not found"));
-        if (!admin.isAdmin()) throw BusinessException.badRequest("User must have CLASS_ADMIN role");
+                .orElseThrow(() -> BusinessException.notFound("Không tìm thấy người dùng"));
+        if (!admin.isAdmin()) throw BusinessException.badRequest("Người dùng phải có vai trò quản trị viên lớp");
 
         if (classAdminRepo.existsByClassIdAndAdminId(classId, adminId)) {
-            throw BusinessException.conflict("Admin already assigned to this class");
+            throw BusinessException.conflict("Quản trị viên đã được phân công cho lớp này");
         }
 
         classAdminRepo.save(new ClassAdmin(classId, adminId));
@@ -223,17 +223,17 @@ public class ClassroomService {
             .orElseThrow(() -> BusinessException.notFound(CLASS_NOT_FOUND));
 
         UUID studentId = request.resolvedStudentId();
-        if (studentId == null) throw BusinessException.badRequest("studentId is required");
+        if (studentId == null) throw BusinessException.badRequest("studentId là bắt buộc");
 
         var student = userRepo.findActiveById(studentId)
-                .orElseThrow(() -> BusinessException.notFound("User not found"));
-        if (!student.isStudent()) throw BusinessException.badRequest("User must have STUDENT role");
+                .orElseThrow(() -> BusinessException.notFound("Không tìm thấy người dùng"));
+        if (!student.isStudent()) throw BusinessException.badRequest("Người dùng phải có vai trò học viên");
 
         var existing = classMemberRepo.findByClassIdAndStudentId(classId, studentId);
         if (existing.isPresent()) {
             var member = existing.get();
             if (member.getStatus() == MemberStatus.ACTIVE) {
-                throw BusinessException.conflict("Student already in this class");
+                throw BusinessException.conflict("Học viên đã là thành viên của lớp này");
             }
             // Re-activate if previously removed
             member.setStatus(MemberStatus.ACTIVE);
@@ -257,7 +257,7 @@ public class ClassroomService {
                 .orElseThrow(() -> BusinessException.notFound(CLASS_NOT_FOUND));
 
         if (studentIds == null || studentIds.isEmpty()) {
-            throw BusinessException.badRequest("studentIds must not be empty");
+            throw BusinessException.badRequest("Danh sách studentId không được rỗng");
         }
 
         int added = 0;
@@ -268,21 +268,21 @@ public class ClassroomService {
         for (UUID studentId : studentIds) {
             if (studentId == null) {
                 skipped++;
-                errors.add("Skipped null studentId");
+                errors.add("Bỏ qua studentId rỗng");
                 continue;
             }
 
             var studentOpt = userRepo.findActiveById(studentId);
             if (studentOpt.isEmpty()) {
                 skipped++;
-                errors.add("User not found: " + studentId);
+                errors.add("Không tìm thấy người dùng: " + studentId);
                 continue;
             }
 
             var student = studentOpt.get();
             if (!student.isStudent()) {
                 skipped++;
-                errors.add("User is not STUDENT: " + studentId);
+                errors.add("Người dùng không phải là học viên: " + studentId);
                 continue;
             }
 
@@ -318,7 +318,7 @@ public class ClassroomService {
     public void removeStudent(UUID classId, UUID studentId, User currentUser) {
         permissionService.requireManageClass(currentUser, classId);
         var member = classMemberRepo.findByClassIdAndStudentId(classId, studentId)
-                .orElseThrow(() -> BusinessException.notFound("Student not in this class"));
+                .orElseThrow(() -> BusinessException.notFound("Học viên không có trong lớp này"));
         var student = userRepo.findActiveById(studentId).orElse(null);
 
         classMemberRepo.delete(member);
@@ -332,11 +332,11 @@ public class ClassroomService {
     public void updateStudentStatus(UUID classId, UUID studentId, StatusRequest request, User currentUser) {
         permissionService.requireManageClass(currentUser, classId);
         var member = classMemberRepo.findByClassIdAndStudentId(classId, studentId)
-                .orElseThrow(() -> BusinessException.notFound("Student not in class"));
+                .orElseThrow(() -> BusinessException.notFound("Học viên không có trong lớp"));
         try {
             member.setStatus(MemberStatus.valueOf(request.status()));
         } catch (IllegalArgumentException e) {
-            throw BusinessException.badRequest("Invalid status: " + request.status());
+            throw BusinessException.badRequest("Trạng thái không hợp lệ: " + request.status());
         }
         classMemberRepo.save(member);
     }
@@ -455,12 +455,12 @@ public class ClassroomService {
     public StudentMemberResponse updateStudentCode(UUID classId, UUID studentId, StudentCodeRequest request, User currentUser) {
         permissionService.requireManageClass(currentUser, classId);
         var member = classMemberRepo.findByClassIdAndStudentId(classId, studentId)
-                .orElseThrow(() -> BusinessException.notFound("Student not in this class"));
+                .orElseThrow(() -> BusinessException.notFound("Học viên không có trong lớp này"));
         String studentCode = request == null ? null : request.studentCode();
         if (studentCode != null && !studentCode.isBlank()
                 && !studentCode.equals(member.getStudentCode())
                 && classMemberRepo.existsByClassIdAndStudentCode(classId, studentCode)) {
-            throw BusinessException.conflict("Student code already exists in this class");
+            throw BusinessException.conflict("Mã học viên đã tồn tại trong lớp này");
         }
         member.setStudentCode(studentCode == null || studentCode.isBlank() ? null : studentCode);
         member = classMemberRepo.save(member);

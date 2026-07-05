@@ -14,6 +14,8 @@ import com.hoanobita.topikplatform.notification.entity.NotificationRead;
 import com.hoanobita.topikplatform.notification.repository.NotificationReadRepository;
 import com.hoanobita.topikplatform.notification.repository.NotificationRepository;
 import com.hoanobita.topikplatform.user.entity.User;
+import com.hoanobita.topikplatform.user.repository.UserRepository;
+import com.hoanobita.topikplatform.websocket.NotificationWebSocketService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,15 +33,20 @@ public class NotificationService {
     private final PermissionService permissions;
     private final SecurityUtils security;
     private final ActivityService activityService;
+    private final NotificationWebSocketService wsService;
+    private final UserRepository userRepository;
 
     public NotificationService(NotificationRepository repo, NotificationReadRepository readRepo,
                                PermissionService permissions, SecurityUtils security,
-                               ActivityService activityService) {
+                               ActivityService activityService, NotificationWebSocketService wsService,
+                               UserRepository userRepository) {
         this.repo = repo;
         this.readRepo = readRepo;
         this.permissions = permissions;
         this.security = security;
         this.activityService = activityService;
+        this.wsService = wsService;
+        this.userRepository = userRepository;
     }
 
     public PageResponse<NotificationResponse> list(Integer page, Integer size, String sort, String search, String status) {
@@ -143,11 +150,11 @@ public class NotificationService {
     public NotificationResponse markAsRead(UUID id) {
         User user = security.currentUser();
         Notification notification = repo.findById(id)
-                .orElseThrow(() -> BusinessException.notFound("Notification not found"));
+                .orElseThrow(() -> BusinessException.notFound("Không tìm thấy thông báo"));
 
         List<UUID> classIds = permissions.getAccessibleClassIds(user);
         if (!canAccessNotification(user, notification, classIds == null ? List.of() : classIds)) {
-            throw BusinessException.forbidden("Cannot mark this notification as read");
+            throw BusinessException.forbidden("Không thể đánh dấu đã đọc thông báo này");
         }
 
         NotificationRead read = readRepo.findByNotificationIdAndUserId(id, user.getId()).orElseGet(() -> {
@@ -165,13 +172,13 @@ public class NotificationService {
     @Transactional
     public NotificationResponse create(NotificationRequest req) {
         User user = security.currentUser();
-        if (user.isStudent()) throw new org.springframework.security.access.AccessDeniedException("Students cannot create notifications");
+        if (user.isStudent()) throw new org.springframework.security.access.AccessDeniedException("Học viên không thể tạo thông báo");
         if (req.targetType() == TargetType.ALL) permissions.requireTeacher(user);
         if (req.targetType() == TargetType.CLASS) {
-            if (req.targetId() == null) throw BusinessException.badRequest("Class target is required");
+            if (req.targetId() == null) throw BusinessException.badRequest("Lớp học là bắt buộc");
             permissions.requireManageClass(user, req.targetId());
         }
-        if (req.targetType() == TargetType.USER && !user.isTeacher()) throw new org.springframework.security.access.AccessDeniedException("Only teacher can target users directly");
+        if (req.targetType() == TargetType.USER && !user.isTeacher()) throw new org.springframework.security.access.AccessDeniedException("Chỉ giáo viên mới có thể gửi thông báo trực tiếp cho người dùng");
         Notification n = new Notification();
         n.setTitle(req.title());
         n.setContent(req.content());
@@ -180,14 +187,24 @@ public class NotificationService {
         n.setCreatedBy(user.getId());
         repo.save(n);
         activityService.log("NOTIFICATION_CREATED", "NOTIFICATION", n.getId(), n.getTitle(), req.targetType() == TargetType.CLASS ? req.targetId() : null, "Đã tạo thông báo mới: " + n.getTitle());
-        return toResponse(n, null);
+
+        NotificationResponse response = toResponse(n, null);
+
+        // Push real-time notification via WebSocket
+        try {
+            pushNotification(user, n, response);
+        } catch (Exception ignored) {
+            // WebSocket push is best-effort; don't fail the request
+        }
+
+        return response;
     }
 
     @Transactional
     public void delete(UUID id) {
         User user = security.currentUser();
-        Notification n = repo.findById(id).orElseThrow(() -> BusinessException.notFound("Notification not found"));
-        if (!user.isTeacher() && !n.getCreatedBy().equals(user.getId())) throw BusinessException.forbidden("Cannot delete this notification");
+        Notification n = repo.findById(id).orElseThrow(() -> BusinessException.notFound("Không tìm thấy thông báo"));
+        if (!user.isTeacher() && !n.getCreatedBy().equals(user.getId())) throw BusinessException.forbidden("Không thể xóa thông báo này");
         repo.delete(n);
         activityService.log("NOTIFICATION_DELETED", "NOTIFICATION", n.getId(), n.getTitle(), n.getTargetType() == TargetType.CLASS ? n.getTargetId() : null, "Đã xóa thông báo: " + n.getTitle());
     }
@@ -215,5 +232,35 @@ public class NotificationService {
 
     private boolean containsIgnoreCase(String value, String keyword) {
         return value != null && value.toLowerCase().contains(keyword);
+    }
+
+    /**
+     * Push notification via WebSocket to target users.
+     * Best-effort — does not throw on failure.
+     */
+    private void pushNotification(User sender, Notification notification, NotificationResponse response) {
+        switch (notification.getTargetType()) {
+            case ALL -> {
+                // Broadcast to all connected users (students and teachers)
+                userRepository.findAll().stream()
+                        .filter(u -> !u.getId().equals(sender.getId()))
+                        .forEach(u -> wsService.sendToUser(u.getEmail(), response));
+            }
+            case CLASS -> {
+                if (notification.getTargetId() != null) {
+                    List<UUID> classIds = List.of(notification.getTargetId());
+                    // Members are notified by their email
+                    userRepository.findAll().stream()
+                            .filter(u -> !u.getId().equals(sender.getId()))
+                            .forEach(u -> wsService.sendToUser(u.getEmail(), response));
+                }
+            }
+            case USER -> {
+                if (notification.getTargetId() != null) {
+                    userRepository.findById(notification.getTargetId())
+                            .ifPresent(targetUser -> wsService.sendToUser(targetUser.getEmail(), response));
+                }
+            }
+        }
     }
 }

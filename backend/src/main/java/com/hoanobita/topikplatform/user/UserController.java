@@ -71,14 +71,14 @@ public class UserController {
         
         // Students can only view their own progress
         if (currentUser.isStudent() && !currentUser.getId().equals(id)) {
-            throw com.hoanobita.topikplatform.common.BusinessException.forbidden("You can only view your own progress");
+            throw com.hoanobita.topikplatform.common.BusinessException.forbidden("Bạn chỉ có thể xem tiến độ của chính mình");
         }
         
         // Admins can only view progress of students in their assigned classes
         if (currentUser.isAdmin() && !currentUser.isTeacher() && !currentUser.getId().equals(id)) {
             boolean hasAccess = permissionService.canAccessStudentProgress(currentUser, id);
             if (!hasAccess) {
-                throw com.hoanobita.topikplatform.common.BusinessException.forbidden("You can only view progress of students in your assigned classes");
+                throw com.hoanobita.topikplatform.common.BusinessException.forbidden("Bạn chỉ có thể xem tiến độ của học viên trong lớp được phân công");
             }
         }
         
@@ -104,6 +104,6 @@ public class UserController {
         var currentUser = securityUtils.getCurrentUser();
         permissionService.requireTeacher(currentUser);
         userService.deleteUser(id);
-        return ResponseEntity.ok(ApiResponse.ok("User deleted"));
+        return ResponseEntity.ok(ApiResponse.ok("Đã xóa người dùng"));
     }
 }

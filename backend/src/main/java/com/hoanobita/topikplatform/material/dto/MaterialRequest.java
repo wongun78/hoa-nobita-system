@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import java.util.UUID;
 
 public record MaterialRequest(
-        @NotBlank(message = "Title is required")
+        @NotBlank(message = "Tiêu đề là bắt buộc")
         String title,
         String description,
         String externalUrl,

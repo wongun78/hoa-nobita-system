@@ -9,7 +9,7 @@ public record CreateUserRequest(
         String email,
         String phone,
 
-        @NotBlank(message = "Role is required")
+        @NotBlank(message = "Vai trò là bắt buộc")
         String role,
 
         String note

@@ -5,6 +5,7 @@ import com.hoanobita.topikplatform.activity.dto.ActivityResponse;
 import com.hoanobita.topikplatform.assignment.entity.Assignment;
 import com.hoanobita.topikplatform.assignment.repository.AssignmentRepository;
 import com.hoanobita.topikplatform.classroom.entity.Klass;
+import com.hoanobita.topikplatform.classroom.entity.ClassMember;
 import com.hoanobita.topikplatform.classroom.repository.ClassAdminRepository;
 import com.hoanobita.topikplatform.classroom.repository.ClassMemberRepository;
 import com.hoanobita.topikplatform.classroom.repository.KlassRepository;
@@ -76,7 +77,7 @@ public class DashboardService {
         @SuppressWarnings({"java:S3776", "java:S6541", "java:S1192", "java:S135"})
     public TeacherDashboardResponse getTeacherDashboard(User teacher) {
         if (!teacher.isTeacher()) {
-            throw BusinessException.forbidden("Only TEACHER_OWNER can access teacher dashboard");
+            throw BusinessException.forbidden("Chỉ giáo viên mới có thể truy cập bảng điều khiển giáo viên");
         }
 
         LocalDate today = LocalDate.now(ZoneId.systemDefault());
@@ -93,11 +94,14 @@ public class DashboardService {
         Map<UUID, List<Submission>> submissionsByAssignment = allSubmissions.stream()
                 .collect(Collectors.groupingBy(Submission::getAssignmentId));
 
+        Map<UUID, UUID> assignmentBySubmissionId = allSubmissions.stream()
+                .collect(Collectors.toMap(Submission::getId, Submission::getAssignmentId, (a, b) -> a));
+        Map<UUID, List<Grade>> gradesByAssignmentId = allGrades.stream()
+                .collect(Collectors.groupingBy(g -> assignmentBySubmissionId.getOrDefault(g.getSubmissionId(), UUID.randomUUID())));
+
         Map<UUID, Integer> activeStudentCountByClass = new HashMap<>();
-        for (Klass klass : allClasses) {
-            int activeCount = classMemberRepo.findByClassIdAndStatus(klass.getId(), MemberStatus.ACTIVE).size();
-            activeStudentCountByClass.put(klass.getId(), activeCount);
-        }
+        classMemberRepo.countActiveByClassIdGrouped().forEach(row ->
+                activeStudentCountByClass.put((UUID) row[0], ((Long) row[1]).intValue()));
 
         // KPI calculations
         long activeClasses = allClasses.stream().filter(k -> k.getStatus() == ClassStatus.ACTIVE).count();
@@ -117,8 +121,9 @@ public class DashboardService {
         long newStudents7d = allStudents.stream().filter(u -> u.getCreatedAt().isAfter(sevenDaysAgo)).count();
         long newStudents30d = allStudents.stream().filter(u -> u.getCreatedAt().isAfter(thirtyDaysAgo)).count();
 
+        Set<UUID> studentsWithClasses = new HashSet<>(classMemberRepo.findStudentIdsWithActiveMembership());
         long unassignedStudents = allStudents.stream()
-                .filter(u -> classMemberRepo.findClassIdsByStudentId(u.getId()).isEmpty())
+                .filter(u -> !studentsWithClasses.contains(u.getId()))
                 .count();
 
         long draftAssignments = allAssignments.stream().filter(a -> a.getStatus() == AssignmentStatus.DRAFT).count();
@@ -201,7 +206,7 @@ public class DashboardService {
                 .map(k -> {
                     List<Assignment> classAssignments = assignmentsByClass.getOrDefault(k.getId(), List.of());
                     List<Grade> classGrades = classAssignments.stream()
-                            .flatMap(a -> gradeRepo.findByAssignmentId(a.getId()).stream())
+                            .flatMap(a -> gradesByAssignmentId.getOrDefault(a.getId(), List.of()).stream())
                             .toList();
                     BigDecimal avg = classGrades.isEmpty() ? BigDecimal.ZERO :
                             classGrades.stream().map(Grade::getScore).reduce(BigDecimal.ZERO, BigDecimal::add)
@@ -244,14 +249,20 @@ public class DashboardService {
                                                 todayTasks.add(new TeacherDashboardResponse.TodayTask("t4", "MISSING", missingSubs + " lượt chưa nộp bài", "Danh sách học viên thiếu bài nộp cần được nhắc nhở", "HIGH", ROUTE_CLASSES, "Gửi nhắc nhở"));
         }
 
+        // Pre-load class admins to avoid N+1
+        Map<UUID, List<String>> adminNamesByClassId = classAdminRepo.findAll().stream()
+                .collect(Collectors.groupingBy(
+                        ca -> ca.getClassId(),
+                        Collectors.mapping(ca -> userRepo.findById(ca.getAdminId()).map(User::getFullName).orElse(""), Collectors.toList())
+                ));
+        adminNamesByClassId.values().forEach(names -> names.removeIf(String::isEmpty));
+
         // Class health (top 8)
         List<TeacherDashboardResponse.ClassHealth> classHealth = allClasses.stream()
                 .limit(8)
                 .map(k -> {
                     int studentCount = activeStudentCountByClass.getOrDefault(k.getId(), 0);
-                    List<String> adminNames = classAdminRepo.findByClassId(k.getId()).stream()
-                            .map(ca -> userRepo.findById(ca.getAdminId()).map(u -> u.getFullName()).orElse(""))
-                            .filter(n -> !n.isEmpty()).limit(2).toList();
+                    List<String> adminNames = adminNamesByClassId.getOrDefault(k.getId(), List.of()).stream().limit(2).toList();
                     List<Assignment> classAssignments = assignmentsByClass.getOrDefault(k.getId(), List.of());
                     int openAssignments = (int) classAssignments.stream().filter(a -> a.getStatus() == AssignmentStatus.PUBLISHED).count();
                     List<Submission> classSubmissions = classAssignments.stream()
@@ -265,7 +276,7 @@ public class DashboardService {
                                     .divide(BigDecimal.valueOf((long) classAssignments.size() * studentCount), 0, RoundingMode.HALF_UP) : BigDecimal.ZERO;
                     long classNeedGrading = classSubmissions.stream()
                             .filter(s -> s.getStatus() == SubmissionStatus.SUBMITTED).count();
-                    List<Grade> classGrades = classAssignments.stream().flatMap(a -> gradeRepo.findByAssignmentId(a.getId()).stream()).toList();
+                    List<Grade> classGrades = classAssignments.stream().flatMap(a -> gradesByAssignmentId.getOrDefault(a.getId(), List.of()).stream()).toList();
                     BigDecimal avgScore = classGrades.isEmpty() ? BigDecimal.ZERO :
                             classGrades.stream().map(Grade::getScore).reduce(BigDecimal.ZERO, BigDecimal::add)
                                     .divide(BigDecimal.valueOf(classGrades.size()), 2, RoundingMode.HALF_UP);
@@ -277,14 +288,17 @@ public class DashboardService {
                 .toList();
 
         // Assignments due soon
+        Map<UUID, Klass> classById = allClasses.stream()
+                .collect(Collectors.toMap(Klass::getId, k -> k, (a, b) -> a));
+
         Instant upcomingThreshold = now.plus(7, ChronoUnit.DAYS);
         List<TeacherDashboardResponse.AssignmentDueSoon> dueSoon = allAssignments.stream()
                 .filter(a -> a.getStatus() == AssignmentStatus.PUBLISHED && a.getDueAt() != null && a.getDueAt().isAfter(now) && a.getDueAt().isBefore(upcomingThreshold))
                 .sorted(Comparator.comparing(Assignment::getDueAt))
                 .limit(8)
                 .map(a -> {
-                    Klass k = klassRepo.findActiveById(a.getClassId()).orElse(null);
-                    String className = k != null ? k.getName() : "Unknown";
+                    Klass k = classById.get(a.getClassId());
+                    String className = k != null ? k.getName() : "Không xác định";
                     List<Submission> subs = submissionsByAssignment.getOrDefault(a.getId(), List.of());
                     long submitted = subs.size();
                     long late = subs.stream().filter(s -> s.getStatus() == SubmissionStatus.LATE).count();
@@ -294,10 +308,15 @@ public class DashboardService {
                 })
                 .toList();
 
+        // Pre-load class memberships by student to avoid N+1
+        Map<UUID, List<UUID>> classIdsByStudentId = allClasses.stream()
+                .flatMap(k -> classMemberRepo.findByClassIdAndStatus(k.getId(), MemberStatus.ACTIVE).stream())
+                .collect(Collectors.groupingBy(ClassMember::getStudentId, Collectors.mapping(ClassMember::getClassId, Collectors.toList())));
+
         // Risk students calculated by rule-based detector.
         List<TeacherDashboardResponse.RiskStudent> riskStudents = allStudents.stream()
                 .map(s -> {
-                    List<UUID> classIds = classMemberRepo.findClassIdsByStudentId(s.getId());
+                    List<UUID> classIds = classIdsByStudentId.getOrDefault(s.getId(), List.of());
                     if (classIds.isEmpty()) {
                         return null;
                     }
@@ -375,7 +394,7 @@ public class DashboardService {
         @SuppressWarnings({"java:S3776", "java:S6541", "java:S135"})
     public AdminDashboardResponse getAdminDashboard(User admin) {
         if (!admin.isAdmin()) {
-            throw BusinessException.forbidden("Only CLASS_ADMIN can access admin dashboard");
+            throw BusinessException.forbidden("Chỉ quản trị viên lớp mới có thể truy cập bảng điều khiển quản trị");
         }
 
         List<UUID> assignedClassIds = classAdminRepo.findClassIdsByAdminId(admin.getId());
@@ -410,31 +429,27 @@ public class DashboardService {
                                 .collect(Collectors.groupingBy(Submission::getAssignmentId));
 
                 Map<UUID, Integer> activeStudentCountByClass = new HashMap<>();
+                Map<UUID, List<ClassMember>> membersByClass = new HashMap<>();
                 for (Klass klass : assignedClasses) {
-                        int count = classMemberRepo.findByClassIdAndStatus(klass.getId(), MemberStatus.ACTIVE).size();
-                        activeStudentCountByClass.put(klass.getId(), count);
+                        var members = classMemberRepo.findByClassIdAndStatus(klass.getId(), MemberStatus.ACTIVE);
+                        membersByClass.put(klass.getId(), members);
+                        activeStudentCountByClass.put(klass.getId(), members.size());
                 }
 
                 int totalInAssignedClasses = activeStudentCountByClass.values().stream().mapToInt(Integer::intValue).sum();
                 int activeStudentCount = 0;
                 int suspendedStudentCount = 0;
                 Set<UUID> distinctStudentIds = new HashSet<>();
-                for (Klass klass : assignedClasses) {
-                        var members = classMemberRepo.findByClassIdAndStatus(klass.getId(), MemberStatus.ACTIVE);
-                        for (var member : members) {
-                                if (!distinctStudentIds.add(member.getStudentId())) {
-                                        continue;
-                                }
-                                var student = userRepo.findById(member.getStudentId()).orElse(null);
-                                if (student == null) {
-                                        continue;
-                                }
-                                if (student.getStatus() == UserStatus.ACTIVE) {
-                                        activeStudentCount++;
-                                } else if (student.getStatus() == UserStatus.SUSPENDED) {
-                                        suspendedStudentCount++;
-                                }
-                        }
+                Set<UUID> allStudentIds = membersByClass.values().stream()
+                        .flatMap(List::stream).map(ClassMember::getStudentId).collect(Collectors.toSet());
+                Map<UUID, User> studentsById = userRepo.findAllById(allStudentIds).stream()
+                        .collect(Collectors.toMap(User::getId, u -> u, (a, b) -> a));
+                for (UUID studentId : allStudentIds) {
+                        distinctStudentIds.add(studentId);
+                        var student = studentsById.get(studentId);
+                        if (student == null) continue;
+                        if (student.getStatus() == UserStatus.ACTIVE) activeStudentCount++;
+                        else if (student.getStatus() == UserStatus.SUSPENDED) suspendedStudentCount++;
                 }
 
         long published = assignedAssignments.stream().filter(a -> a.getStatus() == AssignmentStatus.PUBLISHED).count();
@@ -510,7 +525,10 @@ public class DashboardService {
                 .map(k -> {
                     var classAssignments = assignmentsByClass.getOrDefault(k.getId(), List.of());
                     var classGrades = classAssignments.stream()
-                            .flatMap(a -> gradeRepo.findByAssignmentId(a.getId()).stream())
+                            .flatMap(a -> assignedGrades.stream().filter(g -> {
+                                var sid = g.getSubmissionId();
+                                return assignedSubmissions.stream().anyMatch(s -> s.getId().equals(sid) && s.getAssignmentId().equals(a.getId()));
+                            }))
                             .toList();
                     BigDecimal classAvg = classGrades.isEmpty()
                             ? BigDecimal.ZERO
@@ -520,13 +538,16 @@ public class DashboardService {
                 })
                 .toList();
 
+        Map<UUID, List<Grade>> gradesBySubmissionId = assignedGrades.stream()
+                .collect(Collectors.groupingBy(Grade::getSubmissionId));
+
         int belowThresholdStudents = 0;
         for (UUID studentId : distinctStudentIds) {
             var studentSubmissions = assignedSubmissions.stream().filter(s -> s.getStudentId().equals(studentId)).toList();
             if (studentSubmissions.isEmpty()) {
                 continue;
             }
-            var studentGrades = studentSubmissions.stream().flatMap(s -> gradeRepo.findBySubmissionIdList(s.getId()).stream()).toList();
+            var studentGrades = studentSubmissions.stream().flatMap(s -> gradesBySubmissionId.getOrDefault(s.getId(), List.of()).stream()).toList();
             if (studentGrades.isEmpty()) {
                 continue;
             }
@@ -576,13 +597,15 @@ public class DashboardService {
         @SuppressWarnings({"java:S3776"})
     public StudentDashboardResponse getStudentDashboard(User student) {
         if (!student.isStudent()) {
-            throw BusinessException.forbidden("Only STUDENT can access student dashboard");
+            throw BusinessException.forbidden("Chỉ học viên mới có thể truy cập bảng điều khiển học viên");
         }
 
         List<UUID> joinedClassIds = classMemberRepo.findClassIdsByStudentId(student.getId());
         List<Klass> joinedClasses = klassRepo.findAllActive().stream()
                 .filter(k -> joinedClassIds.contains(k.getId()))
                 .toList();
+        Map<UUID, String> classNameById = joinedClasses.stream()
+                .collect(Collectors.toMap(Klass::getId, Klass::getName, (a, b) -> a));
 
         List<Assignment> classAssignments = assignmentRepo.findByClassIdIn(joinedClassIds);
         List<Assignment> openAssignments = classAssignments.stream()
@@ -604,8 +627,8 @@ public class DashboardService {
                 .sorted(Comparator.comparing(Assignment::getDueAt, Comparator.nullsLast(Comparator.naturalOrder())))
                 .limit(5)
                 .map(a -> {
-                    Klass k = klassRepo.findActiveById(a.getClassId()).orElse(null);
-                    return new StudentDashboardResponse.UpcomingAssignment(a.getId(), a.getTitle(), a.getClassId(), k != null ? k.getName() : "", a.getDueAt(), a.getStatus().name());
+                    String className = classNameById.getOrDefault(a.getClassId(), "");
+                    return new StudentDashboardResponse.UpcomingAssignment(a.getId(), a.getTitle(), a.getClassId(), className, a.getDueAt(), a.getStatus().name());
                 })
                 .toList();
 
@@ -614,8 +637,8 @@ public class DashboardService {
                 .sorted(Comparator.comparing(Material::getCreatedAt).reversed())
                 .limit(4)
                 .map(m -> {
-                    Klass k = klassRepo.findActiveById(m.getClassId()).orElse(null);
-                    return new StudentDashboardResponse.RecentMaterial(m.getId(), m.getTitle(), m.getClassId(), k != null ? k.getName() : "", m.getCreatedAt());
+                    String className = classNameById.getOrDefault(m.getClassId(), "");
+                    return new StudentDashboardResponse.RecentMaterial(m.getId(), m.getTitle(), m.getClassId(), className, m.getCreatedAt());
                 })
                 .toList();
 

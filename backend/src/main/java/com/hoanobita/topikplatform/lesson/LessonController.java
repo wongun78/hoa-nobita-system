@@ -55,6 +55,6 @@ public class LessonController {
     public ResponseEntity<?> deleteLesson(@PathVariable UUID lessonId) {
         var user = securityUtils.getCurrentUser();
         lessonService.delete(lessonId, user);
-        return ResponseEntity.ok(ApiResponse.ok("Lesson deleted"));
+        return ResponseEntity.ok(ApiResponse.ok("Đã xóa buổi học"));
     }
 }

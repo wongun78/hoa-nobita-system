@@ -60,7 +60,7 @@ public class ClassroomController {
     public ResponseEntity<?> deleteClass(@PathVariable UUID classId) {
         var user = securityUtils.getCurrentUser();
         classroomService.deleteClass(classId, user);
-        return ResponseEntity.ok(ApiResponse.ok("Class deleted"));
+        return ResponseEntity.ok(ApiResponse.ok("Đã xóa lớp học"));
     }
 
     // Admin management
@@ -68,14 +68,14 @@ public class ClassroomController {
     public ResponseEntity<?> addAdmin(@PathVariable UUID classId, @RequestBody AddMemberRequest request) {
         var user = securityUtils.getCurrentUser();
         classroomService.addAdmin(classId, request, user);
-        return ResponseEntity.ok(ApiResponse.ok("Admin assigned"));
+        return ResponseEntity.ok(ApiResponse.ok("Đã phân công quản trị viên"));
     }
 
     @DeleteMapping("/{classId}/admins/{adminId}")
     public ResponseEntity<?> removeAdmin(@PathVariable UUID classId, @PathVariable UUID adminId) {
         var user = securityUtils.getCurrentUser();
         classroomService.removeAdmin(classId, adminId, user);
-        return ResponseEntity.ok(ApiResponse.ok("Admin removed"));
+        return ResponseEntity.ok(ApiResponse.ok("Đã xóa quản trị viên"));
     }
 
     // Student management
@@ -105,7 +105,7 @@ public class ClassroomController {
     public ResponseEntity<?> addStudent(@PathVariable UUID classId, @RequestBody AddMemberRequest request) {
         var user = securityUtils.getCurrentUser();
         classroomService.addStudent(classId, request, user);
-        return ResponseEntity.ok(ApiResponse.ok("Student added"));
+        return ResponseEntity.ok(ApiResponse.ok("Đã thêm học viên"));
     }
 
     @PostMapping("/{classId}/students/bulk")
@@ -118,7 +118,7 @@ public class ClassroomController {
     public ResponseEntity<?> removeStudent(@PathVariable UUID classId, @PathVariable UUID studentId) {
         var user = securityUtils.getCurrentUser();
         classroomService.removeStudent(classId, studentId, user);
-        return ResponseEntity.ok(ApiResponse.ok("Student removed"));
+        return ResponseEntity.ok(ApiResponse.ok("Đã xóa học viên"));
     }
 
     @GetMapping("/{classId}/stats")
@@ -132,7 +132,7 @@ public class ClassroomController {
                                                   @Valid @RequestBody StatusRequest request) {
         var user = securityUtils.getCurrentUser();
         classroomService.updateStudentStatus(classId, studentId, request, user);
-        return ResponseEntity.ok(ApiResponse.ok("Student status updated"));
+        return ResponseEntity.ok(ApiResponse.ok("Cập nhật trạng thái học viên thành công"));
     }
 
     @PatchMapping("/{classId}/students/{studentId}/code")

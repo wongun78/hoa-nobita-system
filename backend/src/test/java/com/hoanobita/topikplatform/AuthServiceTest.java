@@ -57,7 +57,7 @@ class AuthServiceTest {
 
     @Test
     void login_failureReturnsUnauthorized() {
-        var ex = BusinessException.unauthorized("Invalid credentials");
+        var ex = BusinessException.unauthorized("Thông tin đăng nhập không hợp lệ");
         assertEquals(401, ex.getStatus().value());
     }
 
@@ -129,7 +129,7 @@ class AuthServiceTest {
     void passwordValidator_tooShort_returnsError() {
         var errors = PasswordValidator.validate("Ab1");
         assertFalse(errors.isEmpty());
-        assertTrue(errors.stream().anyMatch(e -> e.contains("8 characters")));
+        assertTrue(errors.stream().anyMatch(e -> e.contains("8 ký tự")));
     }
 
     @Test

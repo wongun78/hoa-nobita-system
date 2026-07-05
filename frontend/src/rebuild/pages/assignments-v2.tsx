@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bell, Check, Copy, Eye, FileText, LinkIcon, Plus, Trash2, X } from 'lucide-react'
+import { Bell, Check, Copy, Download, Edit3, Eye, FileText, LinkIcon, Plus, Trash2, X } from 'lucide-react'
 import { ConfirmDialog, EmptyState, ErrorState, FilterBar, MetricCard, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { api } from '../core/api'
 import { ApiClientError } from '../core/http'
 import { MultiFileUpload } from '../components/multi-file-upload'
+import { FilePreviewModal } from '../components/file-preview-modal'
 import { Button, Card, FieldLabel, Input, TextArea } from '../layout/ui'
 import { asPage, fmtDate } from './phase2-utils'
 import type { AssignmentItem, ClassItem, FileItem, PageResponse } from '../core/types'
@@ -17,20 +18,34 @@ function patchItemInPage(old: PageResponse<AssignmentItem> | AssignmentItem[] | 
 
 const SKILL_OPTIONS = ['듣기 (Nghe)', 'Đọc (Đọc)', '쓰기 (Viết)', '말하기 (Nói)', 'Tổng hợp'] as const
 
-function CreateAssignmentModal({ onClose }: Readonly<{ onClose: () => void }>) {
+function FileRow({ fileId, label, onPreview }: Readonly<{ fileId: string; label: string; onPreview: (id: string, name: string, type?: string) => void }>) {
+  const meta = useQuery({ queryKey: ['file-meta', fileId], queryFn: () => api.fileMetadata(fileId), enabled: Boolean(fileId) })
+  const displayName = meta.data?.originalFileName || label
+  return (
+    <div className="flex items-center gap-2 rounded-2xl border border-sky-100 bg-sky-50/50 px-3 py-2">
+      <FileText size={16} className="shrink-0 text-sky-500" />
+      <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-700">{displayName}</span>
+      <Button type="button" variant="secondary" className="min-h-9" onClick={() => api.downloadFile(fileId, displayName)}><Download size={14} /> Tải</Button>
+      <Button type="button" variant="secondary" className="min-h-9" onClick={() => { if (meta.data) onPreview(meta.data.id, meta.data.originalFileName, meta.data.contentType) }}><Eye size={14} /></Button>
+    </div>
+  )
+}
+
+function AssignmentFormModal({ assignment, onClose }: Readonly<{ assignment?: AssignmentItem; onClose: () => void }>) {
   const qc = useQueryClient()
+  const isEdit = Boolean(assignment)
   const classes = useQuery({ queryKey: ['classes', 'create-assignment'], queryFn: () => api.classesPage({ page: 0, size: 100 }) })
   const classesList = asPage(classes.data, 0, 100).items as ClassItem[]
 
-  const [selectedClassIds, setSelectedClassIds] = useState<string[]>([])
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [instruction, setInstruction] = useState('')
-  const [dueAt, setDueAt] = useState('')
-  const [maxScore, setMaxScore] = useState('100')
-  const [allowResubmit, setAllowResubmit] = useState(false)
-  const [skill, setSkill] = useState('')
-  const [externalLink, setExternalLink] = useState('')
+  const [selectedClassIds, setSelectedClassIds] = useState<string[]>(() => assignment?.classId ? [assignment.classId] : [])
+  const [title, setTitle] = useState(assignment?.title ?? '')
+  const [description, setDescription] = useState(assignment?.description ?? '')
+  const [instruction, setInstruction] = useState(assignment?.instruction ?? '')
+  const [dueAt, setDueAt] = useState(() => assignment?.dueAt ? new Date(assignment.dueAt).toISOString().slice(0, 16) : '')
+  const [maxScore, setMaxScore] = useState(String(assignment?.maxScore ?? 100))
+  const [allowResubmit, setAllowResubmit] = useState(assignment?.allowResubmit ?? false)
+  const [skill, setSkill] = useState(assignment?.skill ?? '')
+  const [externalLink, setExternalLink] = useState(assignment?.externalLink ?? '')
   const [files, setFiles] = useState<FileItem[]>([])
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
@@ -58,13 +73,37 @@ function CreateAssignmentModal({ onClose }: Readonly<{ onClose: () => void }>) {
     onError: () => setToast({ type: 'error', message: 'Không thể tạo bài tập. Kiểm tra dữ liệu và thử lại.' }),
   })
 
+  const update = useMutation({
+    mutationFn: () => api.updateAssignment(assignment!.id, {
+      title: title.trim(),
+      description: description.trim() || undefined,
+      instruction: instruction.trim() || undefined,
+      dueAt: dueAt ? new Date(dueAt).toISOString() : undefined,
+      maxScore: Number(maxScore) || 100,
+      allowResubmit,
+      skill: skill || undefined,
+      fileId: files.length > 0 ? files[0].id : assignment?.fileId ?? undefined,
+      fileIds: files.length > 0 ? files.map((f) => f.id) : assignment?.fileIds ?? undefined,
+      externalLink: externalLink.trim() || undefined,
+    }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['assignments-v2'] })
+      await qc.invalidateQueries({ queryKey: ['assignment', assignment!.id] })
+      setToast({ type: 'success', message: 'Đã cập nhật bài tập.' })
+      setTimeout(() => onClose(), 1200)
+    },
+    onError: () => setToast({ type: 'error', message: 'Không thể cập nhật bài tập. Kiểm tra dữ liệu và thử lại.' }),
+  })
+
+  const mutation = isEdit ? update : create
+
   const canSubmit = selectedClassIds.length > 0 && title.trim()
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-sky-100 bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-black text-slate-950">Tạo bài tập mới</h2>
+          <h2 className="text-xl font-black text-slate-950">{isEdit ? 'Chỉnh sửa bài tập' : 'Tạo bài tập mới'}</h2>
           <button type="button" onClick={onClose} className="rounded-xl p-1 text-slate-400 hover:bg-slate-100"><X size={18} /></button>
         </div>
 
@@ -133,7 +172,7 @@ function CreateAssignmentModal({ onClose }: Readonly<{ onClose: () => void }>) {
           <div>
             <FieldLabel>Tệp đính kèm</FieldLabel>
             <div className="mt-1">
-              <MultiFileUpload value={files} onChange={setFiles} disabled={create.isPending} />
+              <MultiFileUpload value={files} onChange={setFiles} disabled={mutation.isPending} />
             </div>
           </div>
 
@@ -151,8 +190,8 @@ function CreateAssignmentModal({ onClose }: Readonly<{ onClose: () => void }>) {
 
           {toast && <div className={`rounded-2xl px-4 py-3 text-sm font-bold ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>{toast.message}</div>}
 
-          <Button className="min-h-11 w-full" disabled={!canSubmit || create.isPending} onClick={() => create.mutate()}>
-            {create.isPending ? 'Đang tạo...' : `Tạo bài tập${selectedClassIds.length > 1 ? ` (${selectedClassIds.length} lớp)` : ''}`}
+          <Button className="min-h-11 w-full" disabled={!canSubmit || mutation.isPending} onClick={() => mutation.mutate()}>
+            {mutation.isPending ? (isEdit ? 'Đang cập nhật...' : 'Đang tạo...') : isEdit ? 'Cập nhật bài tập' : `Tạo bài tập${selectedClassIds.length > 1 ? ` (${selectedClassIds.length} lớp)` : ''}`}
           </Button>
         </div>
       </div>
@@ -169,6 +208,8 @@ export function AssignmentsV2Page() {
   const [selectedId, setSelectedId] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
+  const [showEdit, setShowEdit] = useState(false)
+  const [previewFile, setPreviewFile] = useState<{ id: string; name: string; type?: string } | null>(null)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const assignmentsQueryKey = ['assignments-v2', page, search, status, classId] as const
 
@@ -325,11 +366,19 @@ export function AssignmentsV2Page() {
               {(selectedAssignment.skill || selectedAssignment.fileId || (selectedAssignment.fileIds && selectedAssignment.fileIds.length > 0) || selectedAssignment.externalLink) && (
                 <div className="flex flex-wrap gap-2">
                   {selectedAssignment.skill && <span className="inline-flex items-center gap-1 rounded-2xl bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700"><FileText size={12} /> {selectedAssignment.skill}</span>}
-                  {selectedAssignment.fileId && <span className="inline-flex items-center gap-1 rounded-2xl bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-700">Tệp đính kèm</span>}
-                  {selectedAssignment.fileIds && selectedAssignment.fileIds.length > 0 && <span className="inline-flex items-center gap-1 rounded-2xl bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-700">{selectedAssignment.fileIds.length} tệp đính kèm</span>}
                   {selectedAssignment.externalLink && <a href={selectedAssignment.externalLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-2xl bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100"><LinkIcon size={12} /> Liên kết ngoài</a>}
                 </div>
               )}
+              {(() => {
+                const allFileIds = [...new Set([selectedAssignment.fileId, ...(selectedAssignment.fileIds ?? [])].filter((f): f is string => Boolean(f)))]
+                if (allFileIds.length === 0) return null
+                return (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-bold text-slate-700">Tài liệu đính kèm ({allFileIds.length})</h3>
+                    {allFileIds.map((fid, idx) => <FileRow key={fid} fileId={fid} label={`Tài liệu ${idx + 1}`} onPreview={(id, name, type) => setPreviewFile({ id, name, type })} />)}
+                  </div>
+                )
+              })()}
               <div className="grid grid-cols-2 gap-3">
                 <MetricCard label="Đã nộp" value={progress.data?.submittedCount ?? '-'} />
                 <MetricCard label="Thiếu" value={progress.data?.missingCount ?? '-'} />
@@ -337,6 +386,7 @@ export function AssignmentsV2Page() {
                 <MetricCard label="Cần chấm" value={progress.data?.needGradingCount ?? '-'} />
               </div>
               <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" onClick={() => { setSelectedId(''); setShowEdit(true) }}><Edit3 size={14} /> Chỉnh sửa</Button>
                 <Button variant="secondary" disabled={publish.isPending || selectedAssignment.status === 'PUBLISHED'} onClick={() => publish.mutate()}>Xuất bản</Button>
                 <Button variant="secondary" disabled={close.isPending || selectedAssignment.status === 'CLOSED'} onClick={() => close.mutate()}>Đóng bài</Button>
                 <Button variant="secondary" disabled={copy.isPending} onClick={() => copy.mutate()}><Copy size={14} /> Sao chép</Button>
@@ -364,6 +414,8 @@ export function AssignmentsV2Page() {
 
     <ConfirmDialog open={confirmDelete} title="Xoá bài tập này?" description="Bài tập sẽ bị xoá khỏi danh sách. Hãy kiểm tra bài nộp liên quan trước khi xác nhận." confirmLabel={remove.isPending ? 'Đang xoá...' : 'Xoá bài tập'} onCancel={() => setConfirmDelete(false)} onConfirm={() => remove.mutate()} />
 
-    {showCreate && <CreateAssignmentModal onClose={() => setShowCreate(false)} />}
+    {showCreate && <AssignmentFormModal onClose={() => setShowCreate(false)} />}
+    {showEdit && selectedAssignment && <AssignmentFormModal assignment={selectedAssignment} onClose={() => setShowEdit(false)} />}
+    {previewFile && <FilePreviewModal fileId={previewFile.id} fileName={previewFile.name} contentType={previewFile.type} onClose={() => setPreviewFile(null)} />}
   </>
 }

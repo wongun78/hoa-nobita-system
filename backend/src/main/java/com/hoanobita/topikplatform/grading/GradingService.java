@@ -134,10 +134,10 @@ public class GradingService {
     @Transactional
     public BulkGradeResponse bulkGrade(UUID assignmentId, BulkGradeRequest request) {
         Assignment assignment = assignments.findActiveById(assignmentId)
-                .orElseThrow(() -> BusinessException.notFound("Assignment not found"));
+                .orElseThrow(() -> BusinessException.notFound("Không tìm thấy bài tập"));
         permissions.requireManageClass(security.currentUser(), assignment.getClassId());
         if (request == null || request.grades() == null || request.grades().isEmpty()) {
-            throw BusinessException.badRequest("grades must not be empty");
+            throw BusinessException.badRequest("Danh sách điểm không được rỗng");
         }
 
         int gradedCount = 0;
@@ -145,15 +145,15 @@ public class GradingService {
         for (var item : request.grades()) {
             UUID submissionId = item == null ? null : item.submissionId();
             try {
-                if (submissionId == null) throw BusinessException.badRequest("submissionId is required");
-                if (item.score() == null) throw BusinessException.badRequest("score is required");
+                if (submissionId == null) throw BusinessException.badRequest("submissionId là bắt buộc");
+                if (item.score() == null) throw BusinessException.badRequest("Điểm là bắt buộc");
                 Submission submission = submissions.findActiveById(submissionId)
-                        .orElseThrow(() -> BusinessException.notFound("Submission not found"));
+                        .orElseThrow(() -> BusinessException.notFound("Không tìm thấy bài nộp"));
                 if (!submission.getAssignmentId().equals(assignmentId)) {
-                    throw BusinessException.badRequest("Submission does not belong to this assignment");
+                    throw BusinessException.badRequest("Bài nộp không thuộc bài tập này");
                 }
-                if (item.score().signum() < 0) throw BusinessException.badRequest("Score cannot be negative");
-                if (item.score().compareTo(assignment.getMaxScore()) > 0) throw BusinessException.badRequest("Score cannot exceed assignment max score");
+                if (item.score().signum() < 0) throw BusinessException.badRequest("Điểm không được âm");
+                if (item.score().compareTo(assignment.getMaxScore()) > 0) throw BusinessException.badRequest("Điểm không được vượt quá điểm tối đa");
 
                 Grade grade = grades.findBySubmissionId(submissionId).orElseGet(Grade::new);
                 grade.setSubmissionId(submissionId);
@@ -179,11 +179,11 @@ public class GradingService {
 
     @Transactional
     public GradeResponse grade(UUID submissionId, GradeRequest req) {
-        Submission s = submissions.findActiveById(submissionId).orElseThrow(() -> BusinessException.notFound("Submission not found"));
-        Assignment a = assignments.findActiveById(s.getAssignmentId()).orElseThrow(() -> BusinessException.notFound("Assignment not found"));
+        Submission s = submissions.findActiveById(submissionId).orElseThrow(() -> BusinessException.notFound("Không tìm thấy bài nộp"));
+        Assignment a = assignments.findActiveById(s.getAssignmentId()).orElseThrow(() -> BusinessException.notFound("Không tìm thấy bài tập"));
         permissions.requireManageClass(security.currentUser(), a.getClassId());
-        if (req.score().signum() < 0) throw BusinessException.badRequest("Score cannot be negative");
-        if (req.score().compareTo(a.getMaxScore()) > 0) throw BusinessException.badRequest("Score cannot exceed assignment max score");
+        if (req.score().signum() < 0) throw BusinessException.badRequest("Điểm không được âm");
+        if (req.score().compareTo(a.getMaxScore()) > 0) throw BusinessException.badRequest("Điểm không được vượt quá điểm tối đa");
         Grade g = grades.findBySubmissionId(submissionId).orElseGet(Grade::new);
         g.setSubmissionId(submissionId);
         g.setScore(req.score());
@@ -200,12 +200,12 @@ public class GradingService {
 
     @Transactional
     public GradeResponse update(UUID gradeId, GradeRequest req) {
-        Grade g = grades.findById(gradeId).orElseThrow(() -> BusinessException.notFound("Grade not found"));
-        Submission s = submissions.findActiveById(g.getSubmissionId()).orElseThrow(() -> BusinessException.notFound("Submission not found"));
-        Assignment a = assignments.findActiveById(s.getAssignmentId()).orElseThrow(() -> BusinessException.notFound("Assignment not found"));
+        Grade g = grades.findById(gradeId).orElseThrow(() -> BusinessException.notFound("Không tìm thấy điểm"));
+        Submission s = submissions.findActiveById(g.getSubmissionId()).orElseThrow(() -> BusinessException.notFound("Không tìm thấy bài nộp"));
+        Assignment a = assignments.findActiveById(s.getAssignmentId()).orElseThrow(() -> BusinessException.notFound("Không tìm thấy bài tập"));
         permissions.requireManageClass(security.currentUser(), a.getClassId());
-        if (req.score().signum() < 0) throw BusinessException.badRequest("Score cannot be negative");
-        if (req.score().compareTo(a.getMaxScore()) > 0) throw BusinessException.badRequest("Score cannot exceed assignment max score");
+        if (req.score().signum() < 0) throw BusinessException.badRequest("Điểm không được âm");
+        if (req.score().compareTo(a.getMaxScore()) > 0) throw BusinessException.badRequest("Điểm không được vượt quá điểm tối đa");
         g.setScore(req.score());
         g.setFeedback(req.feedback());
         if (req.feedbackFileId() != null) s.setFeedbackFileId(req.feedbackFileId());
@@ -217,8 +217,8 @@ public class GradingService {
 
     @Transactional
     public void requestResubmit(UUID submissionId) {
-        Submission s = submissions.findActiveById(submissionId).orElseThrow(() -> BusinessException.notFound("Submission not found"));
-        Assignment a = assignments.findActiveById(s.getAssignmentId()).orElseThrow(() -> BusinessException.notFound("Assignment not found"));
+        Submission s = submissions.findActiveById(submissionId).orElseThrow(() -> BusinessException.notFound("Không tìm thấy bài nộp"));
+        Assignment a = assignments.findActiveById(s.getAssignmentId()).orElseThrow(() -> BusinessException.notFound("Không tìm thấy bài tập"));
         permissions.requireManageClass(security.currentUser(), a.getClassId());
         s.setStatus(SubmissionStatus.RESUBMIT_REQUESTED);
         submissions.save(s);

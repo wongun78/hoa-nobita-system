@@ -103,11 +103,11 @@ public class ActivityService {
 
         User currentUser = security.currentUser();
         if (currentUser.isStudent() && !currentUser.getId().equals(userId)) {
-            throw BusinessException.forbidden("You can only view your own activity logs");
+            throw BusinessException.forbidden("Bạn chỉ có thể xem nhật ký hoạt động của chính mình");
         }
         if (currentUser.isAdmin() && !currentUser.isTeacher() && !currentUser.getId().equals(userId)
                 && !permissions.canAccessStudentProgress(currentUser, userId)) {
-            throw BusinessException.forbidden("You can only view activity logs for students in your assigned classes");
+            throw BusinessException.forbidden("Bạn chỉ có thể xem nhật ký hoạt động của học viên trong lớp được phân công");
         }
 
         List<ActivityResponse> filtered = repo.findByActorIdOrderByCreatedAtDesc(userId).stream()

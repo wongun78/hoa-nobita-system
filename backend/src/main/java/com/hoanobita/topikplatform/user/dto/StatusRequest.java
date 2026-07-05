@@ -3,6 +3,6 @@ package com.hoanobita.topikplatform.user.dto;
 import jakarta.validation.constraints.NotBlank;
 
 public record StatusRequest(
-        @NotBlank(message = "Status is required")
+        @NotBlank(message = "Trạng thái là bắt buộc")
         String status
 ) {}

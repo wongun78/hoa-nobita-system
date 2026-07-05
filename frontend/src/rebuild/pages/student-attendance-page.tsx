@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { CalendarCheck2, CheckCircle2, Clock3, XCircle } from 'lucide-react'
 import { api } from '../core/api'
-import { EmptyState, ErrorState, MetricCard, SkeletonCard, StatusBadge } from '../components/foundation'
+import { AttendanceStatusBadge, EmptyState, ErrorState, MetricCard, SkeletonCard } from '../components/foundation'
 import { Card } from '../layout/ui'
 import { fmtDate } from './phase2-utils'
 import type { AttendanceItem, AttendanceStatus } from '../core/types'
@@ -40,7 +40,7 @@ function AttendanceTimelineItem({ item }: Readonly<{ item: AttendanceItem }>) {
               <h2 className="font-black text-slate-950">{meta.label}</h2>
               <p className="mt-1 text-sm text-slate-500">{fmtDate(item.createdAt)}</p>
             </div>
-            <StatusBadge value={item.status} />
+            <AttendanceStatusBadge value={item.status} />
           </div>
           <p className="mt-3 text-sm leading-6 text-slate-600">{item.note || meta.description}</p>
         </div>

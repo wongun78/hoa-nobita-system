@@ -58,8 +58,16 @@ function statusTone(value: string): Tone {
 
 export function StatusBadge({ value }: Readonly<{ value?: string | null }>) {
   const normalized = value ?? 'UNKNOWN'
-  const labelMap: Record<string, string> = { ACTIVE: 'Đang học', COMPLETED: 'Hoàn thành', DRAFT: 'Nháp', UPCOMING: 'Sắp khai giảng', ARCHIVED: 'Lưu trữ', PUBLISHED: 'Đã xuất bản', CLOSED: 'Đã đóng', SUBMITTED: 'Đã nộp', GRADED: 'Đã chấm', LATE: 'Nộp trễ', OVERDUE: 'Quá hạn', INACTIVE: 'Ngưng', SUSPENDED: 'Đã khoá', RESUBMIT_REQUESTED: 'Yêu cầu nộp lại' }
+  const labelMap: Record<string, string> = { ACTIVE: 'Đang học', COMPLETED: 'Hoàn thành', DRAFT: 'Nháp', UPCOMING: 'Sắp khai giảng', ARCHIVED: 'Lưu trữ', PUBLISHED: 'Đã xuất bản', CLOSED: 'Đã đóng', SUBMITTED: 'Đã nộp', GRADED: 'Đã chấm', LATE: 'Nộp trễ', OVERDUE: 'Quá hạn', INACTIVE: 'Ngưng', SUSPENDED: 'Đã khoá', RESUBMIT_REQUESTED: 'Yêu cầu nộp lại', PRESENT: 'Có mặt', ABSENT: 'Vắng mặt', VISIBLE: 'Hiện', HIDDEN: 'Ẩn' }
   return <span className={clsx('inline-flex rounded-full border px-2.5 py-1 text-xs font-bold transition-colors', toneClasses[statusTone(normalized)])}>{labelMap[normalized] ?? normalized}</span>
+}
+
+const attendanceStatusTone: Record<string, Tone> = { PRESENT: 'emerald', LATE: 'amber', ABSENT: 'rose' }
+const attendanceLabelMap: Record<string, string> = { PRESENT: 'Có mặt', LATE: 'Đi muộn', ABSENT: 'Vắng mặt' }
+
+export function AttendanceStatusBadge({ value }: Readonly<{ value?: string | null }>) {
+  const normalized = value ?? 'UNKNOWN'
+  return <span className={clsx('inline-flex rounded-full border px-2.5 py-1 text-xs font-bold transition-colors', toneClasses[attendanceStatusTone[normalized] ?? 'slate'])}>{attendanceLabelMap[normalized] ?? normalized}</span>
 }
 
 export function RoleBadge({ role }: Readonly<{ role: RoleName }>) {

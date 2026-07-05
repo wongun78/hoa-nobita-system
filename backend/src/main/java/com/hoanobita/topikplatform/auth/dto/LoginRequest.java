@@ -3,9 +3,9 @@ package com.hoanobita.topikplatform.auth.dto;
 import jakarta.validation.constraints.NotBlank;
 
 public record LoginRequest(
-        @NotBlank(message = "Identifier is required")
+        @NotBlank(message = "Tên đăng nhập là bắt buộc")
         String identifier,
 
-        @NotBlank(message = "Password is required")
+        @NotBlank(message = "Mật khẩu là bắt buộc")
         String password
 ) {}

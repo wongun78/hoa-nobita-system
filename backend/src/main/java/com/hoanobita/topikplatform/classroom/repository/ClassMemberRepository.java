@@ -31,4 +31,10 @@ public interface ClassMemberRepository extends JpaRepository<ClassMember, UUID>,
     boolean existsByClassIdAndStudentCode(UUID classId, String studentCode);
 
     long countByClassId(UUID classId);
+
+    @Query("SELECT cm.classId, COUNT(cm) FROM ClassMember cm WHERE cm.status = 'ACTIVE' GROUP BY cm.classId")
+    List<Object[]> countActiveByClassIdGrouped();
+
+    @Query("SELECT DISTINCT cm.studentId FROM ClassMember cm WHERE cm.status = 'ACTIVE'")
+    List<UUID> findStudentIdsWithActiveMembership();
 }

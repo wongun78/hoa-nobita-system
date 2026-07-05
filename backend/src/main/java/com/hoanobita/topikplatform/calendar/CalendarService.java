@@ -39,8 +39,8 @@ public class CalendarService {
     }
 
     public CalendarResponse calendar(LocalDate from, LocalDate to, UUID classId) {
-        if (from == null || to == null) throw BusinessException.badRequest("from and to are required");
-        if (from.isAfter(to)) throw BusinessException.badRequest("from must be before or equal to to");
+        if (from == null || to == null) throw BusinessException.badRequest("Tham số from và to là bắt buộc");
+        if (from.isAfter(to)) throw BusinessException.badRequest("from phải trước hoặc bằng to");
 
         User user = security.currentUser();
         List<UUID> classIds = accessibleClassIds(user, classId);

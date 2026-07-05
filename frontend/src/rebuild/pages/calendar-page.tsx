@@ -240,6 +240,7 @@ export function CalendarPage() {
         <MetricCard label="Sắp tới" value={nextEvent ? compactDateFormatter.format(nextEvent.startsAt) : '-'} hint={nextEvent?.title ?? 'Không có lịch'} icon={<ListChecks size={20} />} tone="emerald" />
       </div>
 
+      {role !== 'STUDENT' && (
       <FilterBar>
         <div className="min-w-0 flex-1">
           {/* <FieldLabel htmlFor="calendar-class">Lọc theo lớp</FieldLabel> */}
@@ -257,6 +258,7 @@ export function CalendarPage() {
           <Button type="button" variant="secondary" className="min-h-11" onClick={() => void calendar.refetch()}>Làm mới</Button>
         </div>
       </FilterBar>
+      )}
 
       {classes.isError && <ErrorState title="Không tải được danh sách lớp" description="Agenda vẫn có thể hiển thị tất cả lớp được phép; thử lại nếu cần lọc lớp." onRetry={() => classes.refetch()} />}
       {calendar.isLoading && <div className="space-y-3"><SkeletonCard lines={3} /><SkeletonCard lines={3} /><SkeletonCard lines={3} /></div>}

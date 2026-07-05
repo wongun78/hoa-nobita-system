@@ -33,8 +33,10 @@ import com.hoanobita.topikplatform.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -88,41 +90,65 @@ public class AssignmentService {
                 Set.of("createdAt", "title", "dueAt", "status"),
                 Sort.by(Sort.Direction.DESC, "createdAt"));
 
+        final AssignmentStatus parsedStatus;
+        if (StringUtils.hasText(status)) {
+            AssignmentStatus tmp = null;
+            try { tmp = AssignmentStatus.valueOf(status.toUpperCase()); } catch (IllegalArgumentException ignored) { }
+            parsedStatus = tmp;
+        } else {
+            parsedStatus = null;
+        }
+        final String trimmedSearch = StringUtils.hasText(search) ? search.trim() : null;
+
         Page<Assignment> assignmentPage;
         if (classId != null) {
             permissions.requireAccessClass(user, classId);
-            assignmentPage = repo.findByClassId(classId, pageable);
+            assignmentPage = repo.findAll(withFilters(classId, parsedStatus, trimmedSearch), pageable);
         } else if (user.isTeacher()) {
-            assignmentPage = repo.findAll(pageable);
+            assignmentPage = repo.findAll(withFilters(null, parsedStatus, trimmedSearch), pageable);
         } else {
             List<UUID> ids = permissions.getAccessibleClassIds(user);
             if (ids == null || ids.isEmpty()) {
                 return PageableUtil.toPageResponse(Page.empty(pageable));
             }
-            // For students/admins with multiple classes, we still need to load all from accessible classes
-            // This is acceptable since the number of classes per user is bounded
-            var allItems = repo.findByClassIdIn(ids);
-            // Filter by status for students
-            if (user.isStudent()) {
-                allItems = allItems.stream()
-                        .filter(a -> a.getStatus() == AssignmentStatus.PUBLISHED || a.getStatus() == AssignmentStatus.CLOSED)
-                        .toList();
-            }
-            // Manual pagination for cross-class queries
+            List<Assignment> allItems = repo.findByClassIdIn(ids);
+            String lowerSearch = trimmedSearch != null ? trimmedSearch.toLowerCase() : null;
+            List<Assignment> filtered = allItems.stream()
+                    .filter(a -> !user.isStudent() || a.getStatus() == AssignmentStatus.PUBLISHED || a.getStatus() == AssignmentStatus.CLOSED)
+                    .filter(a -> parsedStatus == null || a.getStatus() == parsedStatus)
+                    .filter(a -> lowerSearch == null || (a.getTitle() != null && a.getTitle().toLowerCase().contains(lowerSearch)))
+                    .toList();
             int normalizedPage = PageableUtil.normalizePage(page);
             int normalizedSize = PageableUtil.normalizeSize(size);
-            List<AssignmentResponse> mapped = allItems.stream().map(this::toResponse).toList();
+            List<AssignmentResponse> mapped = filtered.stream().map(this::toResponse).toList();
             return PageableUtil.paginateInMemory(mapped, normalizedPage, normalizedSize);
         }
 
         return PageableUtil.toPageResponse(assignmentPage.map(this::toResponse));
     }
 
+    private Specification<Assignment> withFilters(UUID classId, AssignmentStatus status, String search) {
+        return (root, query, cb) -> {
+            var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
+            predicates.add(cb.isNull(root.get("deletedAt")));
+            if (classId != null) {
+                predicates.add(cb.equal(root.get("classId"), classId));
+            }
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (search != null) {
+                predicates.add(cb.like(cb.lower(root.get("title")), "%" + search.toLowerCase() + "%"));
+            }
+            return cb.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
+    }
+
     public AssignmentResponse get(UUID id) {
         Assignment a = find(id);
         User user = security.currentUser();
         permissions.requireAccessClass(user, a.getClassId());
-        if (user.isStudent() && a.getStatus() == AssignmentStatus.DRAFT) throw BusinessException.notFound("Assignment not found");
+        if (user.isStudent() && a.getStatus() == AssignmentStatus.DRAFT) throw BusinessException.notFound("Không tìm thấy bài tập");
         return toResponse(a);
     }
 
@@ -210,7 +236,7 @@ public class AssignmentService {
         User currentUser = security.currentUser();
 
         if (preview.missingCount() == 0) {
-            throw BusinessException.badRequest("No missing students to remind for this assignment");
+            throw BusinessException.badRequest("Không có học viên nào chưa nộp bài cho bài tập này");
         }
 
         return dispatchReminder(preview, request, currentUser);
@@ -311,7 +337,7 @@ public class AssignmentService {
     public List<AssignmentResponse> createMulti(CreateAssignmentMultiRequest req) {
         User user = security.currentUser();
         if (req.maxScore() != null && req.maxScore().compareTo(BigDecimal.ZERO) <= 0) {
-            throw BusinessException.badRequest("maxScore must be greater than 0");
+            throw BusinessException.badRequest("Điểm tối đa phải lớn hơn 0");
         }
         List<AssignmentResponse> results = new ArrayList<>();
         for (UUID classId : req.classIds()) {
@@ -399,11 +425,11 @@ public class AssignmentService {
     }
 
     public Assignment find(UUID id) {
-        return repo.findActiveById(id).orElseThrow(() -> BusinessException.notFound("Assignment not found"));
+        return repo.findActiveById(id).orElseThrow(() -> BusinessException.notFound("Không tìm thấy bài tập"));
     }
 
     private void validate(AssignmentRequest req) {
-        if (req.maxScore() == null || req.maxScore().compareTo(BigDecimal.ZERO) <= 0) throw BusinessException.badRequest("maxScore must be greater than 0");
+        if (req.maxScore() == null || req.maxScore().compareTo(BigDecimal.ZERO) <= 0) throw BusinessException.badRequest("Điểm tối đa phải lớn hơn 0");
     }
 
     private void apply(Assignment a, AssignmentRequest req) {

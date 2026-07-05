@@ -69,7 +69,7 @@ public class LessonService {
         }
         if (request.status() != null) {
             try { lesson.setStatus(LessonStatus.valueOf(request.status())); }
-            catch (IllegalArgumentException e) { throw BusinessException.badRequest("Invalid status"); }
+            catch (IllegalArgumentException e) { throw BusinessException.badRequest("Trạng thái không hợp lệ"); }
         }
 
         lesson = lessonRepo.save(lesson);
@@ -79,7 +79,7 @@ public class LessonService {
 
     public LessonResponse getById(UUID lessonId, User user) {
         var lesson = lessonRepo.findActiveById(lessonId)
-                .orElseThrow(() -> BusinessException.notFound("Lesson not found"));
+                .orElseThrow(() -> BusinessException.notFound("Không tìm thấy buổi học"));
         permissionService.requireAccessClass(user, lesson.getClassId());
         return toResponse(lesson);
     }
@@ -87,7 +87,7 @@ public class LessonService {
     @Transactional
     public LessonResponse update(UUID lessonId, LessonRequest request, User user) {
         var lesson = lessonRepo.findActiveById(lessonId)
-                .orElseThrow(() -> BusinessException.notFound("Lesson not found"));
+                .orElseThrow(() -> BusinessException.notFound("Không tìm thấy buổi học"));
         permissionService.requireManageClass(user, lesson.getClassId());
 
         if (request.title() != null && !request.title().isBlank()) lesson.setTitle(request.title());
@@ -102,7 +102,7 @@ public class LessonService {
         }
         if (request.status() != null) {
             try { lesson.setStatus(LessonStatus.valueOf(request.status())); }
-            catch (IllegalArgumentException e) { throw BusinessException.badRequest("Invalid status"); }
+            catch (IllegalArgumentException e) { throw BusinessException.badRequest("Trạng thái không hợp lệ"); }
         }
         lesson.setUpdatedBy(user.getId());
 
@@ -114,7 +114,7 @@ public class LessonService {
     @Transactional
     public void delete(UUID lessonId, User user) {
         var lesson = lessonRepo.findActiveById(lessonId)
-                .orElseThrow(() -> BusinessException.notFound("Lesson not found"));
+                .orElseThrow(() -> BusinessException.notFound("Không tìm thấy buổi học"));
         permissionService.requireManageClass(user, lesson.getClassId());
         lesson.softDelete();
         lessonRepo.save(lesson);

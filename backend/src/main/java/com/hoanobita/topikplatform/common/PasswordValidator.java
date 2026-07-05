@@ -21,20 +21,20 @@ public final class PasswordValidator {
     public static List<String> validate(String password) {
         List<String> errors = new ArrayList<>();
         if (password == null || password.isBlank()) {
-            errors.add("Password must not be blank");
+            errors.add("Mật khẩu không được để trống");
             return errors;
         }
         if (password.length() < MIN_LENGTH) {
-            errors.add("Password must be at least " + MIN_LENGTH + " characters");
+            errors.add("Mật khẩu phải có ít nhất " + MIN_LENGTH + " ký tự");
         }
         if (password.chars().noneMatch(Character::isUpperCase)) {
-            errors.add("Password must contain at least 1 uppercase letter");
+            errors.add("Mật khẩu phải chứa ít nhất 1 chữ hoa");
         }
         if (password.chars().noneMatch(Character::isLowerCase)) {
-            errors.add("Password must contain at least 1 lowercase letter");
+            errors.add("Mật khẩu phải chứa ít nhất 1 chữ thường");
         }
         if (password.chars().noneMatch(Character::isDigit)) {
-            errors.add("Password must contain at least 1 digit");
+            errors.add("Mật khẩu phải chứa ít nhất 1 chữ số");
         }
         return errors;
     }
@@ -45,7 +45,7 @@ public final class PasswordValidator {
     public static void requireValid(String password) {
         List<String> errors = validate(password);
         if (!errors.isEmpty()) {
-            throw BusinessException.badRequest("Invalid password: " + String.join(", ", errors));
+            throw BusinessException.badRequest("Mật khẩu không hợp lệ: " + String.join(", ", errors));
         }
     }
 }

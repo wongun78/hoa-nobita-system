@@ -10,8 +10,11 @@ import com.hoanobita.topikplatform.user.entity.User;
 import com.hoanobita.topikplatform.user.repository.UserRepository;
 import com.hoanobita.topikplatform.classroom.repository.KlassRepository;
 import com.hoanobita.topikplatform.classroom.repository.ClassMemberRepository;
+import com.hoanobita.topikplatform.assignment.entity.Assignment;
 import com.hoanobita.topikplatform.assignment.repository.AssignmentRepository;
+import com.hoanobita.topikplatform.submission.entity.Submission;
 import com.hoanobita.topikplatform.submission.repository.SubmissionRepository;
+import com.hoanobita.topikplatform.grading.entity.Grade;
 import com.hoanobita.topikplatform.grading.repository.GradeRepository;
 import com.hoanobita.topikplatform.common.PermissionService;
 import com.hoanobita.topikplatform.common.SecurityUtils;
@@ -21,7 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -109,13 +114,14 @@ public class ReportService {
         permissionService.requireAccessClass(currentUser, classId);
 
         Klass klass = classRepository.findActiveById(classId)
-                .orElseThrow(() -> BusinessException.notFound("Class not found"));
+                .orElseThrow(() -> BusinessException.notFound("Không tìm thấy lớp học"));
 
         List<ClassMember> members = classMemberRepository.findByClassIdAndStatus(classId, MemberStatus.ACTIVE);
         long totalStudents = members.size();
-        long totalAssignments = assignmentRepository.findByClassId(classId).size();
+        List<Assignment> assignments = assignmentRepository.findByClassId(classId);
+        long totalAssignments = assignments.size();
         
-        List<UUID> assignmentIds = assignmentRepository.findByClassId(classId).stream().map(a -> a.getId()).collect(Collectors.toList());
+        List<UUID> assignmentIds = assignments.stream().map(Assignment::getId).collect(Collectors.toList());
         
         List<Double> classScores = assignmentIds.isEmpty() ? List.of() : gradeRepository.findByAssignmentIds(assignmentIds).stream().map(g -> g.getScore() != null ? g.getScore().doubleValue() : 0.0).collect(Collectors.toList());
         double averageScore = classScores.isEmpty() ? 0.0 : classScores.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
@@ -124,21 +130,38 @@ public class ReportService {
         long actualSubmissions = assignmentIds.isEmpty() ? 0 : submissionRepository.findByAssignmentIdIn(assignmentIds).size();
         double submissionRate = expectedSubmissions > 0 ? (double) actualSubmissions / expectedSubmissions * 100 : 0.0;
 
+        // Batch-load students to avoid N+1
+        Set<UUID> studentIds = members.stream().map(ClassMember::getStudentId).collect(Collectors.toSet());
+        Map<UUID, User> studentsById = userRepository.findAllById(studentIds).stream()
+                .filter(u -> u.getDeletedAt() == null)
+                .collect(Collectors.toMap(User::getId, u -> u, (a, b) -> a));
         List<StudentPerformanceDto> studentPerformances = members.stream()
-                .map(member -> userRepository.findActiveById(member.getStudentId()).orElse(null))
+                .map(member -> studentsById.get(member.getStudentId()))
                 .filter(Objects::nonNull)
                 .map(this::calculateStudentPerformance)
                 .collect(Collectors.toList());
 
-        List<AssignmentPerformanceDto> assignmentPerformances = assignmentRepository.findByClassId(classId).stream()
+        // Pre-group submissions and grades by assignment to avoid N+1
+        List<Submission> allSubmissions = submissionRepository.findByAssignmentIdIn(assignmentIds);
+        Map<UUID, List<Submission>> subsByAssignment = allSubmissions.stream()
+                .collect(Collectors.groupingBy(Submission::getAssignmentId));
+        List<Grade> allGrades = gradeRepository.findByAssignmentIds(assignmentIds);
+        Map<UUID, UUID> assignmentBySubId = allSubmissions.stream()
+                .collect(Collectors.toMap(Submission::getId, Submission::getAssignmentId, (a, b) -> a));
+        Map<UUID, List<Grade>> gradesByAssignment = allGrades.stream()
+                .collect(Collectors.groupingBy(g -> assignmentBySubId.getOrDefault(g.getSubmissionId(), UUID.randomUUID())));
+
+        List<AssignmentPerformanceDto> assignmentPerformances = assignments.stream()
                 .map(assignment -> {
-                    long subCount = submissionRepository.findByAssignmentId(assignment.getId()).size();
+                    List<Submission> subs = subsByAssignment.getOrDefault(assignment.getId(), List.of());
+                    long subCount = subs.size();
                     
-                    List<Double> aScores = gradeRepository.findByAssignmentId(assignment.getId()).stream()
+                    List<Grade> aGrades = gradesByAssignment.getOrDefault(assignment.getId(), List.of());
+                    List<Double> aScores = aGrades.stream()
                             .map(g -> g.getScore() != null ? g.getScore().doubleValue() : 0.0).collect(Collectors.toList());
                     double aScore = aScores.isEmpty() ? 0.0 : aScores.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
                     
-                    long passCount = gradeRepository.findByAssignmentId(assignment.getId()).stream()
+                    long passCount = aGrades.stream()
                             .filter(g -> g.getScore() != null && g.getScore().doubleValue() >= 5.0).count();
                     double passRate = subCount > 0 ? (double) passCount / subCount * 100 : 0.0;
 

@@ -53,7 +53,7 @@ public class MaterialService {
 
         // Validation: must have either fileId or externalUrl
         if (request.fileId() == null && (request.externalUrl() == null || request.externalUrl().isBlank())) {
-            throw BusinessException.badRequest("Material must have either fileId or externalUrl");
+            throw BusinessException.badRequest("Tài liệu phải có fileId hoặc externalUrl");
         }
 
         var material = new Material();
@@ -72,12 +72,12 @@ public class MaterialService {
 
     public MaterialResponse getById(UUID materialId, User user) {
         var material = materialRepo.findActiveById(materialId)
-                .orElseThrow(() -> BusinessException.notFound("Material not found"));
+                .orElseThrow(() -> BusinessException.notFound("Không tìm thấy tài liệu"));
         permissionService.requireAccessClass(user, material.getClassId());
 
         // Students can only see visible materials
         if (user.isStudent() && !material.isVisible()) {
-            throw BusinessException.notFound("Material not found");
+            throw BusinessException.notFound("Không tìm thấy tài liệu");
         }
 
         return toResponse(material);
@@ -86,7 +86,7 @@ public class MaterialService {
     @Transactional
     public MaterialResponse update(UUID materialId, MaterialRequest request, User user) {
         var material = materialRepo.findActiveById(materialId)
-                .orElseThrow(() -> BusinessException.notFound("Material not found"));
+                .orElseThrow(() -> BusinessException.notFound("Không tìm thấy tài liệu"));
         permissionService.requireManageClass(user, material.getClassId());
 
         if (request.title() != null) material.setTitle(request.title());
@@ -104,7 +104,7 @@ public class MaterialService {
     @Transactional
     public void delete(UUID materialId, User user) {
         var material = materialRepo.findActiveById(materialId)
-                .orElseThrow(() -> BusinessException.notFound("Material not found"));
+                .orElseThrow(() -> BusinessException.notFound("Không tìm thấy tài liệu"));
         permissionService.requireManageClass(user, material.getClassId());
         material.softDelete();
         materialRepo.save(material);
@@ -114,7 +114,7 @@ public class MaterialService {
     @Transactional
     public MaterialResponse updateVisibility(UUID materialId, boolean visible, User user) {
         var material = materialRepo.findActiveById(materialId)
-                .orElseThrow(() -> BusinessException.notFound("Material not found"));
+                .orElseThrow(() -> BusinessException.notFound("Không tìm thấy tài liệu"));
         permissionService.requireManageClass(user, material.getClassId());
         material.setVisible(visible);
         material.setUpdatedBy(user.getId());

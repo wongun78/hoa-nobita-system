@@ -13,6 +13,9 @@ import com.hoanobita.topikplatform.classroom.repository.KlassRepository;
 import com.hoanobita.topikplatform.common.BusinessException;
 import com.hoanobita.topikplatform.common.Enums.AttendanceStatus;
 import com.hoanobita.topikplatform.common.Enums.MemberStatus;
+import com.hoanobita.topikplatform.common.PageResponse;
+import com.hoanobita.topikplatform.common.PageableUtil;
+import com.hoanobita.topikplatform.common.PaginationUtil;
 import com.hoanobita.topikplatform.common.PermissionService;
 import com.hoanobita.topikplatform.common.SecurityUtils;
 import com.hoanobita.topikplatform.lesson.entity.Lesson;
@@ -77,7 +80,7 @@ public class AttendanceService {
                     .divide(BigDecimal.valueOf(lessons.size()), 2, RoundingMode.HALF_UP);
             return new StudentAttendanceSummaryResponse(
                     member.getStudentId(),
-                    student == null ? "Unknown" : student.getFullName(),
+                    student == null ? "Không xác định" : student.getFullName(),
                     student == null ? null : student.getEmail(),
                     present,
                     absent,
@@ -101,14 +104,14 @@ public class AttendanceService {
         User currentUser = security.currentUser();
         permissions.requireManageClass(currentUser, lesson.getClassId());
         if (request == null || request.records() == null || request.records().isEmpty()) {
-            throw BusinessException.badRequest("records must not be empty");
+            throw BusinessException.badRequest("Danh sách bản ghi không được rỗng");
         }
 
         List<AttendanceResponse> responses = new ArrayList<>();
         for (var item : request.records()) {
-            if (item.studentId() == null) throw BusinessException.badRequest("studentId is required");
+            if (item.studentId() == null) throw BusinessException.badRequest("studentId là bắt buộc");
             boolean isActiveMember = classMemberRepo.existsByClassIdAndStudentIdAndStatus(lesson.getClassId(), item.studentId(), MemberStatus.ACTIVE);
-            if (!isActiveMember) throw BusinessException.badRequest("Student is not active in this class: " + item.studentId());
+            if (!isActiveMember) throw BusinessException.badRequest("Học viên không hoạt động trong lớp này: " + item.studentId());
 
             Attendance attendance = attendanceRepo.findByLessonIdAndStudentId(lessonId, item.studentId()).orElseGet(Attendance::new);
             attendance.setLessonId(lessonId);
@@ -122,31 +125,37 @@ public class AttendanceService {
         return responses;
     }
 
-    public List<AttendanceResponse> lessonAttendance(UUID lessonId) {
+    public PageResponse<AttendanceResponse> lessonAttendance(UUID lessonId, Integer page, Integer size) {
         Lesson lesson = lesson(lessonId);
         permissions.requireAccessClass(security.currentUser(), lesson.getClassId());
-        return attendanceRepo.findByLessonId(lessonId).stream().map(this::toResponse).toList();
+        List<AttendanceResponse> all = attendanceRepo.findByLessonId(lessonId).stream().map(this::toResponse).toList();
+        int p = PaginationUtil.normalizePage(page);
+        int s = PaginationUtil.normalizeSize(size);
+        return PaginationUtil.paginate(all, p, s);
     }
 
-    public List<AttendanceResponse> studentAttendance(UUID studentId) {
+    public PageResponse<AttendanceResponse> studentAttendance(UUID studentId, Integer page, Integer size) {
         User currentUser = security.currentUser();
         if (currentUser.isStudent() && !currentUser.getId().equals(studentId)) {
-            throw BusinessException.forbidden("You can only view your own attendance");
+            throw BusinessException.forbidden("Bạn chỉ có thể xem điểm danh của chính mình");
         }
         if (currentUser.isAdmin() && !currentUser.isTeacher() && !currentUser.getId().equals(studentId)
                 && !permissions.canAccessStudentProgress(currentUser, studentId)) {
-            throw BusinessException.forbidden("You can only view attendance for students in your assigned classes");
+            throw BusinessException.forbidden("Bạn chỉ có thể xem điểm danh của học viên trong lớp được phân công");
         }
-        return attendanceRepo.findByStudentId(studentId).stream()
+        var pageable = PageableUtil.of(page, size, java.util.Set.of("createdAt", "status"));
+        var paged = attendanceRepo.findByStudentIdPaged(studentId, pageable);
+        var filtered = paged.getContent().stream()
                 .filter(record -> currentUser.isTeacher() || currentUser.isStudent() || canAccessRecordClass(currentUser, record))
                 .map(this::toResponse)
                 .toList();
+        return PageResponse.of(filtered, paged.getNumber() + 1, paged.getSize(), paged.getTotalElements());
     }
 
     @Transactional
     public AttendanceResponse update(UUID id, AttendanceUpdateRequest request) {
         Attendance attendance = attendanceRepo.findActiveById(id)
-                .orElseThrow(() -> BusinessException.notFound("Attendance record not found"));
+                .orElseThrow(() -> BusinessException.notFound("Không tìm thấy bản ghi điểm danh"));
         Lesson lesson = lesson(attendance.getLessonId());
         User currentUser = security.currentUser();
         permissions.requireManageClass(currentUser, lesson.getClassId());
@@ -163,16 +172,16 @@ public class AttendanceService {
     }
 
     private AttendanceStatus parseStatus(String value) {
-        if (value == null || value.isBlank()) throw BusinessException.badRequest("status is required");
+        if (value == null || value.isBlank()) throw BusinessException.badRequest("Trạng thái là bắt buộc");
         try {
             return AttendanceStatus.valueOf(value);
         } catch (IllegalArgumentException ex) {
-            throw BusinessException.badRequest("Invalid attendance status: " + value);
+            throw BusinessException.badRequest("Trạng thái điểm danh không hợp lệ: " + value);
         }
     }
 
     private Lesson lesson(UUID lessonId) {
-        return lessonRepo.findActiveById(lessonId).orElseThrow(() -> BusinessException.notFound("Lesson not found"));
+        return lessonRepo.findActiveById(lessonId).orElseThrow(() -> BusinessException.notFound("Không tìm thấy buổi học"));
     }
 
     private AttendanceResponse toResponse(Attendance attendance) {

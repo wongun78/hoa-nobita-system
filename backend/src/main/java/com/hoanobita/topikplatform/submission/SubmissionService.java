@@ -76,7 +76,7 @@ public class SubmissionService {
 
     public PageResponse<SubmissionResponse> mySubmissions(Integer page, Integer size, String sort, String search, String status) {
         User user = security.currentUser();
-        if (!user.isStudent()) throw BusinessException.forbidden("Only students can use this endpoint");
+        if (!user.isStudent()) throw BusinessException.forbidden("Chỉ học viên mới có thể sử dụng endpoint này");
 
         Pageable pageable = PageableUtil.of(page, size, sort,
                 Set.of("submittedAt", "assignmentTitle", "status"),
@@ -91,7 +91,7 @@ public class SubmissionService {
         User user = security.currentUser();
         Assignment a = assignment(s.getAssignmentId());
         if (user.isStudent()) {
-            if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Cannot access another student's submission");
+            if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Không thể xem bài nộp của học viên khác");
         } else {
             permissions.requireManageClass(user, a.getClassId());
         }
@@ -101,16 +101,16 @@ public class SubmissionService {
     @Transactional
     public SubmissionResponse submit(UUID assignmentId, SubmissionRequest req) {
         User user = security.currentUser();
-        if (!user.isStudent()) throw BusinessException.forbidden("Only students can submit assignments");
+        if (!user.isStudent()) throw BusinessException.forbidden("Chỉ học viên mới có thể nộp bài");
         Assignment a = assignment(assignmentId);
         permissions.requireAccessClass(user, a.getClassId());
-        if (a.getStatus() != AssignmentStatus.PUBLISHED) throw BusinessException.badRequest("Assignment is not open for submission");
+        if (a.getStatus() != AssignmentStatus.PUBLISHED) throw BusinessException.badRequest("Bài tập không mở cho nộp bài");
         List<UUID> allFileIds = mergeFileIds(req);
-        if (blank(req.contentText()) && blank(req.contentUrl()) && allFileIds.isEmpty()) throw BusinessException.badRequest("Submission must include text, URL, or file");
+        if (blank(req.contentText()) && blank(req.contentUrl()) && allFileIds.isEmpty()) throw BusinessException.badRequest("Bài nộp phải có nội dung văn bản, liên kết hoặc tệp");
         if (allFileIds.size() > MAX_SUBMISSION_FILES) throw BusinessException.badRequest("Tối đa " + MAX_SUBMISSION_FILES + " tệp cho mỗi bài nộp");
         repo.findByAssignmentIdAndStudentId(assignmentId, user.getId()).ifPresent(existing -> {
             if (existing.getStatus() == SubmissionStatus.GRADED || existing.getStatus() == SubmissionStatus.SUBMITTED || existing.getStatus() == SubmissionStatus.LATE) {
-                throw BusinessException.conflict("Submission already exists");
+                throw BusinessException.conflict("Bạn đã nộp bài cho bài tập này");
             }
         });
         Submission s = new Submission();
@@ -131,12 +131,12 @@ public class SubmissionService {
     public SubmissionResponse update(UUID id, SubmissionRequest req) {
         Submission s = find(id);
         User user = security.currentUser();
-        if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Cannot edit this submission");
-        if (s.getStatus() == SubmissionStatus.GRADED) throw BusinessException.badRequest("Graded submission cannot be edited");
+        if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Không thể chỉnh sửa bài nộp này");
+        if (s.getStatus() == SubmissionStatus.GRADED) throw BusinessException.badRequest("Bài nộp đã chấm điểm không thể chỉnh sửa");
         Assignment a = assignment(s.getAssignmentId());
-        if (a.getStatus() != AssignmentStatus.PUBLISHED) throw BusinessException.badRequest("Assignment is not open for submission updates");
+        if (a.getStatus() != AssignmentStatus.PUBLISHED) throw BusinessException.badRequest("Bài tập không mở cho cập nhật bài nộp");
         List<UUID> allFileIds = mergeFileIds(req);
-        if (blank(req.contentText()) && blank(req.contentUrl()) && allFileIds.isEmpty()) throw BusinessException.badRequest("Submission must include text, URL, or file");
+        if (blank(req.contentText()) && blank(req.contentUrl()) && allFileIds.isEmpty()) throw BusinessException.badRequest("Bài nộp phải có nội dung văn bản, liên kết hoặc tệp");
         if (allFileIds.size() > MAX_SUBMISSION_FILES) throw BusinessException.badRequest("Tối đa " + MAX_SUBMISSION_FILES + " tệp cho mỗi bài nộp");
         s.setContentText(req.contentText());
         s.setContentUrl(req.contentUrl());
@@ -153,21 +153,21 @@ public class SubmissionService {
     public void delete(UUID id) {
         Submission s = find(id);
         User user = security.currentUser();
-        if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Cannot delete this submission");
-        if (s.getStatus() == SubmissionStatus.GRADED) throw BusinessException.badRequest("Graded submission cannot be deleted");
+        if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Không thể xóa bài nộp này");
+        if (s.getStatus() == SubmissionStatus.GRADED) throw BusinessException.badRequest("Bài nộp đã chấm điểm không thể xóa");
         Assignment a = assignment(s.getAssignmentId());
-        if (a.getStatus() != AssignmentStatus.PUBLISHED) throw BusinessException.badRequest("Assignment is not open for submission changes");
+        if (a.getStatus() != AssignmentStatus.PUBLISHED) throw BusinessException.badRequest("Bài tập không mở cho thay đổi bài nộp");
         s.setDeletedAt(Instant.now());
         repo.save(s);
         activityService.log("SUBMISSION_DELETED", "SUBMISSION", s.getId(), "Bài nộp của " + user.getFullName(), a.getClassId(), "Học viên " + user.getFullName() + " đã xóa bài nộp cho bài tập: " + a.getTitle());
     }
 
     public Submission find(UUID id) {
-        return repo.findActiveById(id).orElseThrow(() -> BusinessException.notFound("Submission not found"));
+        return repo.findActiveById(id).orElseThrow(() -> BusinessException.notFound("Không tìm thấy bài nộp"));
     }
 
     private Assignment assignment(UUID id) {
-        return assignments.findActiveById(id).orElseThrow(() -> BusinessException.notFound("Assignment not found"));
+        return assignments.findActiveById(id).orElseThrow(() -> BusinessException.notFound("Không tìm thấy bài tập"));
     }
 
     private boolean blank(String v) { return v == null || v.isBlank(); }
@@ -218,10 +218,10 @@ public class SubmissionService {
         return new SubmissionResponse(
                 s.getId(),
                 s.getAssignmentId(),
-                assignment != null ? assignment.getTitle() : "Unknown Assignment",
-                klass != null ? klass.getName() : "Unknown Class",
+                assignment != null ? assignment.getTitle() : "Bài tập không xác định",
+                klass != null ? klass.getName() : "Lớp không xác định",
                 s.getStudentId(),
-                student != null ? student.getFullName() : "Unknown Student",
+                student != null ? student.getFullName() : "Học viên không xác định",
                 s.getContentText(),
                 s.getContentUrl(),
                 s.getFileId(),
@@ -251,11 +251,11 @@ public class SubmissionService {
         User user = security.currentUser();
         Assignment a = assignment(s.getAssignmentId());
         if (user.isStudent()) {
-            if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Cannot access another student's file");
+            if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Không thể truy cập tệp của học viên khác");
         } else {
             permissions.requireManageClass(user, a.getClassId());
         }
-        if (s.getFileId() == null) throw BusinessException.notFound("No file attached to this submission");
+        if (s.getFileId() == null) throw BusinessException.notFound("Bài nộp không có tệp đính kèm");
         return fileService.download(s.getFileId());
     }
 
@@ -264,11 +264,11 @@ public class SubmissionService {
         User user = security.currentUser();
         Assignment a = assignment(s.getAssignmentId());
         if (user.isStudent()) {
-            if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Cannot access another student's file");
+            if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Không thể truy cập tệp của học viên khác");
         } else {
             permissions.requireManageClass(user, a.getClassId());
         }
-        if (s.getFileId() == null) throw BusinessException.notFound("No file attached to this submission");
+        if (s.getFileId() == null) throw BusinessException.notFound("Bài nộp không có tệp đính kèm");
         return fileService.getById(s.getFileId());
     }
 
@@ -277,11 +277,11 @@ public class SubmissionService {
         User user = security.currentUser();
         Assignment a = assignment(s.getAssignmentId());
         if (user.isStudent()) {
-            if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Cannot access another student's feedback file");
+            if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Không thể truy cập tệp phản hồi của học viên khác");
         } else {
             permissions.requireManageClass(user, a.getClassId());
         }
-        if (s.getFeedbackFileId() == null) throw BusinessException.notFound("No feedback file attached");
+        if (s.getFeedbackFileId() == null) throw BusinessException.notFound("Không có tệp phản hồi đính kèm");
         return fileService.download(s.getFeedbackFileId());
     }
 
@@ -290,11 +290,11 @@ public class SubmissionService {
         User user = security.currentUser();
         Assignment a = assignment(s.getAssignmentId());
         if (user.isStudent()) {
-            if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Cannot access another student's feedback file");
+            if (!s.getStudentId().equals(user.getId())) throw BusinessException.forbidden("Không thể truy cập tệp phản hồi của học viên khác");
         } else {
             permissions.requireManageClass(user, a.getClassId());
         }
-        if (s.getFeedbackFileId() == null) throw BusinessException.notFound("No feedback file attached");
+        if (s.getFeedbackFileId() == null) throw BusinessException.notFound("Không có tệp phản hồi đính kèm");
         return fileService.getById(s.getFeedbackFileId());
     }
 

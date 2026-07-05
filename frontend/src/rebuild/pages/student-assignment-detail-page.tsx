@@ -262,7 +262,7 @@ export function StudentAssignmentDetailPage() {
                 setContentText(mySubmission.contentText || '')
                 setContentUrl(mySubmission.contentUrl || '')
                 const existingFiles = mySubmission.fileMetas && mySubmission.fileMetas.length > 0
-                  ? mySubmission.fileMetas.map(fm => ({ id: fm.fileId, originalFileName: fm.fileName || 'file', contentType: fm.contentType || 'application/octet-stream', fileSize: fm.fileSize || 0 }))
+                  ? mySubmission.fileMetas.map((fm: { fileId: string; fileName?: string | null; contentType?: string | null; fileSize?: number | null }) => ({ id: fm.fileId, originalFileName: fm.fileName || 'file', contentType: fm.contentType || 'application/octet-stream', fileSize: fm.fileSize || 0 }))
                   : mySubmission.fileId
                     ? [{ id: mySubmission.fileId, originalFileName: mySubmission.fileName || 'file', contentType: mySubmission.fileContentType || 'application/octet-stream', fileSize: mySubmission.fileSize || 0 }]
                     : []

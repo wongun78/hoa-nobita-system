@@ -10,7 +10,13 @@ export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE'
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH'
 
 export type ApiError = { field?: string; message: string }
-export type ApiEnvelope<T> = { success: boolean; message: string; data: T; errors?: ApiError[] | null }
+export type ApiEnvelope<T> = {
+  success: boolean
+  code?: string | null      // e.g. "AUTH_001", "FILE_005", null for success
+  message: string
+  data: T
+  errors?: ApiError[] | null
+}
 export type PageResponse<T> = { items: T[]; page: number; size: number; totalItems: number; totalPages: number }
 export type QueryParams = Record<string, string | number | boolean | undefined | null>
 

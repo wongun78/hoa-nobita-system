@@ -50,22 +50,22 @@ public class AuthService {
 
         if (user == null) {
             rateLimiter.recordFailure(clientIp);
-            throw BusinessException.unauthorized("Invalid credentials");
+            throw BusinessException.unauthorized("Thông tin đăng nhập không hợp lệ");
         }
 
         if (user.getStatus() == UserStatus.SUSPENDED) {
             rateLimiter.recordFailure(clientIp);
-            throw BusinessException.unauthorized("Account is suspended");
+            throw BusinessException.unauthorized("Tài khoản đã bị khóa");
         }
 
         if (user.getStatus() == UserStatus.INACTIVE) {
             rateLimiter.recordFailure(clientIp);
-            throw BusinessException.unauthorized("Account is inactive");
+            throw BusinessException.unauthorized("Tài khoản không hoạt động");
         }
 
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             rateLimiter.recordFailure(clientIp);
-            throw BusinessException.unauthorized("Invalid credentials");
+            throw BusinessException.unauthorized("Thông tin đăng nhập không hợp lệ");
         }
 
         rateLimiter.recordSuccess(clientIp);
@@ -91,7 +91,7 @@ public class AuthService {
     @Transactional
     public void changePassword(User user, ChangePasswordRequest request) {
         if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
-            throw BusinessException.badRequest("Current password is incorrect");
+            throw BusinessException.badRequest("Mật khẩu hiện tại không đúng");
         }
 
         PasswordValidator.requireValid(request.newPassword());

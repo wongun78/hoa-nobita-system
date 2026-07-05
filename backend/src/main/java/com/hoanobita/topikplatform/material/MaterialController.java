@@ -55,7 +55,7 @@ public class MaterialController {
     public ResponseEntity<?> deleteMaterial(@PathVariable UUID materialId) {
         var user = securityUtils.getCurrentUser();
         materialService.delete(materialId, user);
-        return ResponseEntity.ok(ApiResponse.ok("Material deleted"));
+        return ResponseEntity.ok(ApiResponse.ok("Đã xóa tài liệu"));
     }
 
     @PatchMapping("/api/v1/materials/{materialId}/visibility")

@@ -34,7 +34,7 @@ import java.util.UUID;
 
 @Service
 public class UserService {
-    private static final String USER_NOT_FOUND = "User not found";
+    private static final String USER_NOT_FOUND = "Không tìm thấy người dùng";
 
 
     private final UserRepository userRepository;
@@ -89,22 +89,22 @@ public class UserService {
         // Validate email or phone required
         if ((request.email() == null || request.email().isBlank()) &&
             (request.phone() == null || request.phone().isBlank())) {
-            throw BusinessException.badRequest("Email or phone is required");
+            throw BusinessException.badRequest("Email hoặc số điện thoại là bắt buộc");
         }
 
         // Validate email format if provided
         if (request.email() != null && !request.email().isBlank()) {
             if (!request.email().matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
-                throw BusinessException.badRequest("Invalid email format");
+                throw BusinessException.badRequest("Định dạng email không hợp lệ");
             }
             if (userRepository.existsByEmail(request.email())) {
-                throw BusinessException.conflict("Email already exists");
+                throw BusinessException.conflict("Email đã tồn tại");
             }
         }
 
         // Validate phone uniqueness if provided
         if (request.phone() != null && !request.phone().isBlank() && userRepository.existsByPhone(request.phone())) {
-            throw BusinessException.conflict("Phone already exists");
+            throw BusinessException.conflict("Số điện thoại đã tồn tại");
         }
 
         // Parse role
@@ -112,16 +112,16 @@ public class UserService {
         try {
             roleName = RoleName.valueOf(request.role());
         } catch (IllegalArgumentException e) {
-            throw BusinessException.badRequest("Invalid role: " + request.role());
+            throw BusinessException.badRequest("Vai trò không hợp lệ: " + request.role());
         }
 
         // Admin can only create students
         if (currentUser.isAdmin() && !currentUser.isTeacher() && roleName != RoleName.STUDENT) {
-            throw BusinessException.forbidden("Admin can only create students");
+            throw BusinessException.forbidden("Quản trị viên chỉ có thể tạo học viên");
         }
 
         var role = roleRepository.findByName(roleName)
-                .orElseThrow(() -> BusinessException.notFound("Role not found"));
+                .orElseThrow(() -> BusinessException.notFound("Không tìm thấy vai trò"));
 
         // Generate temporary password
         String tempPassword = "TempPass" + UUID.randomUUID().toString().substring(0, 6) + "!";
@@ -157,13 +157,13 @@ public class UserService {
         if (request.fullName() != null) user.setFullName(request.fullName());
         if (request.email() != null) {
             if (!request.email().equals(user.getEmail()) && userRepository.existsByEmail(request.email())) {
-                throw BusinessException.conflict("Email already exists");
+                throw BusinessException.conflict("Email đã tồn tại");
             }
             user.setEmail(request.email());
         }
         if (request.phone() != null) {
             if (!request.phone().equals(user.getPhone()) && userRepository.existsByPhone(request.phone())) {
-                throw BusinessException.conflict("Phone already exists");
+                throw BusinessException.conflict("Số điện thoại đã tồn tại");
             }
             user.setPhone(request.phone());
         }
@@ -182,7 +182,7 @@ public class UserService {
         if (request.fullName() != null) user.setFullName(request.fullName());
         if (request.phone() != null) {
             if (!request.phone().equals(user.getPhone()) && userRepository.existsByPhone(request.phone())) {
-                throw BusinessException.conflict("Phone already exists");
+                throw BusinessException.conflict("Số điện thoại đã tồn tại");
             }
             user.setPhone(request.phone());
         }
@@ -202,7 +202,7 @@ public class UserService {
         try {
             status = UserStatus.valueOf(request.status());
         } catch (IllegalArgumentException e) {
-            throw BusinessException.badRequest("Invalid status: " + request.status());
+            throw BusinessException.badRequest("Trạng thái không hợp lệ: " + request.status());
         }
 
         user.setStatus(status);
@@ -225,7 +225,7 @@ public class UserService {
             .orElseThrow(() -> BusinessException.notFound(USER_NOT_FOUND));
         
         if (!user.isStudent()) {
-            throw BusinessException.badRequest("User is not a student");
+            throw BusinessException.badRequest("Người dùng không phải là học viên");
         }
 
         // 1. Find all classes the student is enrolled in

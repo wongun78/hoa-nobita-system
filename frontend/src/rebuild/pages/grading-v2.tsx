@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, CheckCircle, Download, ExternalLink, Eye, RotateCcw, Send, Upload } from 'lucide-react'
+import { ArrowDown, ArrowUp, CheckCircle, Download, ExternalLink, Eye, RotateCcw, Send } from 'lucide-react'
 import { useNewAuth } from '../auth/use-auth'
 import { EmptyState, ErrorState, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { FilePreviewModal } from '../components/file-preview-modal'
+import { MultiFileUpload } from '../components/multi-file-upload'
 import { api } from '../core/api'
 import { ApiClientError } from '../core/http'
-import type { AssignmentItem, SubmissionItem } from '../core/types'
+import type { AssignmentItem, FileItem, SubmissionItem } from '../core/types'
 import { Button, Card, Input, TextArea } from '../layout/ui'
 import { asPage, fmtDate } from './phase2-utils'
 
@@ -21,9 +22,8 @@ export function GradingV2Page() {
   const [selectedId, setSelectedId] = useState('')
   const [score, setScore] = useState('')
   const [feedback, setFeedback] = useState('')
-  const [feedbackFileId, setFeedbackFileId] = useState<string>('')
+  const [feedbackFiles, setFeedbackFiles] = useState<FileItem[]>([])
   const [feedbackLink, setFeedbackLink] = useState<string>('')
-  const [uploadingFeedback, setUploadingFeedback] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [previewFile, setPreviewFile] = useState<{ id: string; name: string; type?: string } | null>(null)
   const [downloadingZip, setDownloadingZip] = useState(false)
@@ -60,23 +60,10 @@ export function GradingV2Page() {
     setSelectedId(selected.id)
     setScore(String(selected.score ?? ''))
     setFeedback(localStorage.getItem(`grading-draft:${selected.id}`) ?? selected.feedback ?? '')
-    setFeedbackFileId(selected.feedbackFileId ?? '')
+    setFeedbackFiles([])
     setFeedbackLink(selected.feedbackLink ?? '')
   }, [selected])
   useEffect(() => { if (draftKey) localStorage.setItem(draftKey, feedback) }, [draftKey, feedback])
-
-  const handleFeedbackFileUpload = async (file: File) => {
-    setUploadingFeedback(true)
-    try {
-      const uploaded = await api.uploadFile(file)
-      setFeedbackFileId(uploaded.id)
-      setToast({ type: 'success', message: 'Đã tải lên tệp phản hồi.' })
-    } catch (err) {
-      showError(err, 'Không thể tải lên tệp phản hồi.')
-    } finally {
-      setUploadingFeedback(false)
-    }
-  }
 
   const handleDownloadFeedback = async () => {
     try {
@@ -98,6 +85,8 @@ export function GradingV2Page() {
       setDownloadingZip(false)
     }
   }
+
+  const feedbackFileId = feedbackFiles.length > 0 ? feedbackFiles[0].id : undefined
 
   const save = useMutation({
     mutationFn: () => {
@@ -254,15 +243,8 @@ export function GradingV2Page() {
                     <ExternalLink size={14} /> {selected.feedbackLink}
                   </a>
                 )}
-                <div className="flex flex-wrap items-center gap-2">
-                  <label className="inline-flex cursor-pointer items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50">
-                    <Upload size={14} /> Tải tệp phản hồi
-                    <input type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFeedbackFileUpload(f) }} />
-                  </label>
-                  {uploadingFeedback && <span className="text-xs text-indigo-600">Đang tải lên...</span>}
-                  {feedbackFileId && !selected.feedbackFileId && <span className="text-xs text-green-600">✓ Đã chọn tệp</span>}
-                  <Input type="text" value={feedbackLink} onChange={(e) => setFeedbackLink(e.target.value)} placeholder="Link phản hồi (tuỳ chọn)" className="flex-1 min-w-[200px]" />
-                </div>
+                <MultiFileUpload value={feedbackFiles} onChange={setFeedbackFiles} disabled={save.isPending} maxFiles={3} />
+                <Input type="text" value={feedbackLink} onChange={(e) => setFeedbackLink(e.target.value)} placeholder="Link phản hồi (tuỳ chọn)" />
               </div>
 
               <div className="flex flex-wrap gap-2">

@@ -37,13 +37,13 @@ public class AuthController {
     public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         var user = securityUtils.getCurrentUser();
         authService.changePassword(user, request);
-        return ResponseEntity.ok(ApiResponse.ok("Password changed successfully"));
+        return ResponseEntity.ok(ApiResponse.ok("Đổi mật khẩu thành công"));
     }
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout() {
         // For JWT-based auth, logout is handled client-side by removing the token.
         // In production, consider token blacklisting or using HttpOnly cookies.
-        return ResponseEntity.ok(ApiResponse.ok("Logged out successfully"));
+        return ResponseEntity.ok(ApiResponse.ok("Đăng xuất thành công"));
     }
 }

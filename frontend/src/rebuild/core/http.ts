@@ -6,12 +6,14 @@ export const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:80
 
 export class ApiClientError extends Error {
   status?: number
+  code?: string | null       // e.g. "AUTH_001", "FILE_005"
   errors: BackendApiError[]
 
-  constructor(message: string, status?: number, errors: BackendApiError[] = []) {
+  constructor(message: string, status?: number, errors: BackendApiError[] = [], code?: string | null) {
     super(message)
     this.name = 'ApiClientError'
     this.status = status
+    this.code = code
     this.errors = errors
   }
 
@@ -56,7 +58,8 @@ function toApiClientError(error: unknown): ApiClientError {
     const status = axiosError.response?.status
     const envelope = axiosError.response?.data
     const message = envelope?.message || axiosError.message || 'Không thể kết nối máy chủ.'
-    return new ApiClientError(message, status, envelope?.errors ?? [])
+    const code = envelope?.code ?? null
+    return new ApiClientError(message, status, envelope?.errors ?? [], code)
   }
 
   if (error instanceof Error) return new ApiClientError(error.message)
@@ -98,7 +101,12 @@ async function unwrap<T>(promise: Promise<{ data: ApiEnvelope<T> }>): Promise<T>
   try {
     const res = await promise
     if (!res.data.success) {
-      throw new ApiClientError(res.data.message || 'API Error', undefined, res.data.errors ?? [])
+      throw new ApiClientError(
+        res.data.message || 'API Error',
+        undefined,
+        res.data.errors ?? [],
+        res.data.code ?? null
+      )
     }
     return normalizeBackendPage(res.data.data)
   } catch (error) {

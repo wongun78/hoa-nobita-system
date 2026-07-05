@@ -5,12 +5,14 @@ import com.hoanobita.topikplatform.attendance.dto.AttendanceResponse;
 import com.hoanobita.topikplatform.attendance.dto.AttendanceSummaryResponse;
 import com.hoanobita.topikplatform.attendance.dto.AttendanceUpdateRequest;
 import com.hoanobita.topikplatform.common.ApiResponse;
+import com.hoanobita.topikplatform.common.PageResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -37,13 +39,17 @@ public class AttendanceController {
     }
 
     @GetMapping("/lessons/{lessonId}/attendance")
-    public ApiResponse<List<AttendanceResponse>> lessonAttendance(@PathVariable UUID lessonId) {
-        return ApiResponse.ok(service.lessonAttendance(lessonId));
+    public ApiResponse<PageResponse<AttendanceResponse>> lessonAttendance(@PathVariable UUID lessonId,
+                                                                          @RequestParam(required = false) Integer page,
+                                                                          @RequestParam(required = false) Integer size) {
+        return ApiResponse.ok(service.lessonAttendance(lessonId, page, size));
     }
 
     @GetMapping("/students/{studentId}/attendance")
-    public ApiResponse<List<AttendanceResponse>> studentAttendance(@PathVariable UUID studentId) {
-        return ApiResponse.ok(service.studentAttendance(studentId));
+    public ApiResponse<PageResponse<AttendanceResponse>> studentAttendance(@PathVariable UUID studentId,
+                                                                           @RequestParam(required = false) Integer page,
+                                                                           @RequestParam(required = false) Integer size) {
+        return ApiResponse.ok(service.studentAttendance(studentId, page, size));
     }
 
     @PatchMapping("/attendance/{attendanceId}")

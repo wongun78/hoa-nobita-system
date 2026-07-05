@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 public record AssignmentRequest(
-        @NotBlank(message = "Title is required")
+        @NotBlank(message = "Tiêu đề là bắt buộc")
         String title,
         String description,
         String instruction,

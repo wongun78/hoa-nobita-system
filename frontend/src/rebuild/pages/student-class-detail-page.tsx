@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { Bell, BookOpen, CalendarCheck2, ClipboardList, Download, ExternalLink, Eye, FileText, GraduationCap, LayoutDashboard, MessageSquareText } from 'lucide-react'
+import { Bell, BookOpen, CalendarCheck2, ClipboardList, Download, ExternalLink, Eye, FileText, GraduationCap, LayoutDashboard, LinkIcon, MessageSquareText } from 'lucide-react'
 import { api } from '../core/api'
-import { EmptyState, ErrorState, MetricCard, SkeletonCard, StatusBadge } from '../components/foundation'
+import { AttendanceStatusBadge, EmptyState, ErrorState, MetricCard, SkeletonCard, StatusBadge } from '../components/foundation'
 import { FilePreviewModal } from '../components/file-preview-modal'
 import { Button, Card } from '../layout/ui'
 import { fmtDate } from './phase2-utils'
@@ -179,24 +179,33 @@ function LessonsTab({ items }: Readonly<{ items: LessonItem[] }>) {
   )
 }
 
+function studentMaterialAccent(item: MaterialItem) {
+  if (item.fileId) return { icon: <FileText size={22} />, bg: 'from-indigo-100 to-violet-100', text: 'text-indigo-600', badge: 'bg-indigo-50 text-indigo-700' }
+  if (item.externalUrl) return { icon: <LinkIcon size={22} />, bg: 'from-emerald-100 to-teal-100', text: 'text-emerald-600', badge: 'bg-emerald-50 text-emerald-700' }
+  return { icon: <FileText size={22} />, bg: 'from-sky-100 to-indigo-100', text: 'text-sky-600', badge: 'bg-sky-50 text-sky-700' }
+}
+
 function MaterialsTab({ items }: Readonly<{ items: MaterialItem[] }>) {
   const [previewFile, setPreviewFile] = useState<{ id: string; name: string; type?: string } | null>(null)
   if (!items.length) return <EmptyState title="Chưa có tài liệu hiển thị" description="Tài liệu từ giáo viên sẽ xuất hiện tại đây khi được phát hành." />
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {items.map((item) => (
+      {items.map((item) => {
+        const accent = studentMaterialAccent(item)
+        return (
         <Card key={item.id} className="rounded-3xl transition hover:-translate-y-0.5 hover:shadow-lg">
           <div className="flex items-start gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-indigo-100 text-sky-600"><FileText size={22} /></div>
+            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${accent.bg} ${accent.text}`}>{accent.icon}</div>
             <div className="min-w-0 flex-1"><h2 className="font-black text-slate-950">{item.title}</h2><p className="mt-1 line-clamp-3 text-sm leading-6 text-slate-500">{item.description || 'Tài liệu học tập'}</p></div>
           </div>
           <div className="mt-3 text-xs text-slate-400">Đăng ngày {fmtDate(item.createdAt)}</div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {item.externalUrl && <a className="inline-flex min-h-11 items-center rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700" href={item.externalUrl} target="_blank" rel="noreferrer">Mở liên kết</a>}
+          <div className="mt-3 flex flex-wrap gap-2 border-t border-sky-50 pt-3">
+            {item.externalUrl && <a className={`inline-flex min-h-11 items-center gap-2 rounded-2xl px-4 text-sm font-bold ${accent.badge}`} href={item.externalUrl} target="_blank" rel="noreferrer"><LinkIcon size={16} />Mở liên kết</a>}
             {item.fileId && <><Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(item.fileId!, item.title)}><Download size={16} />Tải xuống</Button><Button type="button" variant="secondary" className="min-h-11" onClick={async () => { const meta = await api.fileMetadata(item.fileId!); setPreviewFile({ id: meta.id, name: meta.originalFileName, type: meta.contentType }) }}><Eye size={16} />Xem trước</Button></>}
           </div>
         </Card>
-      ))}
+        )
+      })}
       {previewFile && <FilePreviewModal fileId={previewFile.id} fileName={previewFile.name} contentType={previewFile.type} onClose={() => setPreviewFile(null)} />}
     </div>
   )
@@ -271,7 +280,7 @@ function AttendanceTab({ items, lessons, rate }: Readonly<{ items: AttendanceIte
                   <div className="font-bold text-slate-950">{lesson ? lesson.title : 'Buổi học'}</div>
                   <div className="text-xs text-slate-500">{fmtDate(lesson?.lessonDate ?? item.createdAt)}</div>
                 </div>
-                <StatusBadge value={item.status} />
+                <AttendanceStatusBadge value={item.status} />
               </div>
               {item.note && <p className="mt-2 text-sm text-slate-500">{item.note}</p>}
             </Card>

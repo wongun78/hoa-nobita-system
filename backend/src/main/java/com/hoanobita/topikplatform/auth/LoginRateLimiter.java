@@ -36,7 +36,7 @@ public class LoginRateLimiter {
         if (info.count() >= MAX_ATTEMPTS) {
             long remainingSeconds = Instant.now().until(info.lockedUntil(), java.time.temporal.ChronoUnit.SECONDS);
             throw BusinessException.tooManyRequests(
-                    "Too many login attempts. Try again in " + remainingSeconds + " seconds.");
+                    "Quá nhiều lần thử đăng nhập. Vui lòng thử lại sau " + remainingSeconds + " giây.");
         }
     }
 

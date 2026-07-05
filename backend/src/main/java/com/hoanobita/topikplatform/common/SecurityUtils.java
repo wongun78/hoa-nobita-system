@@ -10,7 +10,7 @@ public class SecurityUtils {
     public User getCurrentUser() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof User user)) {
-            throw BusinessException.unauthorized("Not authenticated");
+            throw BusinessException.unauthorized("Chưa xác thực");
         }
         return user;
     }

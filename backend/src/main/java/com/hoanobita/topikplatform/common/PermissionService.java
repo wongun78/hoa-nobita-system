@@ -79,28 +79,28 @@ public class PermissionService {
     /** Require manage access or throw */
     public void requireManageClass(User user, UUID classId) {
         if (!canManageClass(user, classId)) {
-            throw new org.springframework.security.access.AccessDeniedException("You do not have permission to manage this class");
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền quản lý lớp này");
         }
     }
 
     /** Require access or throw */
     public void requireAccessClass(User user, UUID classId) {
         if (!canAccessClass(user, classId)) {
-            throw new org.springframework.security.access.AccessDeniedException("You do not have permission to access this class");
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền truy cập lớp này");
         }
     }
 
     /** Require teacher role */
     public void requireTeacher(User user) {
         if (!user.isTeacher()) {
-            throw BusinessException.forbidden("Only teacher can perform this action");
+            throw BusinessException.forbidden("Chỉ giáo viên mới có thể thực hiện thao tác này");
         }
     }
 
     /** Require teacher or admin role */
     public void requireTeacherOrAdmin(User user) {
         if (!user.isTeacher() && !user.isAdmin()) {
-            throw BusinessException.forbidden("Only teacher or admin can perform this action");
+            throw BusinessException.forbidden("Thao tác này yêu cầu quyền giáo viên hoặc quản trị viên");
         }
     }
 }
