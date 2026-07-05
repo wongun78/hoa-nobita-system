@@ -1,7 +1,9 @@
 package com.hoanobita.topikplatform.lesson.dto;
 
+import jakarta.validation.constraints.NotBlank;
+
 public record LessonRequest(
-        String title,
+        @NotBlank(message = "Lesson title is required") String title,
         String description,
         String lessonDate,
         Integer orderIndex,

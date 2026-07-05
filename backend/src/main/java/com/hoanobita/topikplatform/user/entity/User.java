@@ -4,6 +4,7 @@ import com.hoanobita.topikplatform.common.BaseEntity;
 import com.hoanobita.topikplatform.common.Enums.RoleName;
 import com.hoanobita.topikplatform.common.Enums.UserStatus;
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -37,6 +38,7 @@ public class User extends BaseEntity {
     private String note;
 
     @ManyToMany(fetch = FetchType.EAGER)
+    @BatchSize(size = 20)
     @JoinTable(
             name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),

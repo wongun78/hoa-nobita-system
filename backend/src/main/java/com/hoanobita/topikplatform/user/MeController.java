@@ -3,6 +3,7 @@ package com.hoanobita.topikplatform.user;
 import com.hoanobita.topikplatform.common.ApiResponse;
 import com.hoanobita.topikplatform.common.SecurityUtils;
 import com.hoanobita.topikplatform.user.dto.UpdateProfileRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,7 +27,7 @@ public class MeController {
     }
 
     @PatchMapping
-    public ResponseEntity<?> updateMyProfile(@RequestBody UpdateProfileRequest request) {
+    public ResponseEntity<?> updateMyProfile(@Valid @RequestBody UpdateProfileRequest request) {
         var currentUser = securityUtils.getCurrentUser();
         return ResponseEntity.ok(ApiResponse.ok(userService.updateMyProfile(currentUser.getId(), request)));
     }

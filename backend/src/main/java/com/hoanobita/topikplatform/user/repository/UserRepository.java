@@ -1,7 +1,10 @@
 package com.hoanobita.topikplatform.user.repository;
 
 import com.hoanobita.topikplatform.user.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -9,13 +12,16 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface UserRepository extends JpaRepository<User, UUID> {
+public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificationExecutor<User> {
 
     @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL AND (u.email = :identifier OR u.phone = :identifier)")
     Optional<User> findByEmailOrPhone(@Param("identifier") String identifier);
 
     @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL")
     List<User> findAllActive();
+
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.roles WHERE u.deletedAt IS NULL")
+    Page<User> findAllActive(Pageable pageable);
 
     @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL AND u.id = :id")
     Optional<User> findActiveById(@Param("id") UUID id);

@@ -9,7 +9,7 @@ import com.hoanobita.topikplatform.common.BusinessException;
 import com.hoanobita.topikplatform.common.Enums.AssignmentStatus;
 import com.hoanobita.topikplatform.common.Enums.SubmissionStatus;
 import com.hoanobita.topikplatform.common.PageResponse;
-import com.hoanobita.topikplatform.common.PaginationUtil;
+import com.hoanobita.topikplatform.common.PageableUtil;
 import com.hoanobita.topikplatform.common.PermissionService;
 import com.hoanobita.topikplatform.common.SecurityUtils;
 import com.hoanobita.topikplatform.file.entity.StoredFile;
@@ -21,14 +21,15 @@ import com.hoanobita.topikplatform.submission.entity.Submission;
 import com.hoanobita.topikplatform.submission.repository.SubmissionRepository;
 import com.hoanobita.topikplatform.user.entity.User;
 import com.hoanobita.topikplatform.user.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -58,61 +59,27 @@ public class SubmissionService {
     }
 
     public PageResponse<SubmissionResponse> byAssignment(UUID assignmentId, Integer page, Integer size, String sort, String search, String status) {
-        int normalizedPage = PaginationUtil.normalizePage(page);
-        int normalizedSize = PaginationUtil.normalizeSize(size);
-
         Assignment a = assignment(assignmentId);
         permissions.requireManageClass(security.currentUser(), a.getClassId());
-        List<SubmissionResponse> filtered = repo.findByAssignmentId(assignmentId).stream()
-                .map(this::toResponse)
-                .filter(item -> status == null || status.isBlank() || item.status().equalsIgnoreCase(status))
-                .filter(item -> {
-                    if (search == null || search.isBlank()) return true;
-                    String keyword = search.toLowerCase();
-                    return containsIgnoreCase(item.studentName(), keyword)
-                            || containsIgnoreCase(item.assignmentTitle(), keyword)
-                            || containsIgnoreCase(item.className(), keyword);
-                })
-                .toList();
 
-        Comparator<SubmissionResponse> defaultSort = Comparator.comparing(SubmissionResponse::submittedAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
-        Comparator<SubmissionResponse> comparator = PaginationUtil.resolveSort(sort, Map.of(
-                "submittedAt", Comparator.comparing(SubmissionResponse::submittedAt, Comparator.nullsLast(Comparator.naturalOrder())),
-                "studentName", Comparator.comparing(SubmissionResponse::studentName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
-                "assignmentTitle", Comparator.comparing(SubmissionResponse::assignmentTitle, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
-                "status", Comparator.comparing(SubmissionResponse::status, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
-        ), defaultSort);
+        Pageable pageable = PageableUtil.of(page, size, sort,
+                Set.of("submittedAt", "studentName", "assignmentTitle", "status"),
+                Sort.by(Sort.Direction.DESC, "submittedAt"));
 
-        List<SubmissionResponse> sorted = filtered.stream().sorted(comparator).toList();
-        return PaginationUtil.paginate(sorted, normalizedPage, normalizedSize);
+        Page<Submission> submissionPage = repo.findByAssignmentId(assignmentId, pageable);
+        return PageableUtil.toPageResponse(submissionPage.map(this::toResponse));
     }
 
     public PageResponse<SubmissionResponse> mySubmissions(Integer page, Integer size, String sort, String search, String status) {
-        int normalizedPage = PaginationUtil.normalizePage(page);
-        int normalizedSize = PaginationUtil.normalizeSize(size);
-
         User user = security.currentUser();
         if (!user.isStudent()) throw BusinessException.forbidden("Only students can use this endpoint");
-        List<SubmissionResponse> filtered = repo.findByStudentId(user.getId()).stream()
-                .map(this::toResponse)
-                .filter(item -> status == null || status.isBlank() || item.status().equalsIgnoreCase(status))
-                .filter(item -> {
-                    if (search == null || search.isBlank()) return true;
-                    String keyword = search.toLowerCase();
-                    return containsIgnoreCase(item.assignmentTitle(), keyword)
-                            || containsIgnoreCase(item.className(), keyword);
-                })
-                .toList();
 
-        Comparator<SubmissionResponse> defaultSort = Comparator.comparing(SubmissionResponse::submittedAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
-        Comparator<SubmissionResponse> comparator = PaginationUtil.resolveSort(sort, Map.of(
-                "submittedAt", Comparator.comparing(SubmissionResponse::submittedAt, Comparator.nullsLast(Comparator.naturalOrder())),
-                "assignmentTitle", Comparator.comparing(SubmissionResponse::assignmentTitle, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
-                "status", Comparator.comparing(SubmissionResponse::status, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
-        ), defaultSort);
+        Pageable pageable = PageableUtil.of(page, size, sort,
+                Set.of("submittedAt", "assignmentTitle", "status"),
+                Sort.by(Sort.Direction.DESC, "submittedAt"));
 
-        List<SubmissionResponse> sorted = filtered.stream().sorted(comparator).toList();
-        return PaginationUtil.paginate(sorted, normalizedPage, normalizedSize);
+        Page<Submission> submissionPage = repo.findByStudentId(user.getId(), pageable);
+        return PageableUtil.toPageResponse(submissionPage.map(this::toResponse));
     }
 
     public SubmissionResponse get(UUID id) {
@@ -287,7 +254,4 @@ public class SubmissionService {
         return fileService.getById(s.getFeedbackFileId());
     }
 
-    private boolean containsIgnoreCase(String value, String keyword) {
-        return value != null && value.toLowerCase().contains(keyword);
-    }
 }

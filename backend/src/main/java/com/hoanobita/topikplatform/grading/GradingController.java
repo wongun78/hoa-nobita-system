@@ -8,7 +8,12 @@ import com.hoanobita.topikplatform.grading.dto.GradeRequest;
 import com.hoanobita.topikplatform.grading.dto.GradeResponse;
 import com.hoanobita.topikplatform.submission.dto.SubmissionResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import java.util.List;
 import java.util.UUID;
@@ -62,5 +67,16 @@ public class GradingController {
     public ApiResponse<Void> requestResubmit(@PathVariable UUID submissionId) {
         service.requestResubmit(submissionId);
         return ApiResponse.ok(null);
+    }
+
+    @GetMapping(value = "/assignments/{assignmentId}/submissions/export-zip", produces = "application/zip")
+    public ResponseEntity<byte[]> exportSubmissionsZip(@PathVariable UUID assignmentId, @RequestParam UUID classId) {
+        byte[] zip = service.exportSubmissionsZip(assignmentId, classId);
+        String filename = service.buildExportFilename(assignmentId, classId);
+        String encodedFilename = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFilename)
+                .contentType(MediaType.parseMediaType("application/zip"))
+                .body(zip);
     }
 }

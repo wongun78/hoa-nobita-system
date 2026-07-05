@@ -5,6 +5,7 @@ import com.hoanobita.topikplatform.common.PageResponse;
 import com.hoanobita.topikplatform.file.entity.StoredFile;
 import com.hoanobita.topikplatform.submission.dto.SubmissionRequest;
 import com.hoanobita.topikplatform.submission.dto.SubmissionResponse;
+import jakarta.validation.Valid;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -35,7 +36,7 @@ public class SubmissionController {
 
     @PostMapping("/assignments/{assignmentId}/submissions")
     @ResponseStatus(HttpStatus.CREATED)
-    public ApiResponse<SubmissionResponse> submit(@PathVariable UUID assignmentId, @RequestBody SubmissionRequest req) {
+    public ApiResponse<SubmissionResponse> submit(@PathVariable UUID assignmentId, @Valid @RequestBody SubmissionRequest req) {
         return ApiResponse.created(service.submit(assignmentId, req));
     }
 
@@ -45,7 +46,7 @@ public class SubmissionController {
     }
 
     @PatchMapping("/submissions/{submissionId}")
-    public ApiResponse<SubmissionResponse> update(@PathVariable UUID submissionId, @RequestBody SubmissionRequest req) {
+    public ApiResponse<SubmissionResponse> update(@PathVariable UUID submissionId, @Valid @RequestBody SubmissionRequest req) {
         return ApiResponse.ok(service.update(submissionId, req));
     }
 

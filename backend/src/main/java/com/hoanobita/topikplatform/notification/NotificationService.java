@@ -4,7 +4,7 @@ import com.hoanobita.topikplatform.activity.ActivityService;
 import com.hoanobita.topikplatform.common.BusinessException;
 import com.hoanobita.topikplatform.common.Enums.TargetType;
 import com.hoanobita.topikplatform.common.PageResponse;
-import com.hoanobita.topikplatform.common.PaginationUtil;
+import com.hoanobita.topikplatform.common.PageableUtil;
 import com.hoanobita.topikplatform.common.PermissionService;
 import com.hoanobita.topikplatform.common.SecurityUtils;
 import com.hoanobita.topikplatform.notification.dto.NotificationRequest;
@@ -43,14 +43,14 @@ public class NotificationService {
     }
 
     public PageResponse<NotificationResponse> list(Integer page, Integer size, String sort, String search, String status) {
-        int normalizedPage = PaginationUtil.normalizePage(page);
-        int normalizedSize = PaginationUtil.normalizeSize(size);
+        int normalizedPage = PageableUtil.normalizePage(page);
+        int normalizedSize = PageableUtil.normalizeSize(size);
 
         User user = security.currentUser();
         List<Notification> notifications = notificationsForUser(user);
 
         if (notifications.isEmpty()) {
-            return PaginationUtil.paginate(List.of(), normalizedPage, normalizedSize);
+            return PageableUtil.paginateInMemory(List.of(), normalizedPage, normalizedSize);
         }
 
         Map<UUID, NotificationRead> readMap = readMapFor(user, notifications);
@@ -70,14 +70,24 @@ public class NotificationService {
                 })
                 .toList();
 
-        Comparator<NotificationResponse> defaultSort = Comparator.comparing(NotificationResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
-        Comparator<NotificationResponse> comparator = PaginationUtil.resolveSort(sort, Map.of(
-                "createdAt", Comparator.comparing(NotificationResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())),
-                "title", Comparator.comparing(NotificationResponse::title, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
-        ), defaultSort);
-
+        Comparator<NotificationResponse> comparator = resolveNotificationSort(sort);
         List<NotificationResponse> sorted = filtered.stream().sorted(comparator).toList();
-        return PaginationUtil.paginate(sorted, normalizedPage, normalizedSize);
+        return PageableUtil.paginateInMemory(sorted, normalizedPage, normalizedSize);
+    }
+
+    private Comparator<NotificationResponse> resolveNotificationSort(String sort) {
+        Comparator<NotificationResponse> defaultSort = Comparator.comparing(NotificationResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
+        if (sort == null || sort.isBlank()) return defaultSort;
+        String[] parts = sort.split(",", 2);
+        String field = parts[0].trim();
+        boolean desc = parts.length > 1 && "desc".equalsIgnoreCase(parts[1].trim());
+        Comparator<NotificationResponse> cmp = switch (field) {
+            case "createdAt" -> Comparator.comparing(NotificationResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder()));
+            case "title" -> Comparator.comparing(NotificationResponse::title, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            default -> null;
+        };
+        if (cmp == null) return defaultSort;
+        return desc ? cmp.reversed() : cmp;
     }
 
     public long unreadCount() {

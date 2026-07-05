@@ -8,7 +8,7 @@ import com.hoanobita.topikplatform.classroom.repository.*;
 import com.hoanobita.topikplatform.common.BusinessException;
 import com.hoanobita.topikplatform.common.Enums.*;
 import com.hoanobita.topikplatform.common.PageResponse;
-import com.hoanobita.topikplatform.common.PaginationUtil;
+import com.hoanobita.topikplatform.common.PageableUtil;
 import com.hoanobita.topikplatform.common.PermissionService;
 import com.hoanobita.topikplatform.grading.entity.Grade;
 import com.hoanobita.topikplatform.grading.repository.GradeRepository;
@@ -17,6 +17,9 @@ import com.hoanobita.topikplatform.submission.repository.SubmissionRepository;
 import com.hoanobita.topikplatform.user.dto.StatusRequest;
 import com.hoanobita.topikplatform.user.entity.User;
 import com.hoanobita.topikplatform.user.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,10 +27,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -65,47 +68,27 @@ public class ClassroomService {
     }
 
     public PageResponse<ClassResponse> listClasses(User currentUser, Integer page, Integer size, String sort, String search, String status) {
-        int normalizedPage = PaginationUtil.normalizePage(page);
-        int normalizedSize = PaginationUtil.normalizeSize(size);
+        Specification<Klass> spec = Specification
+                .where(KlassSpecs.isNotDeleted())
+                .and(KlassSpecs.hasStatus(status))
+                .and(KlassSpecs.search(search));
 
-        List<Klass> classes;
-        if (currentUser.isTeacher()) {
-            classes = klassRepo.findAllActive();
-        } else if (currentUser.isAdmin()) {
+        // Role-based filtering
+        if (currentUser.isAdmin() && !currentUser.isTeacher()) {
             var classIds = classAdminRepo.findClassIdsByAdminId(currentUser.getId());
-            classes = klassRepo.findAllActive().stream()
-                    .filter(k -> classIds.contains(k.getId()))
-                    .toList();
-        } else {
-            // Student
+            spec = spec.and(KlassSpecs.idIn(classIds));
+        } else if (currentUser.isStudent()) {
             var classIds = classMemberRepo.findClassIdsByStudentId(currentUser.getId());
-            classes = klassRepo.findAllActive().stream()
-                    .filter(k -> classIds.contains(k.getId()))
-                    .toList();
+            spec = spec.and(KlassSpecs.idIn(classIds));
         }
+        // Teacher sees all — no additional filter
 
-            List<ClassResponse> filtered = classes.stream()
-                .map(this::toResponse)
-                .filter(item -> status == null || status.isBlank() || item.status().equalsIgnoreCase(status))
-                .filter(item -> {
-                    if (search == null || search.isBlank()) return true;
-                    String keyword = search.toLowerCase();
-                    return containsIgnoreCase(item.name(), keyword)
-                        || containsIgnoreCase(item.code(), keyword)
-                        || containsIgnoreCase(item.description(), keyword);
-                })
-                .toList();
+        Pageable pageable = PageableUtil.of(page, size, sort,
+                Set.of("createdAt", "name", "code", "status"),
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
 
-            Comparator<ClassResponse> defaultSort = Comparator.comparing(ClassResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
-            Comparator<ClassResponse> comparator = PaginationUtil.resolveSort(sort, Map.of(
-                "createdAt", Comparator.comparing(ClassResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())),
-                "name", Comparator.comparing(ClassResponse::name, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
-                "code", Comparator.comparing(ClassResponse::code, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
-                "status", Comparator.comparing(ClassResponse::status, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
-            ), defaultSort);
-
-            List<ClassResponse> sorted = filtered.stream().sorted(comparator).toList();
-            return PaginationUtil.paginate(sorted, normalizedPage, normalizedSize);
+        Page<Klass> klassPage = klassRepo.findAll(spec, pageable);
+        return PageableUtil.toPageResponse(klassPage.map(this::toResponse));
     }
 
     public ClassResponse getClassById(UUID classId, User currentUser) {
@@ -359,36 +342,23 @@ public class ClassroomService {
     }
 
     public PageResponse<StudentMemberResponse> listStudents(UUID classId, User currentUser, Integer page, Integer size, String sort, String search, String status) {
-        int normalizedPage = PaginationUtil.normalizePage(page);
-        int normalizedSize = PaginationUtil.normalizeSize(size);
-
         permissionService.requireAccessClass(currentUser, classId);
-        var members = classMemberRepo.findByClassIdAndStatus(classId, MemberStatus.ACTIVE);
-        List<StudentMemberResponse> filtered = members.stream().map(m -> {
-            var student = userRepo.findById(m.getStudentId()).orElse(null);
+        klassRepo.findActiveById(classId)
+                .orElseThrow(() -> BusinessException.notFound(CLASS_NOT_FOUND));
+
+        Pageable pageable = PageableUtil.of(page, size, sort,
+                Set.of("joinedAt", "fullName", "email", "status"),
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "joinedAt"));
+
+        Page<ClassMember> memberPage = classMemberRepo.findActiveByClassIdWithUser(classId, pageable);
+
+        Page<StudentMemberResponse> resultPage = memberPage.map(m -> {
+            var student = userRepo.findActiveById(m.getStudentId()).orElse(null);
             String name = student != null ? student.getFullName() : UNKNOWN;
             String email = student != null ? student.getEmail() : null;
             return new StudentMemberResponse(m.getStudentId(), m.getStudentCode(), name, email, m.getStatus().name(), m.getJoinedAt());
-        })
-                .filter(item -> status == null || status.isBlank() || item.status().equalsIgnoreCase(status))
-                .filter(item -> {
-                    if (search == null || search.isBlank()) return true;
-                    String keyword = search.toLowerCase();
-                    return containsIgnoreCase(item.fullName(), keyword)
-                            || containsIgnoreCase(item.email(), keyword);
-                })
-                .toList();
-
-        Comparator<StudentMemberResponse> defaultSort = Comparator.comparing(StudentMemberResponse::joinedAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
-        Comparator<StudentMemberResponse> comparator = PaginationUtil.resolveSort(sort, Map.of(
-                "joinedAt", Comparator.comparing(StudentMemberResponse::joinedAt, Comparator.nullsLast(Comparator.naturalOrder())),
-                "fullName", Comparator.comparing(StudentMemberResponse::fullName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
-                "email", Comparator.comparing(StudentMemberResponse::email, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
-                "status", Comparator.comparing(StudentMemberResponse::status, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
-        ), defaultSort);
-
-        List<StudentMemberResponse> sorted = filtered.stream().sorted(comparator).toList();
-        return PaginationUtil.paginate(sorted, normalizedPage, normalizedSize);
+        });
+        return PageableUtil.toPageResponse(resultPage);
     }
 
     public ClassStatsResponse getClassStats(UUID classId, User currentUser) {
@@ -514,7 +484,4 @@ public class ClassroomService {
         return "\"" + value.replace("\"", "\"\"") + "\"";
     }
 
-    private boolean containsIgnoreCase(String value, String keyword) {
-        return value != null && value.toLowerCase().contains(keyword);
-    }
 }

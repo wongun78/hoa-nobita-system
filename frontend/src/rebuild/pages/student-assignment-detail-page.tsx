@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { AlertTriangle, CheckCircle2, Clock3, Download, ExternalLink, Sparkles, Trash2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock3, Download, ExternalLink, Eye, Sparkles, Trash2 } from 'lucide-react'
 import { api } from '../core/api'
 import { ConfirmDialog, EmptyState, ErrorState, SkeletonCard, StatusBadge } from '../components/foundation'
+import { FilePreviewModal } from '../components/file-preview-modal'
 import { StudentFileUpload } from '../components/student-file-upload'
 import { Button, Card, Input, TextArea } from '../layout/ui'
 import { fmtDate } from './phase2-utils'
@@ -37,6 +38,7 @@ function canEditSubmission(assignment?: AssignmentItem, submission?: SubmissionI
 }
 
 function SubmissionSummary({ assignment, submission }: Readonly<{ assignment: AssignmentItem; submission?: SubmissionItem | null }>) {
+  const [previewFile, setPreviewFile] = useState<{ id: string; name: string; type?: string } | null>(null)
   if (!submission) return <EmptyState title="Bạn chưa nộp bài" description="Hoàn thiện nội dung bên dưới để gửi bài làm cho giáo viên." />
   const late = isSubmissionLate(assignment, submission)
   return (
@@ -50,15 +52,18 @@ function SubmissionSummary({ assignment, submission }: Readonly<{ assignment: As
       </div>
       {submission.contentText && <div className="mt-4 rounded-2xl bg-white p-3 text-sm leading-6 text-slate-700">{submission.contentText}</div>}
       {submission.contentUrl && <a className="mt-3 inline-flex min-h-11 items-center rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700" href={submission.contentUrl} target="_blank" rel="noreferrer">Mở URL bài làm</a>}
-      {submission.fileId && <Button type="button" variant="secondary" className="mt-3 min-h-11" onClick={() => api.downloadFile(submission.fileId!, submission.assignmentTitle)}><Download size={16} />Tải tệp bài làm</Button>}
+      {submission.fileId && <><Button type="button" variant="secondary" className="mt-3 min-h-11" onClick={() => setPreviewFile({ id: submission.fileId!, name: submission.fileName || submission.assignmentTitle, type: submission.fileContentType ?? undefined })}><Eye size={16} />Xem trước</Button><Button type="button" variant="secondary" className="mt-3 min-h-11" onClick={() => api.downloadFile(submission.fileId!, submission.fileName || submission.assignmentTitle)}><Download size={16} />Tải tệp bài làm</Button></>}
+      {previewFile && <FilePreviewModal fileId={previewFile.id} fileName={previewFile.name} contentType={previewFile.type} onClose={() => setPreviewFile(null)} />}
       {submission.feedback && <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-sm leading-6 text-emerald-800"><b>Nhận xét:</b> {submission.feedback}</div>}
       {(submission.feedbackFileId || submission.feedbackLink) && (
         <div className="mt-3 rounded-2xl border border-indigo-100 bg-indigo-50 p-3 space-y-2">
           <h3 className="text-xs font-bold text-indigo-700">Tệp đính kèm từ giáo viên</h3>
           {submission.feedbackFileId && (
-            <Button type="button" variant="secondary" className="min-h-9" onClick={() => api.downloadFeedbackFile(submission.id, submission.feedbackFileName || `feedback-${submission.id}`)}>
+            <><Button type="button" variant="secondary" className="min-h-9" onClick={() => setPreviewFile({ id: submission.feedbackFileId!, name: submission.feedbackFileName || 'Phản hồi', type: submission.feedbackFileContentType ?? undefined })}>
+              <Eye size={14} /> Xem trước
+            </Button><Button type="button" variant="secondary" className="min-h-9" onClick={() => api.downloadFeedbackFile(submission.id, submission.feedbackFileName || `feedback-${submission.id}`)}>
               <Download size={14} /> {submission.feedbackFileName || 'Tải tệp phản hồi'}
-            </Button>
+            </Button></>
           )}
           {submission.feedbackLink && <a className="inline-flex items-center gap-1 text-sm font-bold text-indigo-600" href={submission.feedbackLink} target="_blank" rel="noreferrer"><ExternalLink size={14} /> {submission.feedbackLink}</a>}
         </div>
@@ -77,6 +82,7 @@ export function StudentAssignmentDetailPage() {
   const [successPulse, setSuccessPulse] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [previewFile, setPreviewFile] = useState<{ id: string; name: string; type?: string } | null>(null)
 
   const assignment = useQuery({ queryKey: ['student', 'assignment', assignmentId], queryFn: () => api.assignmentById(assignmentId), enabled: Boolean(assignmentId) })
   const submissions = useQuery({ queryKey: ['student', 'assignment', assignmentId, 'my-submissions'], queryFn: () => api.mySubmissionsPage({ page: 0, size: 100 }), enabled: Boolean(assignmentId) })
@@ -177,7 +183,7 @@ export function StudentAssignmentDetailPage() {
             <div className="mt-4 text-sm font-bold text-slate-700">Điểm tối đa: {assignment.data.maxScore}</div>
             {assignment.data.skill && <div className="mt-2"><span className="rounded-xl bg-violet-50 px-2 py-0.5 text-xs font-bold text-violet-700">{assignment.data.skill}</span></div>}
             {assignment.data.externalLink && <a className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700 transition hover:bg-sky-50" href={assignment.data.externalLink} target="_blank" rel="noreferrer"><ExternalLink size={14} />Tài liệu tham khảo</a>}
-            {assignment.data.fileId && <Button type="button" variant="secondary" className="mt-3 min-h-11" onClick={() => api.downloadFile(assignment.data.fileId!, assignment.data.title)}><Download size={16} />Tải tệp đính kèm</Button>}
+            {assignment.data.fileId && <><Button type="button" variant="secondary" className="mt-3 min-h-11" onClick={() => api.downloadFile(assignment.data.fileId!, assignment.data.title)}><Download size={16} />Tải tệp đính kèm</Button><Button type="button" variant="secondary" className="mt-3 min-h-11" onClick={async () => { const meta = await api.fileMetadata(assignment.data.fileId!); setPreviewFile({ id: meta.id, name: meta.originalFileName, type: meta.contentType }) }}><Eye size={16} />Xem trước</Button></>}
           </Card>
 
           <SubmissionSummary assignment={assignment.data} submission={mySubmission} />
@@ -213,6 +219,7 @@ export function StudentAssignmentDetailPage() {
         </Card>
       </div>
       <ConfirmDialog open={confirmDelete} title="Xoá bài nộp này?" description="Bài nộp sẽ được xoá khỏi danh sách của bạn. Nếu bài tập còn mở, bạn có thể nộp lại sau." confirmLabel={remove.isPending ? 'Đang xoá...' : 'Xoá bài nộp'} onCancel={() => setConfirmDelete(false)} onConfirm={() => remove.mutate()} />
+      {previewFile && <FilePreviewModal fileId={previewFile.id} fileName={previewFile.name} contentType={previewFile.type} onClose={() => setPreviewFile(null)} />}
     </div>
   )
 }

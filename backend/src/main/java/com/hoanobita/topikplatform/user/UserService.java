@@ -8,7 +8,7 @@ import com.hoanobita.topikplatform.common.BusinessException;
 import com.hoanobita.topikplatform.common.Enums.RoleName;
 import com.hoanobita.topikplatform.common.Enums.UserStatus;
 import com.hoanobita.topikplatform.common.PageResponse;
-import com.hoanobita.topikplatform.common.PaginationUtil;
+import com.hoanobita.topikplatform.common.PageableUtil;
 import com.hoanobita.topikplatform.grading.entity.Grade;
 import com.hoanobita.topikplatform.grading.repository.GradeRepository;
 import com.hoanobita.topikplatform.risk.RiskDetectionService;
@@ -18,15 +18,18 @@ import com.hoanobita.topikplatform.user.dto.*;
 import com.hoanobita.topikplatform.user.entity.User;
 import com.hoanobita.topikplatform.user.repository.RoleRepository;
 import com.hoanobita.topikplatform.user.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -60,32 +63,18 @@ public class UserService {
     }
 
         public PageResponse<UserResponse> listUsers(Integer page, Integer size, String sort, String search, String status, String role) {
-        int normalizedPage = PaginationUtil.normalizePage(page);
-        int normalizedSize = PaginationUtil.normalizeSize(size);
+        Specification<User> spec = Specification
+                .where(UserSpecs.isNotDeleted())
+                .and(UserSpecs.hasStatus(status))
+                .and(UserSpecs.hasRole(role))
+                .and(UserSpecs.search(search));
 
-        List<UserResponse> filtered = userRepository.findAllActive().stream()
-            .map(this::toResponse)
-            .filter(user -> status == null || status.isBlank() || user.status().equalsIgnoreCase(status))
-            .filter(user -> role == null || role.isBlank() || user.roles().stream().anyMatch(r -> r.equalsIgnoreCase(role)))
-            .filter(user -> {
-                if (search == null || search.isBlank()) return true;
-                String keyword = search.toLowerCase();
-                return containsIgnoreCase(user.fullName(), keyword)
-                    || containsIgnoreCase(user.email(), keyword)
-                    || containsIgnoreCase(user.phone(), keyword);
-            })
-            .toList();
+        Pageable pageable = PageableUtil.of(page, size, sort,
+                Set.of("createdAt", "fullName", "email", "status"),
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
 
-        Comparator<UserResponse> defaultSort = Comparator.comparing(UserResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
-        Comparator<UserResponse> comparator = PaginationUtil.resolveSort(sort, Map.of(
-            "createdAt", Comparator.comparing(UserResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())),
-            "fullName", Comparator.comparing(UserResponse::fullName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
-            "email", Comparator.comparing(UserResponse::email, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
-            "status", Comparator.comparing(UserResponse::status, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
-        ), defaultSort);
-
-        List<UserResponse> sorted = filtered.stream().sorted(comparator).toList();
-        return PaginationUtil.paginate(sorted, normalizedPage, normalizedSize);
+        Page<User> userPage = userRepository.findAll(spec, pageable);
+        return PageableUtil.toPageResponse(userPage.map(this::toResponse));
     }
 
     public UserResponse getUserById(UUID id) {

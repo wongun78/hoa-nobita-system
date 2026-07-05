@@ -52,4 +52,16 @@ public class FileController {
         securityUtils.getCurrentUser(); // auth check
         return ResponseEntity.ok(ApiResponse.ok(fileService.getMetadata(fileId)));
     }
+
+    @GetMapping("/{fileId}/preview")
+    public ResponseEntity<Resource> preview(@PathVariable UUID fileId) {
+        securityUtils.getCurrentUser(); // auth check
+        var storedFile = fileService.getById(fileId);
+        Resource resource = fileService.download(fileId);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + storedFile.getOriginalFileName() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, storedFile.getContentType())
+                .header("Cache-Control", "private, max-age=3600")
+                .body(resource);
+    }
 }

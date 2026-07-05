@@ -58,5 +58,5 @@ public record TeacherDashboardResponse(
     public record ClassHealth(UUID classId, String className, int studentCount, List<String> adminNames, int openAssignmentCount, BigDecimal submissionRate, int needGradingCount, BigDecimal averageScore, String status, List<String> issues, String actionUrl) {}
     public record AssignmentDueSoon(UUID assignmentId, String title, UUID classId, String className, java.time.Instant deadline, String status, long submittedCount, int totalStudents, long lateCount, int needGradingCount, String actionUrl) {}
     public record RiskStudent(UUID studentId, String fullName, String email, String phone, UUID classId, String className, BigDecimal submissionRate, BigDecimal averageScore, String issue, String riskLevel, String actionUrl) {}
-    public record RecentActivity(String id, String type, String message, String actorName, String targetName, java.time.Instant createdAt, String targetUrl) {}
+    public record RecentActivity(String id, String actionType, String message, String actorName, String targetName, java.time.Instant createdAt, String targetUrl) {}
 }

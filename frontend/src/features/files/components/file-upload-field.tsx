@@ -8,7 +8,7 @@ interface FileUploadFieldProps {
   accept?: string
 }
 
-export function FileUploadField({ onUploadSuccess, maxSizeMB = 20, accept = '.pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.mp3,.txt' }: FileUploadFieldProps) {
+export function FileUploadField({ onUploadSuccess, maxSizeMB = 1024, accept = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z,.png,.jpg,.jpeg,.gif,.webp,.svg,.bmp,.mp3,.wav,.ogg,.mp4,.webm,.mov,.avi' }: FileUploadFieldProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)

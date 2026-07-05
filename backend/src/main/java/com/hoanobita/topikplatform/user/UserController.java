@@ -44,7 +44,7 @@ public class UserController {
     @PostMapping
     public ResponseEntity<?> createUser(@Valid @RequestBody CreateUserRequest request) {
         var currentUser = securityUtils.getCurrentUser();
-        permissionService.requireTeacher(currentUser);
+        permissionService.requireTeacherOrAdmin(currentUser);
         var result = userService.createUser(request, currentUser);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(result));
     }

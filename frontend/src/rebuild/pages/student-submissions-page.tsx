@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { Download, ExternalLink, FileText, MessageSquareText } from 'lucide-react'
+import { Download, ExternalLink, Eye, FileText, MessageSquareText } from 'lucide-react'
 import { api } from '../core/api'
 import { EmptyState, ErrorState, FilterBar, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
+import { FilePreviewModal } from '../components/file-preview-modal'
 import { Button, Card } from '../layout/ui'
 import { asPage, fmtDate } from './phase2-utils'
 import type { SubmissionItem, SubmissionStatus } from '../core/types'
@@ -49,6 +50,7 @@ function SubmissionCard({ item }: Readonly<{ item: SubmissionItem }>) {
 
 function StudentSubmissionDetail({ submissionId }: Readonly<{ submissionId: string }>) {
   const query = useQuery({ queryKey: ['student', 'submission', submissionId], queryFn: () => api.submissionById(submissionId), enabled: Boolean(submissionId) })
+  const [previewFile, setPreviewFile] = useState<{ id: string; name: string; type?: string } | null>(null)
 
   if (query.isLoading) return <div className="space-y-4 pb-20 md:pb-0"><SkeletonCard lines={5} /><SkeletonCard lines={4} /></div>
   if (query.isError || !query.data) return <ErrorState title="Không tải được bài nộp" description="Bài nộp có thể không tồn tại hoặc bạn không có quyền xem." onRetry={() => query.refetch()} />
@@ -72,7 +74,7 @@ function StudentSubmissionDetail({ submissionId }: Readonly<{ submissionId: stri
           {item.contentText ? <div className="mt-4 whitespace-pre-line rounded-2xl bg-slate-50 p-4 text-sm leading-7 text-slate-700">{item.contentText}</div> : <EmptyState title="Không có nội dung văn bản" description="Bài nộp có thể dùng URL hoặc tệp đính kèm." />}
           <div className="mt-4 flex flex-wrap gap-2">
             {item.contentUrl && <a className="inline-flex min-h-11 items-center rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700" href={item.contentUrl} target="_blank" rel="noreferrer">Mở URL</a>}
-            {item.fileId && <Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadSubmissionFile(item.id, item.fileName || item.assignmentTitle)}><Download size={16} />Tải tệp</Button>}
+            {item.fileId && <><Button type="button" variant="secondary" className="min-h-11" onClick={() => setPreviewFile({ id: item.fileId!, name: item.fileName || item.assignmentTitle, type: item.fileContentType ?? undefined })}><Eye size={16} />Xem trước</Button><Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadSubmissionFile(item.id, item.fileName || item.assignmentTitle)}><Download size={16} />Tải tệp</Button></>}
           </div>
           {(item.feedbackFileId || item.feedbackLink) && (
             <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-3 space-y-2">
@@ -82,6 +84,7 @@ function StudentSubmissionDetail({ submissionId }: Readonly<{ submissionId: stri
                   <Download size={14} /> {item.feedbackFileName || 'Tải tệp phản hồi'}
                 </Button>
               )}
+              {item.feedbackFileId && <Button type="button" variant="secondary" className="min-h-9" onClick={() => setPreviewFile({ id: item.feedbackFileId!, name: item.feedbackFileName || 'Phản hồi', type: item.feedbackFileContentType ?? undefined })}><Eye size={14} /> Xem trước</Button>}
               {item.feedbackLink && <a className="inline-flex items-center gap-1 text-sm font-bold text-indigo-600" href={item.feedbackLink} target="_blank" rel="noreferrer"><ExternalLink size={14} /> {item.feedbackLink}</a>}
             </div>
           )}
@@ -93,6 +96,7 @@ function StudentSubmissionDetail({ submissionId }: Readonly<{ submissionId: stri
           {item.feedback ? <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm leading-7 text-emerald-800">{item.feedback}</div> : <p className="mt-5 text-sm text-slate-500">Giáo viên chưa để lại nhận xét.</p>}
         </Card>
       </div>
+      {previewFile && <FilePreviewModal fileId={previewFile.id} fileName={previewFile.name} contentType={previewFile.type} onClose={() => setPreviewFile(null)} />}
     </div>
   )
 }

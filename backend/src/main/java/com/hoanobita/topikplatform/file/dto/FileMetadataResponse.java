@@ -9,5 +9,5 @@ public record FileMetadataResponse(
         String contentType,
         Long fileSize,
         Instant createdAt,
-        UUID uploadedBy
+        UUID createdBy
 ) {}

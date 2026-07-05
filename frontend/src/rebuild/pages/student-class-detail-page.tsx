@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { Bell, BookOpen, CalendarCheck2, ClipboardList, Download, ExternalLink, FileText, GraduationCap, LayoutDashboard, MessageSquareText } from 'lucide-react'
+import { Bell, BookOpen, CalendarCheck2, ClipboardList, Download, ExternalLink, Eye, FileText, GraduationCap, LayoutDashboard, MessageSquareText } from 'lucide-react'
 import { api } from '../core/api'
 import { EmptyState, ErrorState, MetricCard, SkeletonCard, StatusBadge } from '../components/foundation'
+import { FilePreviewModal } from '../components/file-preview-modal'
 import { Button, Card } from '../layout/ui'
 import { fmtDate } from './phase2-utils'
 import { useNewAuth } from '../auth/use-auth'
@@ -179,6 +180,7 @@ function LessonsTab({ items }: Readonly<{ items: LessonItem[] }>) {
 }
 
 function MaterialsTab({ items }: Readonly<{ items: MaterialItem[] }>) {
+  const [previewFile, setPreviewFile] = useState<{ id: string; name: string; type?: string } | null>(null)
   if (!items.length) return <EmptyState title="Chưa có tài liệu hiển thị" description="Tài liệu từ giáo viên sẽ xuất hiện tại đây khi được phát hành." />
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -191,10 +193,11 @@ function MaterialsTab({ items }: Readonly<{ items: MaterialItem[] }>) {
           <div className="mt-3 text-xs text-slate-400">Đăng ngày {fmtDate(item.createdAt)}</div>
           <div className="mt-3 flex flex-wrap gap-2">
             {item.externalUrl && <a className="inline-flex min-h-11 items-center rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700" href={item.externalUrl} target="_blank" rel="noreferrer">Mở liên kết</a>}
-            {item.fileId && <Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(item.fileId!, item.title)}><Download size={16} />Tải xuống</Button>}
+            {item.fileId && <><Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(item.fileId!, item.title)}><Download size={16} />Tải xuống</Button><Button type="button" variant="secondary" className="min-h-11" onClick={async () => { const meta = await api.fileMetadata(item.fileId!); setPreviewFile({ id: meta.id, name: meta.originalFileName, type: meta.contentType }) }}><Eye size={16} />Xem trước</Button></>}
           </div>
         </Card>
       ))}
+      {previewFile && <FilePreviewModal fileId={previewFile.id} fileName={previewFile.name} contentType={previewFile.type} onClose={() => setPreviewFile(null)} />}
     </div>
   )
 }

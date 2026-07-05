@@ -22,7 +22,7 @@ import com.hoanobita.topikplatform.common.Enums.MemberStatus;
 import com.hoanobita.topikplatform.common.Enums.SubmissionStatus;
 import com.hoanobita.topikplatform.common.Enums.TargetType;
 import com.hoanobita.topikplatform.common.PageResponse;
-import com.hoanobita.topikplatform.common.PaginationUtil;
+import com.hoanobita.topikplatform.common.PageableUtil;
 import com.hoanobita.topikplatform.common.PermissionService;
 import com.hoanobita.topikplatform.common.SecurityUtils;
 import com.hoanobita.topikplatform.notification.entity.Notification;
@@ -30,6 +30,9 @@ import com.hoanobita.topikplatform.notification.repository.NotificationRepositor
 import com.hoanobita.topikplatform.submission.repository.SubmissionRepository;
 import com.hoanobita.topikplatform.user.entity.User;
 import com.hoanobita.topikplatform.user.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -79,48 +82,44 @@ public class AssignmentService {
     }
 
     public PageResponse<AssignmentResponse> list(UUID classId, Integer page, Integer size, String sort, String search, String status) {
-        int normalizedPage = PaginationUtil.normalizePage(page);
-        int normalizedSize = PaginationUtil.normalizeSize(size);
-
         User user = security.currentUser();
-        List<Assignment> items;
+
+        Pageable pageable = PageableUtil.of(page, size, sort,
+                Set.of("createdAt", "title", "dueAt", "status"),
+                Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Page<Assignment> assignmentPage;
         if (classId != null) {
             permissions.requireAccessClass(user, classId);
-            items = user.isStudent()
-                    ? repo.findByClassIdAndStatusIn(classId, List.of(AssignmentStatus.PUBLISHED, AssignmentStatus.CLOSED))
-                    : repo.findByClassId(classId);
+            assignmentPage = repo.findByClassId(classId, pageable);
         } else if (user.isTeacher()) {
-            items = repo.findAllActive();
+            assignmentPage = repo.findAll(pageable);
         } else {
             List<UUID> ids = permissions.getAccessibleClassIds(user);
-            if (ids == null || ids.isEmpty()) return PaginationUtil.paginate(List.of(), normalizedPage, normalizedSize);
-            items = user.isStudent()
-                    ? repo.findByClassIdInAndStatusIn(ids, List.of(AssignmentStatus.PUBLISHED, AssignmentStatus.CLOSED))
-                    : repo.findByClassIdIn(ids);
+            if (ids == null || ids.isEmpty()) {
+                return PageableUtil.toPageResponse(Page.empty(pageable));
+            }
+            // For students/admins with multiple classes, we still need to load all from accessible classes
+            // This is acceptable since the number of classes per user is bounded
+            var allItems = repo.findByClassIdIn(ids);
+            // Filter by status for students
+            if (user.isStudent()) {
+                allItems = allItems.stream()
+                        .filter(a -> a.getStatus() == AssignmentStatus.PUBLISHED || a.getStatus() == AssignmentStatus.CLOSED)
+                        .toList();
+            }
+            // Manual pagination for cross-class queries
+            int normalizedPage = PageableUtil.normalizePage(page);
+            int normalizedSize = PageableUtil.normalizeSize(size);
+            List<AssignmentResponse> mapped = allItems.stream().map(this::toResponse).toList();
+            int start = normalizedPage * normalizedSize;
+            int end = Math.min(start + normalizedSize, mapped.size());
+            List<AssignmentResponse> pageItems = start < mapped.size() ? mapped.subList(start, end) : List.of();
+            var springPage = new org.springframework.data.domain.PageImpl<>(pageItems, pageable, mapped.size());
+            return PageableUtil.toPageResponse(springPage);
         }
 
-        List<AssignmentResponse> filtered = items.stream()
-                .map(this::toResponse)
-                .filter(item -> status == null || status.isBlank() || item.status().equalsIgnoreCase(status))
-                .filter(item -> {
-                    if (search == null || search.isBlank()) return true;
-                    String keyword = search.toLowerCase();
-                    return containsIgnoreCase(item.title(), keyword)
-                            || containsIgnoreCase(item.description(), keyword)
-                            || containsIgnoreCase(item.instruction(), keyword);
-                })
-                .toList();
-
-        Comparator<AssignmentResponse> defaultSort = Comparator.comparing(AssignmentResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
-        Comparator<AssignmentResponse> comparator = PaginationUtil.resolveSort(sort, Map.of(
-                "createdAt", Comparator.comparing(AssignmentResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())),
-                "title", Comparator.comparing(AssignmentResponse::title, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)),
-                "dueAt", Comparator.comparing(AssignmentResponse::dueAt, Comparator.nullsLast(Comparator.naturalOrder())),
-                "status", Comparator.comparing(AssignmentResponse::status, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
-        ), defaultSort);
-
-        List<AssignmentResponse> sorted = filtered.stream().sorted(comparator).toList();
-        return PaginationUtil.paginate(sorted, normalizedPage, normalizedSize);
+        return PageableUtil.toPageResponse(assignmentPage.map(this::toResponse));
     }
 
     public AssignmentResponse get(UUID id) {
@@ -427,7 +426,4 @@ public class AssignmentService {
         return new AssignmentResponse(a.getId(), a.getClassId(), className, a.getLessonId(), a.getTitle(), a.getDescription(), a.getInstruction(), a.getDueAt(), a.getMaxScore(), a.getStatus().name(), a.isAllowResubmit(), a.getSkill(), a.getFileId(), a.getExternalLink(), a.getCreatedAt());
     }
 
-    private boolean containsIgnoreCase(String value, String keyword) {
-        return value != null && value.toLowerCase().contains(keyword);
-    }
 }

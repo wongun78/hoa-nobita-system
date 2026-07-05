@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, Eye, EyeOff, FileText, LinkIcon, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { FilePreviewModal } from '../components/file-preview-modal'
 import { api } from '../core/api'
 import { ConfirmDialog, EmptyState, ErrorState, FilterBar, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { StudentFileUpload } from '../components/student-file-upload'
@@ -105,6 +106,7 @@ function MaterialEditor({
 function MaterialCard({ item, classId, onEdit }: Readonly<{ item: MaterialItem; classId: string; onEdit: (item: MaterialItem) => void }>) {
   const qc = useQueryClient()
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [previewFile, setPreviewFile] = useState<{ id: string; name: string; type?: string } | null>(null)
   const invalidate = async () => qc.invalidateQueries({ queryKey: ['materials-library', classId] })
   const remove = useMutation({
     mutationFn: () => api.deleteMaterial(item.id),
@@ -148,10 +150,11 @@ function MaterialCard({ item, classId, onEdit }: Readonly<{ item: MaterialItem; 
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         {item.externalUrl && <a className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-sky-200 bg-white px-4 text-sm font-bold text-slate-700 hover:bg-sky-50" href={item.externalUrl} target="_blank" rel="noreferrer"><LinkIcon size={16} />Mở liên kết</a>}
-        {item.fileId && <Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(item.fileId!, item.title)}><Download size={16} />Tải xuống</Button>}
+        {item.fileId && <><Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(item.fileId!, item.title)}><Download size={16} />Tải xuống</Button><Button type="button" variant="secondary" className="min-h-11" onClick={async () => { const meta = await api.fileMetadata(item.fileId!); setPreviewFile({ id: meta.id, name: meta.originalFileName, type: meta.contentType }) }}><Eye size={16} />Xem trước</Button></>}
       </div>
       </Card>
-      <ConfirmDialog open={confirmOpen} title={`Xoá tài liệu “${item.title}”?`} description="Tài liệu sẽ bị xoá khỏi thư viện lớp. Học viên sẽ không còn thấy tài liệu này sau khi xác nhận." confirmLabel={remove.isPending ? 'Đang xoá...' : 'Xoá tài liệu'} onCancel={() => setConfirmOpen(false)} onConfirm={() => remove.mutate()} />
+      <ConfirmDialog open={confirmOpen} title={`Xoá tài liệu \u201c${item.title}\u201d?`} description="Tài liệu sẽ bị xoá khỏi thư viện lớp. Học viên sẽ không còn thấy tài liệu này sau khi xác nhận." confirmLabel={remove.isPending ? 'Đang xoá...' : 'Xoá tài liệu'} onCancel={() => setConfirmOpen(false)} onConfirm={() => remove.mutate()} />
+      {previewFile && <FilePreviewModal fileId={previewFile.id} fileName={previewFile.name} contentType={previewFile.type} onClose={() => setPreviewFile(null)} />}
     </>
   )
 }

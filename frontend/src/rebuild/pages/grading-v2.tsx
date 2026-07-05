@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, CheckCircle, Download, ExternalLink, RotateCcw, Send, Upload } from 'lucide-react'
+import { ArrowDown, ArrowUp, CheckCircle, Download, ExternalLink, Eye, RotateCcw, Send, Upload } from 'lucide-react'
 import { useNewAuth } from '../auth/use-auth'
 import { EmptyState, ErrorState, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
+import { FilePreviewModal } from '../components/file-preview-modal'
 import { api } from '../core/api'
 import { ApiClientError } from '../core/http'
 import type { AssignmentItem, SubmissionItem } from '../core/types'
@@ -24,6 +25,8 @@ export function GradingV2Page() {
   const [feedbackLink, setFeedbackLink] = useState<string>('')
   const [uploadingFeedback, setUploadingFeedback] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [previewFile, setPreviewFile] = useState<{ id: string; name: string; type?: string } | null>(null)
+  const [downloadingZip, setDownloadingZip] = useState(false)
 
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t) }, [toast])
   const showError = (err: unknown, fallback: string) => { const msg = err instanceof ApiClientError ? err.message : fallback; console.error('[grading]', msg, err); setToast({ type: 'error', message: msg }) }
@@ -91,6 +94,19 @@ export function GradingV2Page() {
     }
   }
 
+  const handleExportZip = async () => {
+    if (!assignmentId || !classId) return
+    setDownloadingZip(true)
+    try {
+      await api.downloadSubmissionsZip(assignmentId, classId)
+      setToast({ type: 'success', message: 'Đã tải ZIP bài nộp thành công.' })
+    } catch (err) {
+      showError(err, 'Không thể tải ZIP. Vui lòng thử lại.')
+    } finally {
+      setDownloadingZip(false)
+    }
+  }
+
   const save = useMutation({
     mutationFn: () => {
       const payload: { score: number; feedback?: string; feedbackFileId?: string; feedbackLink?: string } = { score: Number(score), feedback: feedback || undefined }
@@ -148,6 +164,11 @@ export function GradingV2Page() {
           {assignmentsList.map((a) => <option key={a.id} value={a.id}>{a.title}</option>)}
         </select>
         <SearchInput value={search} onChange={(e) => { setPage(0); setSearch(e.target.value) }} placeholder="Tìm học viên/bài tập" />
+        {(isTeacher || hasRole('CLASS_ADMIN')) && (
+          <Button type="button" variant="secondary" disabled={!classId || !assignmentId || downloadingZip} onClick={handleExportZip}>
+            <Download size={16} /> {downloadingZip ? 'Đang tạo ZIP...' : 'Tải tất cả bài nộp (.zip)'}
+          </Button>
+        )}
       </Card>
 
       <div className="grid gap-5 xl:grid-cols-[390px_1fr]">
@@ -196,6 +217,9 @@ export function GradingV2Page() {
               {selected.contentUrl && <a className="text-sm font-bold text-indigo-600" href={selected.contentUrl} target="_blank" rel="noreferrer">Mở URL bài làm</a>}
               {selected.fileId && (
                 <div className="flex items-center gap-2">
+                  <Button type="button" variant="secondary" onClick={() => setPreviewFile({ id: selected.fileId!, name: selected.fileName || 'Bài nộp', type: selected.fileContentType ?? undefined })}>
+                    <Eye size={16} /> Xem trước
+                  </Button>
                   <Button type="button" variant="secondary" onClick={handleDownloadSubmission}>
                     <Download size={16} /> Tải file bài làm
                   </Button>
@@ -213,6 +237,9 @@ export function GradingV2Page() {
                 <h3 className="text-sm font-bold text-slate-700">Tệp đính kèm phản hồi</h3>
                 {selected.feedbackFileId && selected.feedbackFileName && (
                   <div className="flex items-center gap-2">
+                    <Button type="button" variant="secondary" onClick={() => setPreviewFile({ id: selected.feedbackFileId!, name: selected.feedbackFileName || 'Phản hồi', type: selected.feedbackFileContentType ?? undefined })}>
+                      <Eye size={16} /> Xem trước
+                    </Button>
                     <Button type="button" variant="secondary" onClick={handleDownloadFeedback}>
                       <Download size={16} /> {selected.feedbackFileName}
                     </Button>
@@ -255,6 +282,7 @@ export function GradingV2Page() {
           {toast.message}
         </div>
       )}
+      {previewFile && <FilePreviewModal fileId={previewFile.id} fileName={previewFile.name} contentType={previewFile.type} onClose={() => setPreviewFile(null)} />}
     </div>
   )
 }

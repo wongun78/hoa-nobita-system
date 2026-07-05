@@ -21,16 +21,38 @@ import java.util.UUID;
 
 @Service
 public class FileService {
-    private static final long MAX_FILE_SIZE_BYTES = 10L * 1024L * 1024L;
+    // No file size limit — teacher wants unlimited uploads
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "application/pdf",
             "application/msword",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "application/zip",
+            "application/x-rar-compressed",
+            "application/octet-stream",
+            "text/plain",
+            "text/csv",
             "image/png",
             "image/jpeg",
-            "video/mp4"
+            "image/gif",
+            "image/webp",
+            "image/svg+xml",
+            "audio/mpeg",
+            "audio/wav",
+            "video/mp4",
+            "video/webm",
+            "video/quicktime"
     );
-    private static final Set<String> ALLOWED_EXTENSIONS = Set.of("pdf", "doc", "docx", "png", "jpg", "jpeg", "mp4");
+    private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
+            "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+            "txt", "csv", "zip", "rar", "7z",
+            "png", "jpg", "jpeg", "gif", "webp", "svg", "bmp",
+            "mp3", "wav", "ogg",
+            "mp4", "webm", "mov", "avi"
+    );
 
     private final FileRepository fileRepo;
     private final Path uploadDir;
@@ -49,10 +71,6 @@ public class FileService {
         if (file.isEmpty()) {
             throw BusinessException.badRequest("File is empty");
         }
-        if (file.getSize() > MAX_FILE_SIZE_BYTES) {
-            throw BusinessException.badRequest("File size must not exceed 10MB");
-        }
-
         String originalName = file.getOriginalFilename();
         validateAllowedFile(originalName, file.getContentType());
         String storedName = UUID.randomUUID() + "_" + (originalName != null ? originalName : "file");
@@ -83,7 +101,7 @@ public class FileService {
         boolean allowedType = contentType != null && ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase(Locale.ROOT));
         boolean allowedExtension = ALLOWED_EXTENSIONS.contains(extension);
         if (!allowedType || !allowedExtension) {
-            throw BusinessException.badRequest("Unsupported file type. Allowed: PDF, DOC, DOCX, PNG, JPG, MP4");
+            throw BusinessException.badRequest("Unsupported file type: " + contentType + " (" + extension + ")");
         }
     }
 

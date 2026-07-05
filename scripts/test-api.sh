@@ -26,11 +26,11 @@ login(){ local id="$1" pass="$2"; local r; r=$(api_post /auth/login '' "{\"ident
 need(){ command -v "$1" >/dev/null || { echo "$1 is required"; exit 1; }; }
 need curl; need jq
 log_info "Testing $BASE_URL"
-TEACHER=$(login teacher@hoanobita.com Password123!); ADMIN=$(login admin.chieu@hoanobita.com Password123!); STUDENT1=$(login student.chieu1@hoanobita.com Password123!); STUDENT2=$(login student.chieu2@hoanobita.com Password123!)
+TEACHER=$(login hoateacher@hoanobita.edu.vn Password123!); ADMIN=$(login kienadmin@hoanobita.edu.vn Password123!); STUDENT1=$(login c01@hoanobita.edu.vn Password123!); STUDENT2=$(login c02@hoanobita.edu.vn Password123!)
 [[ -z "$TEACHER" ]] && { log_error "Teacher login failed; is backend running?"; exit 1; }
 # Auth
 for item in "teacher:$TEACHER" "admin:$ADMIN" "student1:$STUDENT1" "student2:$STUDENT2"; do [[ -n "${item#*:}" ]] && { TOTAL=$((TOTAL+1)); PASSED=$((PASSED+1)); log_success "Login ${item%%:*} success"; } || { TOTAL=$((TOTAL+1)); FAILED=$((FAILED+1)); log_error "Login ${item%%:*}"; }; done
-R=$(api_post /auth/login '' '{"identifier":"teacher@hoanobita.com","password":"bad"}'); assert_status 'Login wrong password returns 401' "$(extract_status "$R")" 401
+R=$(api_post /auth/login '' '{"identifier":"hoateacher@hoanobita.edu.vn","password":"bad"}'); assert_status 'Login wrong password returns 401' "$(extract_status "$R")" 401
 R=$(api_get /auth/me); assert_status 'Anonymous /auth/me returns 401' "$(extract_status "$R")" 401
 R=$(api_get /auth/me "$TEACHER"); assert_status 'Authenticated /auth/me returns 200' "$(extract_status "$R")" 200
 # Dashboard role-scoped

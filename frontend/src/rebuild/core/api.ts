@@ -174,6 +174,7 @@ export const api = {
   updateGrade: (gradeId: string, payload: { score: number; feedback?: string; feedbackFileId?: string; feedbackLink?: string }) => patchApi<GradeItem>(`/grades/${gradeId}`, payload),
   requestResubmit: (submissionId: string) => postApi<null>(`/submissions/${submissionId}/request-resubmit`),
   bulkGrade: (assignmentId: string, grades: Array<{ submissionId: string; score: number; feedback?: string; feedbackFileId?: string; feedbackLink?: string }>) => postApi<{ gradedCount: number; failedCount: number; errors: unknown[] }>(`/assignments/${assignmentId}/submissions/bulk-grade`, { grades }),
+  downloadSubmissionsZip: (assignmentId: string, classId: string) => downloadBlobToFile(`/assignments/${assignmentId}/submissions/export-zip`, `submissions-${assignmentId}.zip`, { classId }),
 
   notificationsPage: (params?: QueryParams) => getApi<PageResponse<NotificationItem> | NotificationItem[]>('/notifications', params),
   notifications: async (params?: QueryParams) => normalizeList(await api.notificationsPage(params)),
@@ -201,6 +202,7 @@ export const api = {
     return postApi<FileItem>('/files/upload', form)
   },
   fileMetadata: (fileId: string) => getApi<FileItem>(`/files/${fileId}`),
+  previewFileUrl: (fileId: string) => `${API_BASE_URL}/files/${fileId}/preview`,
   downloadFileUrl: (fileId: string) => `${API_BASE_URL}/files/${fileId}/download`,
   downloadFile: (fileId: string, filename = `file-${fileId}`) => downloadBlobToFile(`/files/${fileId}/download`, filename),
   downloadSubmissionFile: (submissionId: string, filename?: string) => downloadBlobToFile(`/submissions/${submissionId}/files/submission/download`, filename || `submission-${submissionId}`),

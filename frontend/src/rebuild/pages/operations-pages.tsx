@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, ExternalLink, FileText, Link2, Upload } from 'lucide-react'
+import { Download, ExternalLink, Eye, FileText, Link2, Upload } from 'lucide-react'
 import { api } from '../core/api'
+import { FilePreviewModal } from '../components/file-preview-modal'
 import { Button, Card, Input, TextArea } from '../layout/ui'
 import { EmptyState } from '../components/foundation'
 import { fmtDate, getStudentAvatarUrl, studentAvatarSeed } from './phase2-utils'
@@ -23,6 +24,7 @@ function StatusPill({ children }: Readonly<{ children: React.ReactNode }>) {
 
 export function MaterialsPage() {
   const [classId, setClassId] = useState('')
+  const [previewFile, setPreviewFile] = useState<{ id: string; name: string; type?: string } | null>(null)
   const classes = useQuery({ queryKey: ['classes', 'materials-filter'], queryFn: () => api.classes() })
   const materials = useQuery({ queryKey: ['materials', classId], queryFn: () => api.materialsByClass(classId), enabled: Boolean(classId) })
   const classList = classes.data ?? []
@@ -50,12 +52,13 @@ export function MaterialsPage() {
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               {item.externalUrl && <a className="inline-flex min-h-10 items-center gap-1 rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700 transition hover:bg-sky-50" href={item.externalUrl} target="_blank" rel="noreferrer"><ExternalLink size={14} />Mở liên kết</a>}
-              {item.fileId && <a className="inline-flex min-h-10 items-center gap-1 rounded-2xl bg-indigo-600 px-4 text-sm font-bold text-white transition hover:bg-indigo-700" href={api.downloadFileUrl(item.fileId)}><Download size={14} />Tải xuống</a>}
+              {item.fileId && <><a className="inline-flex min-h-10 items-center gap-1 rounded-2xl bg-indigo-600 px-4 text-sm font-bold text-white transition hover:bg-indigo-700" href={api.downloadFileUrl(item.fileId)}><Download size={14} />Tải xuống</a><button type="button" className="inline-flex min-h-10 items-center gap-1 rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700 transition hover:bg-sky-50" onClick={async () => { const meta = await api.fileMetadata(item.fileId!); setPreviewFile({ id: meta.id, name: meta.originalFileName, type: meta.contentType }) }}><Eye size={14} />Xem trước</button></>}
             </div>
           </Card>
         ))}
         {classId && !materials.isLoading && (materials.data ?? []).length === 0 && <EmptyState title="Chưa có tài liệu" description="Tài liệu học tập sẽ xuất hiện tại đây khi giáo viên tải lên." />}
       </div>
+      {previewFile && <FilePreviewModal fileId={previewFile.id} fileName={previewFile.name} contentType={previewFile.type} onClose={() => setPreviewFile(null)} />}
     </div>
   )
 }

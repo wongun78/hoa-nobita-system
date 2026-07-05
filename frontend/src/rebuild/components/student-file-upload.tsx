@@ -5,17 +5,39 @@ import { api } from '../core/api'
 import type { FileItem } from '../core/types'
 import { Button } from '../layout/ui'
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024
+const MAX_FILE_SIZE = 1024 * 1024 * 1024 // 1GB soft limit (backend handles actual validation)
 const ACCEPTED_TYPES = new Set([
   'application/pdf',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/zip',
+  'application/x-rar-compressed',
+  'application/octet-stream',
+  'text/plain',
+  'text/csv',
   'image/png',
   'image/jpeg',
+  'image/gif',
+  'image/webp',
+  'image/svg+xml',
+  'audio/mpeg',
+  'audio/wav',
   'video/mp4',
+  'video/webm',
+  'video/quicktime',
 ])
 
-const ACCEPTED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.png', '.jpg', '.jpeg', '.mp4']
+const ACCEPTED_EXTENSIONS = [
+  '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+  '.txt', '.csv', '.zip', '.rar', '.7z',
+  '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp',
+  '.mp3', '.wav', '.ogg',
+  '.mp4', '.webm', '.mov', '.avi',
+]
 
 type UploadState = 'idle' | 'ready' | 'uploading' | 'uploaded' | 'error'
 
@@ -28,12 +50,13 @@ type StudentFileUploadProps = Readonly<{
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`
 }
 
 function validateFile(file: File) {
-  if (file.size > MAX_FILE_SIZE) return 'Tệp tối đa 10MB.'
-  if (!ACCEPTED_TYPES.has(file.type)) return 'Chỉ hỗ trợ PDF, DOC, DOCX, PNG, JPG/JPEG, MP4.'
+  if (file.size > MAX_FILE_SIZE) return 'Tệp quá lớn (tối đa 1GB).'
+  if (!ACCEPTED_TYPES.has(file.type) && file.type !== '') return null // allow unknown types
   return null
 }
 
@@ -132,7 +155,7 @@ export function StudentFileUpload({ value, onUploaded, disabled }: StudentFileUp
           <UploadCloud size={24} />
         </div>
         <div className="mt-3 text-sm font-black text-slate-900">Kéo thả tệp hoặc bấm để chọn</div>
-        <div className="mt-1 text-xs leading-5 text-slate-500">{helperText} · tối đa 10MB</div>
+        <div className="mt-1 text-xs leading-5 text-slate-500">{helperText} · không giới hạn dung lượng</div>
       </button>
 
       {previewName && (
