@@ -257,7 +257,17 @@ export function StudentAssignmentDetailPage() {
 
           {mySubmission && editable && !isEditing && (
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button type="button" variant="secondary" className="min-h-11" onClick={() => { setIsEditing(true); setContentText(mySubmission.contentText || ''); setContentUrl(mySubmission.contentUrl || '') }}>Sửa bài nộp</Button>
+              <Button type="button" variant="secondary" className="min-h-11" onClick={() => {
+                setIsEditing(true)
+                setContentText(mySubmission.contentText || '')
+                setContentUrl(mySubmission.contentUrl || '')
+                const existingFiles = mySubmission.fileMetas && mySubmission.fileMetas.length > 0
+                  ? mySubmission.fileMetas.map(fm => ({ id: fm.fileId, originalFileName: fm.fileName || 'file', contentType: fm.contentType || 'application/octet-stream', fileSize: fm.fileSize || 0 }))
+                  : mySubmission.fileId
+                    ? [{ id: mySubmission.fileId, originalFileName: mySubmission.fileName || 'file', contentType: mySubmission.fileContentType || 'application/octet-stream', fileSize: mySubmission.fileSize || 0 }]
+                    : []
+                setUploadedFiles(existingFiles as FileItem[])
+              }}>Sửa bài nộp</Button>
               <Button type="button" variant="ghost" className="min-h-11 text-rose-600" onClick={() => setConfirmDelete(true)} disabled={remove.isPending}><Trash2 size={16} />Xoá</Button>
             </div>
           )}
