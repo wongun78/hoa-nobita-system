@@ -64,7 +64,7 @@ function SubmissionSummary({ assignment, submission }: Readonly<{ assignment: As
             {fileMetas.map((fm) => (
               <span key={fm.fileId} className="inline-flex items-center gap-2">
                 <Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(fm.fileId, fm.fileName || submission.assignmentTitle)}><Download size={16} />{fm.fileName || 'Tải tệp'}</Button>
-                <Button type="button" variant="secondary" className="min-h-11" onClick={() => setPreviewFile({ id: fm.fileId, name: fm.fileName || submission.assignmentTitle, type: fm.contentType ?? undefined })}><Eye size={16} /></Button>
+                <Button type="button" variant="secondary" className="min-h-11" onClick={() => setPreviewFile({ id: fm.fileId, name: fm.fileName || submission.assignmentTitle, type: fm.contentType ?? undefined })}><Eye size={16} />Xem trước</Button>
               </span>
             ))}
           </div>
@@ -76,10 +76,11 @@ function SubmissionSummary({ assignment, submission }: Readonly<{ assignment: As
         <div className="mt-3 rounded-2xl border border-indigo-100 bg-indigo-50 p-3 space-y-2">
           <h3 className="text-xs font-bold text-indigo-700">Tệp đính kèm từ giáo viên</h3>
           {submission.feedbackFileId && (
-            <><Button type="button" variant="secondary" className="min-h-9" onClick={() => setPreviewFile({ id: submission.feedbackFileId!, name: submission.feedbackFileName || 'Phản hồi', type: submission.feedbackFileContentType ?? undefined })}>
-              <Eye size={14} /> Xem trước
-            </Button><Button type="button" variant="secondary" className="min-h-9" onClick={() => api.downloadFeedbackFile(submission.id, submission.feedbackFileName || `feedback-${submission.id}`)}>
-              <Download size={14} /> {submission.feedbackFileName || 'Tải tệp phản hồi'}
+            <><Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFeedbackFile(submission.id, submission.feedbackFileName || `feedback-${submission.id}`)}>
+              <Download size={16} /> {submission.feedbackFileName || 'Tải tệp phản hồi'}
+            </Button>
+            <Button type="button" variant="secondary" className="min-h-11" onClick={() => setPreviewFile({ id: submission.feedbackFileId!, name: submission.feedbackFileName || 'Phản hồi', type: submission.feedbackFileContentType ?? undefined })}>
+              <Eye size={16} /> Xem trước
             </Button></>
           )}
           {submission.feedbackLink && <a className="inline-flex items-center gap-1 text-sm font-bold text-indigo-600" href={submission.feedbackLink} target="_blank" rel="noreferrer"><ExternalLink size={14} /> {submission.feedbackLink}</a>}
