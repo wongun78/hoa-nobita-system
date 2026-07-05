@@ -65,7 +65,7 @@ export function StudentGradesPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <MetricCard label="Điểm trung bình" value={overallAverage == null ? '-' : overallAverage.toFixed(1)} hint="Tất cả bài đã chấm" icon={<TrendingUp size={20} />} tone="emerald" />
         <MetricCard label="Bài đã chấm" value={graded.length} hint="Có điểm hoặc phản hồi" icon={<Award size={20} />} tone="indigo" />
         <MetricCard label="Số lớp có điểm" value={summaries.length} hint="Tổng hợp theo lớp" icon={<BarChart3 size={20} />} tone="sky" />

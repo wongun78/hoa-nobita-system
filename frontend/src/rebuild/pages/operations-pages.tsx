@@ -12,7 +12,7 @@ function SectionHeader({ title, eyebrow, description }: Readonly<{ title: string
   return (
     <div className="rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-50 via-sky-50 to-pink-50 p-6 shadow-sm">
       {eyebrow && <div className="text-xs font-bold uppercase tracking-[0.24em] text-indigo-500">{eyebrow}</div>}
-      <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">{title}</h1>
+      <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">{title}</h1>
       {description && <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{description}</p>}
     </div>
   )

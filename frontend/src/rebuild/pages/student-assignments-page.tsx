@@ -67,7 +67,7 @@ function AssignmentCard({ item, submission }: Readonly<{ item: AssignmentItem; s
               {late && <span className="inline-flex min-h-8 items-center gap-1 rounded-full bg-rose-100 px-3 text-rose-700"><AlertTriangle size={14} /> {submission ? 'Nộp muộn' : 'Chưa nộp quá hạn'}</span>}
             </div>
           </div>
-          <div className="flex min-w-36 flex-col items-start gap-2 sm:items-end">
+          <div className="flex flex-col items-start gap-2 sm:min-w-36 sm:items-end">
             <span className={`inline-flex min-h-9 items-center rounded-full border px-3 text-xs font-black ${stateToneClass(state)}`}>{state}</span>
             <span className="text-xs font-semibold text-slate-500">{locked ? 'Đã khóa sửa' : submission ? 'Có thể sửa khi còn hạn' : 'Sẵn sàng nộp'}</span>
             {submission?.score != null && <span className="text-sm font-black text-emerald-600">{submission.score}/{submission.maxScore ?? item.maxScore}</span>}
@@ -137,7 +137,7 @@ export function StudentAssignmentsPage() {
         </div>
       </FilterBar>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <MetricCard label="Tổng bài" value={assignmentItems.length} hint="Bài tập từ tất cả lớp" icon={<FilePenLine size={20} />} tone="indigo" />
         <MetricCard label="Chưa nộp" value={assignmentItems.filter((item) => getStudentState(item, submissionByAssignment.get(item.id)) === 'CHƯA NỘP').length} hint="Cần hoàn thiện" icon={<Clock3 size={20} />} tone="amber" />
         <MetricCard label="Đã chấm" value={assignmentItems.filter((item) => getStudentState(item, submissionByAssignment.get(item.id)) === 'ĐÃ CHẤM').length} hint="Có điểm hoặc phản hồi" icon={<CheckCircle2 size={20} />} tone="emerald" />
