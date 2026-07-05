@@ -15,6 +15,7 @@ import com.hoanobita.topikplatform.common.SecurityUtils;
 import com.hoanobita.topikplatform.file.entity.StoredFile;
 import com.hoanobita.topikplatform.file.repository.FileRepository;
 import com.hoanobita.topikplatform.grading.repository.GradeRepository;
+import com.hoanobita.topikplatform.submission.dto.SubmissionFileMeta;
 import com.hoanobita.topikplatform.submission.dto.SubmissionRequest;
 import com.hoanobita.topikplatform.submission.dto.SubmissionResponse;
 import com.hoanobita.topikplatform.submission.entity.Submission;
@@ -29,6 +30,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -101,7 +105,9 @@ public class SubmissionService {
         Assignment a = assignment(assignmentId);
         permissions.requireAccessClass(user, a.getClassId());
         if (a.getStatus() != AssignmentStatus.PUBLISHED) throw BusinessException.badRequest("Assignment is not open for submission");
-        if (blank(req.contentText()) && blank(req.contentUrl()) && req.fileId() == null) throw BusinessException.badRequest("Submission must include text, URL, or file");
+        List<UUID> allFileIds = mergeFileIds(req);
+        if (blank(req.contentText()) && blank(req.contentUrl()) && allFileIds.isEmpty()) throw BusinessException.badRequest("Submission must include text, URL, or file");
+        if (allFileIds.size() > MAX_SUBMISSION_FILES) throw BusinessException.badRequest("Tối đa " + MAX_SUBMISSION_FILES + " tệp cho mỗi bài nộp");
         repo.findByAssignmentIdAndStudentId(assignmentId, user.getId()).ifPresent(existing -> {
             if (existing.getStatus() == SubmissionStatus.GRADED || existing.getStatus() == SubmissionStatus.SUBMITTED || existing.getStatus() == SubmissionStatus.LATE) {
                 throw BusinessException.conflict("Submission already exists");
@@ -112,7 +118,8 @@ public class SubmissionService {
         s.setStudentId(user.getId());
         s.setContentText(req.contentText());
         s.setContentUrl(req.contentUrl());
-        s.setFileId(req.fileId());
+        s.setFileId(allFileIds.isEmpty() ? null : allFileIds.get(0));
+        s.setFileIds(encodeFileIds(allFileIds));
         s.setSubmittedAt(Instant.now());
         s.setStatus(a.getDueAt() != null && Instant.now().isAfter(a.getDueAt()) ? SubmissionStatus.LATE : SubmissionStatus.SUBMITTED);
         repo.save(s);
@@ -128,10 +135,13 @@ public class SubmissionService {
         if (s.getStatus() == SubmissionStatus.GRADED) throw BusinessException.badRequest("Graded submission cannot be edited");
         Assignment a = assignment(s.getAssignmentId());
         if (a.getStatus() != AssignmentStatus.PUBLISHED) throw BusinessException.badRequest("Assignment is not open for submission updates");
-        if (blank(req.contentText()) && blank(req.contentUrl()) && req.fileId() == null) throw BusinessException.badRequest("Submission must include text, URL, or file");
+        List<UUID> allFileIds = mergeFileIds(req);
+        if (blank(req.contentText()) && blank(req.contentUrl()) && allFileIds.isEmpty()) throw BusinessException.badRequest("Submission must include text, URL, or file");
+        if (allFileIds.size() > MAX_SUBMISSION_FILES) throw BusinessException.badRequest("Tối đa " + MAX_SUBMISSION_FILES + " tệp cho mỗi bài nộp");
         s.setContentText(req.contentText());
         s.setContentUrl(req.contentUrl());
-        s.setFileId(req.fileId());
+        s.setFileId(allFileIds.isEmpty() ? null : allFileIds.get(0));
+        s.setFileIds(encodeFileIds(allFileIds));
         s.setSubmittedAt(Instant.now());
         s.setStatus(a.getDueAt() != null && Instant.now().isAfter(a.getDueAt()) ? SubmissionStatus.LATE : SubmissionStatus.SUBMITTED);
         repo.save(s);
@@ -162,6 +172,29 @@ public class SubmissionService {
 
     private boolean blank(String v) { return v == null || v.isBlank(); }
 
+    private static final int MAX_SUBMISSION_FILES = 5;
+
+    private List<UUID> mergeFileIds(SubmissionRequest req) {
+        List<UUID> ids = new ArrayList<>();
+        if (req.fileIds() != null) ids.addAll(req.fileIds());
+        if (req.fileId() != null && !ids.contains(req.fileId())) ids.add(req.fileId());
+        return ids;
+    }
+
+    private String encodeFileIds(List<UUID> fileIds) {
+        if (fileIds == null || fileIds.isEmpty()) return null;
+        return String.join(",", fileIds.stream().map(UUID::toString).toList());
+    }
+
+    private List<UUID> decodeFileIds(String fileIdsStr) {
+        if (fileIdsStr == null || fileIdsStr.isBlank()) return Collections.emptyList();
+        List<UUID> result = new ArrayList<>();
+        for (String s : fileIdsStr.split(",")) {
+            try { result.add(UUID.fromString(s.trim())); } catch (IllegalArgumentException ignored) {}
+        }
+        return result;
+    }
+
     public SubmissionResponse toResponse(Submission s) {
         var grade = grades.findBySubmissionId(s.getId()).orElse(null);
         var assignment = assignments.findById(s.getAssignmentId()).orElse(null);
@@ -170,6 +203,15 @@ public class SubmissionService {
 
         // Submission file metadata
         StoredFile subFile = s.getFileId() != null ? files.findById(s.getFileId()).orElse(null) : null;
+        // Multi-file metadata
+        List<UUID> decodedFileIds = decodeFileIds(s.getFileIds());
+        if (decodedFileIds.isEmpty() && s.getFileId() != null) {
+            decodedFileIds = List.of(s.getFileId());
+        }
+        List<SubmissionFileMeta> fileMetas = new ArrayList<>();
+        for (UUID fid : decodedFileIds) {
+            files.findById(fid).ifPresent(sf -> fileMetas.add(new SubmissionFileMeta(fid, sf.getOriginalFileName(), sf.getContentType(), sf.getFileSize())));
+        }
         // Feedback file metadata
         StoredFile fbFile = s.getFeedbackFileId() != null ? files.findById(s.getFeedbackFileId()).orElse(null) : null;
 
@@ -183,6 +225,7 @@ public class SubmissionService {
                 s.getContentText(),
                 s.getContentUrl(),
                 s.getFileId(),
+                decodedFileIds,
                 s.getStatus().name(),
                 s.getSubmittedAt(),
                 grade == null ? null : grade.getId(),
@@ -193,6 +236,7 @@ public class SubmissionService {
                 subFile != null ? subFile.getOriginalFileName() : null,
                 subFile != null ? subFile.getContentType() : null,
                 subFile != null ? subFile.getFileSize() : null,
+                fileMetas,
                 // Feedback attachments
                 s.getFeedbackFileId(),
                 s.getFeedbackLink(),

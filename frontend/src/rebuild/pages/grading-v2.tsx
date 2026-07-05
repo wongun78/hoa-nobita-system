@@ -78,14 +78,6 @@ export function GradingV2Page() {
     }
   }
 
-  const handleDownloadSubmission = async () => {
-    try {
-      await api.downloadSubmissionFile(selected!.id, selected!.fileName || `submission-${selected!.id}`)
-    } catch (err) {
-      showError(err, 'Không thể tải file bài nộp.')
-    }
-  }
-
   const handleDownloadFeedback = async () => {
     try {
       await api.downloadFeedbackFile(selected!.id, selected!.feedbackFileName || `feedback-${selected!.id}`)
@@ -215,17 +207,28 @@ export function GradingV2Page() {
 
               <div className="rounded-3xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">{selected.contentText || 'Không có nội dung văn bản.'}</div>
               {selected.contentUrl && <a className="text-sm font-bold text-indigo-600" href={selected.contentUrl} target="_blank" rel="noreferrer">Mở URL bài làm</a>}
-              {selected.fileId && (
-                <div className="flex items-center gap-2">
-                  <Button type="button" variant="secondary" onClick={() => setPreviewFile({ id: selected.fileId!, name: selected.fileName || 'Bài nộp', type: selected.fileContentType ?? undefined })}>
-                    <Eye size={16} /> Xem trước
-                  </Button>
-                  <Button type="button" variant="secondary" onClick={handleDownloadSubmission}>
-                    <Download size={16} /> Tải file bài làm
-                  </Button>
-                  {selected.fileName && <span className="text-xs text-slate-500">{selected.fileName} ({selected.fileSize ? Math.round(selected.fileSize / 1024) + ' KB' : ''})</span>}
-                </div>
-              )}
+              {(() => {
+                const fileMetas = selected.fileMetas && selected.fileMetas.length > 0
+                  ? selected.fileMetas
+                  : selected.fileId
+                    ? [{ fileId: selected.fileId, fileName: selected.fileName, contentType: selected.fileContentType }]
+                    : []
+                if (fileMetas.length === 0) return null
+                return (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {fileMetas.map((fm) => (
+                      <span key={fm.fileId} className="inline-flex items-center gap-2">
+                        <Button type="button" variant="secondary" onClick={() => setPreviewFile({ id: fm.fileId, name: fm.fileName || 'Bài nộp', type: fm.contentType ?? undefined })}>
+                          <Eye size={16} /> {fm.fileName || 'Xem trước'}
+                        </Button>
+                        <Button type="button" variant="secondary" onClick={() => api.downloadFile(fm.fileId, fm.fileName || `submission-${selected.id}`)}>
+                          <Download size={16} />
+                        </Button>
+                      </span>
+                    ))}
+                  </div>
+                )
+              })()}
 
               <div className="grid gap-3 md:grid-cols-[180px_1fr]">
                 <Input type="number" min="0" max={selected.maxScore ?? 100} value={score} onChange={(e) => setScore(e.target.value)} placeholder="Điểm" />

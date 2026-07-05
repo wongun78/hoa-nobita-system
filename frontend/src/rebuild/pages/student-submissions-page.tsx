@@ -74,7 +74,19 @@ function StudentSubmissionDetail({ submissionId }: Readonly<{ submissionId: stri
           {item.contentText ? <div className="mt-4 whitespace-pre-line rounded-2xl bg-slate-50 p-4 text-sm leading-7 text-slate-700">{item.contentText}</div> : <EmptyState title="Không có nội dung văn bản" description="Bài nộp có thể dùng URL hoặc tệp đính kèm." />}
           <div className="mt-4 flex flex-wrap gap-2">
             {item.contentUrl && <a className="inline-flex min-h-11 items-center rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700" href={item.contentUrl} target="_blank" rel="noreferrer">Mở URL</a>}
-            {item.fileId && <><Button type="button" variant="secondary" className="min-h-11" onClick={() => setPreviewFile({ id: item.fileId!, name: item.fileName || item.assignmentTitle, type: item.fileContentType ?? undefined })}><Eye size={16} />Xem trước</Button><Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadSubmissionFile(item.id, item.fileName || item.assignmentTitle)}><Download size={16} />Tải tệp</Button></>}
+            {(() => {
+              const fileMetas = item.fileMetas && item.fileMetas.length > 0
+                ? item.fileMetas
+                : item.fileId
+                  ? [{ fileId: item.fileId, fileName: item.fileName, contentType: item.fileContentType }]
+                  : []
+              return fileMetas.map((fm) => (
+                <span key={fm.fileId} className="inline-flex items-center gap-2">
+                  <Button type="button" variant="secondary" className="min-h-11" onClick={() => setPreviewFile({ id: fm.fileId, name: fm.fileName || item.assignmentTitle, type: fm.contentType ?? undefined })}><Eye size={16} />{fm.fileName || 'Xem trước'}</Button>
+                  <Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(fm.fileId, fm.fileName || item.assignmentTitle)}><Download size={16} /></Button>
+                </span>
+              ))
+            })()}
           </div>
           {(item.feedbackFileId || item.feedbackLink) && (
             <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-3 space-y-2">

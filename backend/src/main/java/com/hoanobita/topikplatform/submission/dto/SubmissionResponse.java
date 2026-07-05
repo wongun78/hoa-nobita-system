@@ -2,6 +2,7 @@ package com.hoanobita.topikplatform.submission.dto;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public record SubmissionResponse(
@@ -14,6 +15,7 @@ public record SubmissionResponse(
         String contentText,
         String contentUrl,
         UUID fileId,
+        List<UUID> fileIds,
         String status,
         Instant submittedAt,
         UUID gradeId,
@@ -24,6 +26,7 @@ public record SubmissionResponse(
         String fileName,
         String fileContentType,
         Long fileSize,
+        List<SubmissionFileMeta> fileMetas,
         // Feedback attachments
         UUID feedbackFileId,
         String feedbackLink,

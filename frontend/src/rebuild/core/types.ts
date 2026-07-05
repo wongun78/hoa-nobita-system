@@ -109,6 +109,7 @@ export type SubmissionItem = {
   contentText?: string | null
   contentUrl?: string | null
   fileId?: string | null
+  fileIds?: string[] | null
   status: SubmissionStatus
   submittedAt: string
   gradeId?: string | null
@@ -119,6 +120,7 @@ export type SubmissionItem = {
   fileName?: string | null
   fileContentType?: string | null
   fileSize?: number | null
+  fileMetas?: Array<{ fileId: string; fileName?: string | null; contentType?: string | null; fileSize?: number | null }> | null
   // Feedback attachments
   feedbackFileId?: string | null
   feedbackLink?: string | null

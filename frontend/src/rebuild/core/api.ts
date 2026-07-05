@@ -160,9 +160,9 @@ export const api = {
 
   submissionsByAssignmentPage: (assignmentId: string, params?: QueryParams) => getApi<PageResponse<SubmissionItem> | SubmissionItem[]>(`/assignments/${assignmentId}/submissions`, params),
   submissionsByAssignment: async (assignmentId: string, params?: QueryParams) => normalizeList(await api.submissionsByAssignmentPage(assignmentId, params)),
-  submitAssignment: (assignmentId: string, payload: { contentText?: string; contentUrl?: string; fileId?: string }) => postApi<SubmissionItem>(`/assignments/${assignmentId}/submissions`, payload),
+  submitAssignment: (assignmentId: string, payload: { contentText?: string; contentUrl?: string; fileId?: string; fileIds?: string[] }) => postApi<SubmissionItem>(`/assignments/${assignmentId}/submissions`, payload),
   submissionById: (submissionId: string) => getApi<SubmissionItem>(`/submissions/${submissionId}`),
-  updateSubmission: (submissionId: string, payload: Partial<{ contentText: string; contentUrl: string; fileId: string }>) => patchApi<SubmissionItem>(`/submissions/${submissionId}`, payload),
+  updateSubmission: (submissionId: string, payload: Partial<{ contentText: string; contentUrl: string; fileId: string; fileIds: string[] }>) => patchApi<SubmissionItem>(`/submissions/${submissionId}`, payload),
   deleteSubmission: (submissionId: string) => deleteApi<null>(`/submissions/${submissionId}`),
   mySubmissionsPage: (params?: QueryParams) => getApi<PageResponse<SubmissionItem> | SubmissionItem[]>('/me/submissions', params),
   mySubmissions: async (params?: QueryParams) => normalizeList(await api.mySubmissionsPage(params)),

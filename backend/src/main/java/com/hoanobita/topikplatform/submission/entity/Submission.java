@@ -25,6 +25,9 @@ public class Submission extends BaseEntity {
     @Column(name = "file_id")
     private UUID fileId;
 
+    @Column(name = "file_ids")
+    private String fileIds;
+
     @Column(name = "feedback_file_id")
     private UUID feedbackFileId;
 
@@ -49,6 +52,8 @@ public class Submission extends BaseEntity {
     public void setContentUrl(String contentUrl) { this.contentUrl = contentUrl; }
     public UUID getFileId() { return fileId; }
     public void setFileId(UUID fileId) { this.fileId = fileId; }
+    public String getFileIds() { return fileIds; }
+    public void setFileIds(String fileIds) { this.fileIds = fileIds; }
     public UUID getFeedbackFileId() { return feedbackFileId; }
     public void setFeedbackFileId(UUID feedbackFileId) { this.feedbackFileId = feedbackFileId; }
     public String getFeedbackLink() { return feedbackLink; }

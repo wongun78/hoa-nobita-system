@@ -5,7 +5,7 @@ import { AlertTriangle, CheckCircle2, Clock3, Download, ExternalLink, Eye, Spark
 import { api } from '../core/api'
 import { ConfirmDialog, EmptyState, ErrorState, SkeletonCard, StatusBadge } from '../components/foundation'
 import { FilePreviewModal } from '../components/file-preview-modal'
-import { StudentFileUpload } from '../components/student-file-upload'
+import { MultiFileUpload } from '../components/multi-file-upload'
 import { Button, Card, Input, TextArea } from '../layout/ui'
 import { fmtDate } from './phase2-utils'
 import type { AssignmentItem, FileItem, PageResponse, SubmissionItem } from '../core/types'
@@ -52,7 +52,24 @@ function SubmissionSummary({ assignment, submission }: Readonly<{ assignment: As
       </div>
       {submission.contentText && <div className="mt-4 rounded-2xl bg-white p-3 text-sm leading-6 text-slate-700">{submission.contentText}</div>}
       {submission.contentUrl && <a className="mt-3 inline-flex min-h-11 items-center rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700" href={submission.contentUrl} target="_blank" rel="noreferrer">Mở URL bài làm</a>}
-      {submission.fileId && <div className="mt-3 flex flex-wrap items-center gap-3"><Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(submission.fileId!, submission.fileName || submission.assignmentTitle)}><Download size={16} />Tải tệp bài làm</Button><Button type="button" variant="secondary" className="min-h-11" onClick={() => setPreviewFile({ id: submission.fileId!, name: submission.fileName || submission.assignmentTitle, type: submission.fileContentType ?? undefined })}><Eye size={16} />Xem trước</Button></div>}
+      {(() => {
+        const fileMetas = submission.fileMetas && submission.fileMetas.length > 0
+          ? submission.fileMetas
+          : submission.fileId
+            ? [{ fileId: submission.fileId, fileName: submission.fileName, contentType: submission.fileContentType }]
+            : []
+        if (fileMetas.length === 0) return null
+        return (
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            {fileMetas.map((fm) => (
+              <span key={fm.fileId} className="inline-flex items-center gap-2">
+                <Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(fm.fileId, fm.fileName || submission.assignmentTitle)}><Download size={16} />{fm.fileName || 'Tải tệp'}</Button>
+                <Button type="button" variant="secondary" className="min-h-11" onClick={() => setPreviewFile({ id: fm.fileId, name: fm.fileName || submission.assignmentTitle, type: fm.contentType ?? undefined })}><Eye size={16} /></Button>
+              </span>
+            ))}
+          </div>
+        )
+      })()}
       {previewFile && <FilePreviewModal fileId={previewFile.id} fileName={previewFile.name} contentType={previewFile.type} onClose={() => setPreviewFile(null)} />}
       {submission.feedback && <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-sm leading-6 text-emerald-800"><b>Nhận xét:</b> {submission.feedback}</div>}
       {(submission.feedbackFileId || submission.feedbackLink) && (
@@ -105,7 +122,7 @@ export function StudentAssignmentDetailPage() {
   const qc = useQueryClient()
   const [contentText, setContentText] = useState('')
   const [contentUrl, setContentUrl] = useState('')
-  const [uploadedFile, setUploadedFile] = useState<FileItem | null>(null)
+  const [uploadedFiles, setUploadedFiles] = useState<FileItem[]>([])
   const [isEditing, setIsEditing] = useState(false)
   const [successPulse, setSuccessPulse] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -124,7 +141,7 @@ export function StudentAssignmentDetailPage() {
   const resetForm = () => {
     setContentText('')
     setContentUrl('')
-    setUploadedFile(null)
+    setUploadedFiles([])
     setIsEditing(false)
   }
 
@@ -138,12 +155,12 @@ export function StudentAssignmentDetailPage() {
   }
 
   const submit = useMutation({
-    mutationFn: () => api.submitAssignment(assignmentId, { contentText: contentText || undefined, contentUrl: contentUrl || undefined, fileId: uploadedFile?.id }),
+    mutationFn: () => api.submitAssignment(assignmentId, { contentText: contentText || undefined, contentUrl: contentUrl || undefined, fileIds: uploadedFiles.length > 0 ? uploadedFiles.map((f) => f.id) : undefined }),
     onSuccess: () => onSuccess('Nộp bài thành công. Giáo viên sẽ nhận được bài làm của bạn.'),
   })
 
   const update = useMutation({
-    mutationFn: () => api.updateSubmission(mySubmission!.id, { contentText: contentText || undefined, contentUrl: contentUrl || undefined, fileId: uploadedFile?.id }),
+    mutationFn: () => api.updateSubmission(mySubmission!.id, { contentText: contentText || undefined, contentUrl: contentUrl || undefined, fileIds: uploadedFiles.length > 0 ? uploadedFiles.map((f) => f.id) : undefined }),
     onSuccess: () => onSuccess('Đã cập nhật bài nộp.'),
   })
 
@@ -171,7 +188,7 @@ export function StudentAssignmentDetailPage() {
 
   const canSubmitNew = !mySubmission && assignment.data.status === 'PUBLISHED'
   const locked = mySubmission && !editable
-  const submitDisabled = (!contentText.trim() && !contentUrl.trim() && !uploadedFile) || submit.isPending || update.isPending
+  const submitDisabled = (!contentText.trim() && !contentUrl.trim() && uploadedFiles.length === 0) || submit.isPending || update.isPending
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
@@ -233,7 +250,7 @@ export function StudentAssignmentDetailPage() {
             >
               <TextArea rows={7} value={contentText} onChange={(event) => setContentText(event.target.value)} placeholder="Nhập nội dung bài làm..." />
               <Input value={contentUrl} onChange={(event) => setContentUrl(event.target.value)} placeholder="URL bài làm ngoài (nếu có)" />
-              <StudentFileUpload value={uploadedFile} onUploaded={setUploadedFile} disabled={submit.isPending || update.isPending} />
+              <MultiFileUpload value={uploadedFiles} onChange={setUploadedFiles} disabled={submit.isPending || update.isPending} maxFiles={5} />
               <Button type="submit" className="min-h-11 w-full" disabled={submitDisabled}>{mySubmission ? 'Lưu bài nộp' : 'Gửi bài'}</Button>
             </form>
           )}

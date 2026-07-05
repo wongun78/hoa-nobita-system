@@ -11,6 +11,7 @@ public class AtLeastOneFieldValidator implements ConstraintValidator<AtLeastOneF
         if (value == null) return false;
         return (value.contentText() != null && !value.contentText().isBlank())
                 || (value.contentUrl() != null && !value.contentUrl().isBlank())
-                || value.fileId() != null;
+                || value.fileId() != null
+                || (value.fileIds() != null && !value.fileIds().isEmpty());
     }
 }
