@@ -82,8 +82,8 @@ function StudentSubmissionDetail({ submissionId }: Readonly<{ submissionId: stri
                   : []
               return fileMetas.map((fm) => (
                 <span key={fm.fileId} className="inline-flex items-center gap-2">
-                  <Button type="button" variant="secondary" className="min-h-11" onClick={() => setPreviewFile({ id: fm.fileId, name: fm.fileName || item.assignmentTitle, type: fm.contentType ?? undefined })}><Eye size={16} />{fm.fileName || 'Xem trước'}</Button>
-                  <Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(fm.fileId, fm.fileName || item.assignmentTitle)}><Download size={16} /></Button>
+                  <Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(fm.fileId, fm.fileName || item.assignmentTitle)}><Download size={16} />{fm.fileName || 'Tải tệp'}</Button>
+                  <Button type="button" variant="secondary" className="min-h-11" onClick={() => setPreviewFile({ id: fm.fileId, name: fm.fileName || item.assignmentTitle, type: fm.contentType ?? undefined })}><Eye size={16} />Xem trước</Button>
                 </span>
               ))
             })()}
@@ -92,11 +92,15 @@ function StudentSubmissionDetail({ submissionId }: Readonly<{ submissionId: stri
             <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-3 space-y-2">
               <h3 className="text-xs font-bold text-indigo-700">Tệp đính kèm từ giáo viên</h3>
               {item.feedbackFileId && (
-                <Button type="button" variant="secondary" className="min-h-9" onClick={() => api.downloadFeedbackFile(item.id, item.feedbackFileName || `feedback-${item.id}`)}>
-                  <Download size={14} /> {item.feedbackFileName || 'Tải tệp phản hồi'}
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFeedbackFile(item.id, item.feedbackFileName || `feedback-${item.id}`)}>
+                    <Download size={16} /> {item.feedbackFileName || 'Tải tệp phản hồi'}
+                  </Button>
+                  <Button type="button" variant="secondary" className="min-h-11" onClick={() => setPreviewFile({ id: item.feedbackFileId!, name: item.feedbackFileName || 'Phản hồi', type: item.feedbackFileContentType ?? undefined })}>
+                    <Eye size={16} /> Xem trước
+                  </Button>
+                </div>
               )}
-              {item.feedbackFileId && <Button type="button" variant="secondary" className="min-h-9" onClick={() => setPreviewFile({ id: item.feedbackFileId!, name: item.feedbackFileName || 'Phản hồi', type: item.feedbackFileContentType ?? undefined })}><Eye size={14} /> Xem trước</Button>}
               {item.feedbackLink && <a className="inline-flex items-center gap-1 text-sm font-bold text-indigo-600" href={item.feedbackLink} target="_blank" rel="noreferrer"><ExternalLink size={14} /> {item.feedbackLink}</a>}
             </div>
           )}

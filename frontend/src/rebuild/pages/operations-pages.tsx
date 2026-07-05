@@ -57,9 +57,9 @@ export function MaterialsPage() {
                 <td className="hidden max-w-xs truncate px-4 py-3 text-slate-500 md:table-cell">{item.description || '—'}</td>
                 <td className="hidden whitespace-nowrap px-4 py-3 text-slate-400 sm:table-cell">{fmtDate(item.createdAt)}</td>
                 <td className="px-4 py-3">
-                  <div className="flex justify-end gap-1">
-                    {item.externalUrl && <a className="inline-flex h-9 items-center gap-1 rounded-xl border border-sky-200 px-3 text-xs font-bold text-slate-700 transition hover:bg-sky-50" href={item.externalUrl} target="_blank" rel="noreferrer"><ExternalLink size={13} />Liên kết</a>}
-                    {item.fileId && <><a className="inline-flex h-9 items-center gap-1 rounded-xl bg-indigo-600 px-3 text-xs font-bold text-white transition hover:bg-indigo-700" href={api.downloadFileUrl(item.fileId)}><Download size={13} />Tải</a><button type="button" className="inline-flex h-9 items-center gap-1 rounded-xl border border-sky-200 px-3 text-xs font-bold text-slate-700 transition hover:bg-sky-50" onClick={async () => { const meta = await api.fileMetadata(item.fileId!); setPreviewFile({ id: meta.id, name: meta.originalFileName, type: meta.contentType }) }}><Eye size={13} />Xem</button></>}
+                  <div className="flex justify-end gap-2">
+                    {item.externalUrl && <a className="inline-flex min-h-11 items-center gap-1 rounded-2xl border border-sky-200 px-3 text-sm font-bold text-slate-700 transition hover:bg-sky-50" href={item.externalUrl} target="_blank" rel="noreferrer"><ExternalLink size={16} />Liên kết</a>}
+                    {item.fileId && <><a className="inline-flex min-h-11 items-center gap-1 rounded-2xl bg-indigo-600 px-3 text-sm font-bold text-white transition hover:bg-indigo-700" href={api.downloadFileUrl(item.fileId)}><Download size={16} />Tải</a><button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-2xl border border-sky-200 px-3 text-sm font-bold text-slate-700 transition hover:bg-sky-50" onClick={async () => { const meta = await api.fileMetadata(item.fileId!); setPreviewFile({ id: meta.id, name: meta.originalFileName, type: meta.contentType }) }}><Eye size={16} />Xem trước</button></>}
                   </div>
                 </td>
               </tr>

@@ -209,9 +209,9 @@ function MaterialsTab({ items }: Readonly<{ items: MaterialItem[] }>) {
                   <td className="hidden max-w-xs truncate px-4 py-3 text-slate-500 md:table-cell">{item.description || '—'}</td>
                   <td className="hidden whitespace-nowrap px-4 py-3 text-slate-400 sm:table-cell">{fmtDate(item.createdAt)}</td>
                   <td className="px-4 py-3">
-                    <div className="flex justify-end gap-1">
-                      {item.externalUrl && <a className={`inline-flex h-9 items-center gap-1 rounded-xl px-3 text-xs font-bold ${accent.badge}`} href={item.externalUrl} target="_blank" rel="noreferrer"><LinkIcon size={13} />Liên kết</a>}
-                      {item.fileId && <><Button type="button" variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => api.downloadFile(item.fileId!, item.title)}><Download size={13} />Tải</Button><Button type="button" variant="secondary" className="h-8 px-2.5 text-xs" onClick={async () => { const meta = await api.fileMetadata(item.fileId!); setPreviewFile({ id: meta.id, name: meta.originalFileName, type: meta.contentType }) }}><Eye size={13} />Xem</Button></>}
+                    <div className="flex justify-end gap-2">
+                      {item.externalUrl && <a className={`inline-flex min-h-11 items-center gap-1 rounded-2xl border border-sky-200 px-3 text-sm font-bold text-slate-700 transition hover:bg-sky-50`} href={item.externalUrl} target="_blank" rel="noreferrer"><ExternalLink size={16} />Liên kết</a>}
+                      {item.fileId && <><Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(item.fileId!, item.title)}><Download size={16} />Tải</Button><Button type="button" variant="secondary" className="min-h-11" onClick={async () => { const meta = await api.fileMetadata(item.fileId!); setPreviewFile({ id: meta.id, name: meta.originalFileName, type: meta.contentType }) }}><Eye size={16} />Xem trước</Button></>}
                     </div>
                   </td>
                 </tr>
