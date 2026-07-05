@@ -111,7 +111,6 @@ export function NewAppRouter() {
       <Route path="/student/classes/:classId" element={<RoleFrame roles={['STUDENT']}><StudentClassDetailPage /></RoleFrame>} />
       <Route path="/student/assignments" element={<RoleFrame roles={['STUDENT']}><StudentAssignmentsPage /></RoleFrame>} />
       <Route path="/student/assignments/:assignmentId" element={<RoleFrame roles={['STUDENT']}><StudentAssignmentDetailPage /></RoleFrame>} />
-      <Route path="/student/submissions" element={<RoleFrame roles={['STUDENT']}><StudentSubmissionsPage /></RoleFrame>} />
       <Route path="/student/submissions/:submissionId" element={<RoleFrame roles={['STUDENT']}><StudentSubmissionsPage /></RoleFrame>} />
       <Route path="/student/grades" element={<RoleFrame roles={['STUDENT']}><StudentGradesPage /></RoleFrame>} />
       <Route path="/student/attendance" element={<RoleFrame roles={['STUDENT']}><StudentAttendancePage /></RoleFrame>} />

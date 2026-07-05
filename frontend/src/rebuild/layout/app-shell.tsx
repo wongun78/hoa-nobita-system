@@ -39,7 +39,6 @@ const menuItems: MenuItem[] = [
   { to: '/student/home', label: 'Trang chủ', roles: ['STUDENT'] },
   { to: '/student/classes', label: 'Lớp học', roles: ['STUDENT'] },
   { to: '/student/assignments', label: 'Bài tập', roles: ['STUDENT'] },
-  { to: '/student/submissions', label: 'Bài đã nộp', roles: ['STUDENT'] },
   { to: '/student/grades', label: 'Điểm số', roles: ['STUDENT'] },
   { to: '/student/attendance', label: 'Điểm danh', roles: ['STUDENT'] },
   { to: '/student/materials', label: 'Tài liệu', roles: ['STUDENT'] },
