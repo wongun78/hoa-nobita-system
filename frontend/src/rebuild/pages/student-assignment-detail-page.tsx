@@ -72,6 +72,34 @@ function SubmissionSummary({ assignment, submission }: Readonly<{ assignment: As
   )
 }
 
+function FileRow({ fileId, label, onPreview }: Readonly<{ fileId: string; label: string; onPreview: (id: string, name: string, type?: string) => void }>) {
+  const meta = useQuery({ queryKey: ['file-meta', fileId], queryFn: () => api.fileMetadata(fileId), enabled: Boolean(fileId) })
+  const displayName = meta.data?.originalFileName || label
+  return (
+    <div className="flex gap-2">
+      <Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(fileId, displayName)}><Download size={16} />{displayName}</Button>
+      <Button type="button" variant="secondary" className="min-h-11" onClick={() => { if (meta.data) onPreview(meta.data.id, meta.data.originalFileName, meta.data.contentType) }}><Eye size={16} />Xem trước</Button>
+    </div>
+  )
+}
+
+function AssignmentFileSection({ fileId, fileIds, onPreview }: Readonly<{ fileId?: string | null; fileIds?: string[] | null; onPreview: (id: string, name: string, type?: string) => void }>) {
+  const allFileIds = fileIds && fileIds.length > 0 ? fileIds : fileId ? [fileId] : []
+  if (allFileIds.length === 0) return null
+
+  if (allFileIds.length === 1) {
+    return <div className="mt-3"><FileRow fileId={allFileIds[0]} label="Tài liệu" onPreview={onPreview} /></div>
+  }
+
+  return (
+    <div className="mt-3 space-y-2">
+      {allFileIds.map((fid, idx) => (
+        <FileRow key={fid} fileId={fid} label={`Tài liệu ${idx + 1}`} onPreview={onPreview} />
+      ))}
+    </div>
+  )
+}
+
 export function StudentAssignmentDetailPage() {
   const { assignmentId = '' } = useParams()
   const qc = useQueryClient()
@@ -183,13 +211,7 @@ export function StudentAssignmentDetailPage() {
             <div className="mt-4 text-sm font-bold text-slate-700">Điểm tối đa: {assignment.data.maxScore}</div>
             {assignment.data.skill && <div className="mt-2"><span className="rounded-xl bg-violet-50 px-2 py-0.5 text-xs font-bold text-violet-700">{assignment.data.skill}</span></div>}
             {assignment.data.externalLink && <a className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-2xl border border-sky-200 px-4 text-sm font-bold text-slate-700 transition hover:bg-sky-50" href={assignment.data.externalLink} target="_blank" rel="noreferrer"><ExternalLink size={14} />Tài liệu tham khảo</a>}
-            {assignment.data.fileId && <><Button type="button" variant="secondary" className="mt-3 min-h-11" onClick={() => api.downloadFile(assignment.data.fileId!, assignment.data.title)}><Download size={16} />Tải tệp đính kèm</Button><Button type="button" variant="secondary" className="mt-3 min-h-11" onClick={async () => { const meta = await api.fileMetadata(assignment.data.fileId!); setPreviewFile({ id: meta.id, name: meta.originalFileName, type: meta.contentType }) }}><Eye size={16} />Xem trước</Button></>}
-            {assignment.data.fileIds && assignment.data.fileIds.length > 0 && assignment.data.fileIds.map((fid, idx) => (
-              <div key={fid} className="mt-2 flex gap-2">
-                <Button type="button" variant="secondary" className="min-h-11" onClick={() => api.downloadFile(fid, `Tệp ${idx + 1}`)}><Download size={16} />Tải tệp {idx + 1}</Button>
-                <Button type="button" variant="secondary" className="min-h-11" onClick={async () => { const meta = await api.fileMetadata(fid); setPreviewFile({ id: meta.id, name: meta.originalFileName, type: meta.contentType }) }}><Eye size={16} />Xem trước</Button>
-              </div>
-            ))}
+            <AssignmentFileSection fileId={assignment.data.fileId} fileIds={assignment.data.fileIds} onPreview={(id, name, type) => setPreviewFile({ id, name, type })} />
           </Card>
 
           <SubmissionSummary assignment={assignment.data} submission={mySubmission} />

@@ -90,13 +90,30 @@ export function StudentAssignmentsPage() {
 
   const filtered = useMemo(() => {
     const keyword = search.trim().toLowerCase()
-    return assignmentItems.filter((item) => {
-      const submission = submissionByAssignment.get(item.id)
-      const state = getStudentState(item, submission)
-      const matchesFilter = filter === 'ALL' || state === filter
-      const matchesSearch = !keyword || [item.title, item.className, item.description, item.instruction].some((value) => value?.toLowerCase().includes(keyword))
-      return matchesFilter && matchesSearch
-    })
+    const stateOrder: Record<StudentAssignmentState, number> = {
+      'ĐÃ CHẤM': 0,
+      'ĐÃ NỘP': 1,
+      'NỘP LẠI': 2,
+      'QUÁ HẠN': 3,
+      'CHƯA NỘP': 4,
+    }
+    return assignmentItems
+      .filter((item) => {
+        const submission = submissionByAssignment.get(item.id)
+        const state = getStudentState(item, submission)
+        const matchesFilter = filter === 'ALL' || state === filter
+        const matchesSearch = !keyword || [item.title, item.className, item.description, item.instruction].some((value) => value?.toLowerCase().includes(keyword))
+        return matchesFilter && matchesSearch
+      })
+      .sort((a, b) => {
+        const stateA = getStudentState(a, submissionByAssignment.get(a.id))
+        const stateB = getStudentState(b, submissionByAssignment.get(b.id))
+        const diff = stateOrder[stateA] - stateOrder[stateB]
+        if (diff !== 0) return diff
+        const dueA = a.dueAt ? new Date(a.dueAt).getTime() : Infinity
+        const dueB = b.dueAt ? new Date(b.dueAt).getTime() : Infinity
+        return dueA - dueB
+      })
   }, [assignmentItems, filter, search, submissionByAssignment])
 
   if (assignments.isLoading || submissions.isLoading) {
