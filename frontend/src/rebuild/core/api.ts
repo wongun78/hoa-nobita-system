@@ -211,7 +211,7 @@ export const api = {
   attendanceSummary: (classId: string) => getApi<AttendanceSummary>(`/classes/${classId}/attendance/summary`),
   markLessonAttendance: (lessonId: string, records: Array<{ studentId: string; status: AttendanceStatus; note?: string }>) => postApi<AttendanceItem[]>(`/lessons/${lessonId}/attendance`, { records }),
   lessonAttendance: (lessonId: string) => getApi<AttendanceItem[]>(`/lessons/${lessonId}/attendance`),
-  studentAttendance: (studentId: string) => getApi<AttendanceItem[]>(`/students/${studentId}/attendance`),
+  studentAttendance: async (studentId: string) => normalizeList(await getApi<PageResponse<AttendanceItem> | AttendanceItem[]>(`/students/${studentId}/attendance`)),
   updateAttendance: (attendanceId: string, payload: Partial<{ status: AttendanceStatus; note: string }>) => patchApi<AttendanceItem>(`/attendance/${attendanceId}`, payload),
 
   calendar: (params: { from: string; to: string; classId?: string }) => getApi<{ events: CalendarEvent[] }>('/calendar', params),
