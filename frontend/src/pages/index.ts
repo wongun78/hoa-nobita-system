@@ -1,7 +1,0 @@
-export { AssignmentDetailPage, ClassDetailPage, UserDetailPage, SubmissionDetailPage } from './detail-pages'
-export { LoginPage } from './login-page'
-export { AssignmentSubmissionsPage, AssignmentsPage, ClassAssignmentsPage, ClassesPage, DashboardPage, MaterialsPage, MySubmissionsPage, NotificationsPage, UsersPage } from './list-pages'
-export { ProtectedRoute } from './route-guards'
-export { ChangePasswordPage, ForbiddenPage, NotFoundPage } from './status-pages'
-export { GradingPage } from './grading-page'
-export { ReportsPage } from './reports-page'
