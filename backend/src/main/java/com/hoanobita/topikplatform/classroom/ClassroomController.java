@@ -5,13 +5,10 @@ import com.hoanobita.topikplatform.common.ApiResponse;
 import com.hoanobita.topikplatform.common.SecurityUtils;
 import com.hoanobita.topikplatform.user.dto.StatusRequest;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
@@ -90,17 +87,6 @@ public class ClassroomController {
         return ResponseEntity.ok(ApiResponse.ok(classroomService.listStudents(classId, user, page, size, sort, search, status)));
     }
 
-    @GetMapping("/{classId}/students/export")
-    public ResponseEntity<byte[]> exportStudents(@PathVariable UUID classId,
-                                                 @RequestParam(defaultValue = "csv") String format) {
-        var user = securityUtils.getCurrentUser();
-        String csv = classroomService.exportStudentsCsv(classId, user);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"class-students-" + classId + ".csv\"")
-                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
-                .body(csv.getBytes(StandardCharsets.UTF_8));
-    }
-
     @PostMapping("/{classId}/students")
     public ResponseEntity<?> addStudent(@PathVariable UUID classId, @RequestBody AddMemberRequest request) {
         var user = securityUtils.getCurrentUser();
@@ -119,12 +105,6 @@ public class ClassroomController {
         var user = securityUtils.getCurrentUser();
         classroomService.removeStudent(classId, studentId, user);
         return ResponseEntity.ok(ApiResponse.ok("Đã xóa học viên"));
-    }
-
-    @GetMapping("/{classId}/stats")
-    public ResponseEntity<?> getClassStats(@PathVariable UUID classId) {
-        var user = securityUtils.getCurrentUser();
-        return ResponseEntity.ok(ApiResponse.ok(classroomService.getClassStats(classId, user)));
     }
 
     @PatchMapping("/{classId}/students/{studentId}/status")

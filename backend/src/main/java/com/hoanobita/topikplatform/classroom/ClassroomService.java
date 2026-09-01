@@ -1,7 +1,6 @@
 package com.hoanobita.topikplatform.classroom;
 
 import com.hoanobita.topikplatform.activity.ActivityService;
-import com.hoanobita.topikplatform.assignment.repository.AssignmentRepository;
 import com.hoanobita.topikplatform.classroom.dto.*;
 import com.hoanobita.topikplatform.classroom.entity.*;
 import com.hoanobita.topikplatform.classroom.repository.*;
@@ -10,10 +9,6 @@ import com.hoanobita.topikplatform.common.Enums.*;
 import com.hoanobita.topikplatform.common.PageResponse;
 import com.hoanobita.topikplatform.common.PageableUtil;
 import com.hoanobita.topikplatform.common.PermissionService;
-import com.hoanobita.topikplatform.grading.entity.Grade;
-import com.hoanobita.topikplatform.grading.repository.GradeRepository;
-import com.hoanobita.topikplatform.submission.entity.Submission;
-import com.hoanobita.topikplatform.submission.repository.SubmissionRepository;
 import com.hoanobita.topikplatform.user.dto.StatusRequest;
 import com.hoanobita.topikplatform.user.entity.User;
 import com.hoanobita.topikplatform.user.repository.UserRepository;
@@ -23,8 +18,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -47,24 +40,16 @@ public class ClassroomService {
     private final UserRepository userRepo;
     private final PermissionService permissionService;
     private final ActivityService activityService;
-    private final AssignmentRepository assignmentRepo;
-    private final SubmissionRepository submissionRepo;
-    private final GradeRepository gradeRepo;
 
     public ClassroomService(KlassRepository klassRepo, ClassAdminRepository classAdminRepo,
                             ClassMemberRepository classMemberRepo, UserRepository userRepo,
-                            PermissionService permissionService, ActivityService activityService,
-                            AssignmentRepository assignmentRepo, SubmissionRepository submissionRepo,
-                            GradeRepository gradeRepo) {
+                            PermissionService permissionService, ActivityService activityService) {
         this.klassRepo = klassRepo;
         this.classAdminRepo = classAdminRepo;
         this.classMemberRepo = classMemberRepo;
         this.userRepo = userRepo;
         this.permissionService = permissionService;
         this.activityService = activityService;
-        this.assignmentRepo = assignmentRepo;
-        this.submissionRepo = submissionRepo;
-        this.gradeRepo = gradeRepo;
     }
 
     public PageResponse<ClassResponse> listClasses(User currentUser, Integer page, Integer size, String sort, String search, String status) {
@@ -361,60 +346,6 @@ public class ClassroomService {
         return PageableUtil.toPageResponse(resultPage);
     }
 
-    public ClassStatsResponse getClassStats(UUID classId, User currentUser) {
-        permissionService.requireAccessClass(currentUser, classId);
-        klassRepo.findActiveById(classId)
-            .orElseThrow(() -> BusinessException.notFound(CLASS_NOT_FOUND));
-
-        int totalStudents = classMemberRepo.findByClassIdAndStatus(classId, MemberStatus.ACTIVE).size();
-        var assignments = assignmentRepo.findByClassId(classId);
-        int totalAssignments = assignments.size();
-
-        List<Submission> submissions = assignments.stream()
-                .flatMap(assignment -> submissionRepo.findByAssignmentId(assignment.getId()).stream())
-                .toList();
-
-        int totalSubmissions = submissions.size();
-        int lateSubmissions = (int) submissions.stream().filter(s -> s.getStatus() == SubmissionStatus.LATE).count();
-        int gradedSubmissions = (int) submissions.stream().filter(s -> s.getStatus() == SubmissionStatus.GRADED).count();
-        int needGrading = (int) submissions.stream().filter(s -> s.getStatus() == SubmissionStatus.SUBMITTED).count();
-
-        int expectedSubmissions = totalStudents * totalAssignments;
-        int missingSubmissions = Math.max(expectedSubmissions - totalSubmissions, 0);
-
-        BigDecimal submissionRate = BigDecimal.ZERO;
-        if (expectedSubmissions > 0) {
-            submissionRate = BigDecimal.valueOf(totalSubmissions)
-                    .multiply(BigDecimal.valueOf(100))
-                    .divide(BigDecimal.valueOf(expectedSubmissions), 2, RoundingMode.HALF_UP);
-        }
-
-        List<Grade> grades = assignments.stream()
-                .flatMap(assignment -> gradeRepo.findByAssignmentId(assignment.getId()).stream())
-                .toList();
-
-        BigDecimal averageScore = BigDecimal.ZERO;
-        if (!grades.isEmpty()) {
-            averageScore = grades.stream()
-                    .map(Grade::getScore)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add)
-                    .divide(BigDecimal.valueOf(grades.size()), 2, RoundingMode.HALF_UP);
-        }
-
-        return new ClassStatsResponse(
-                classId,
-                totalStudents,
-                totalAssignments,
-                totalSubmissions,
-                missingSubmissions,
-                lateSubmissions,
-                gradedSubmissions,
-                needGrading,
-                submissionRate,
-                averageScore
-        );
-    }
-
     private ClassResponse toResponse(Klass klass) {
         var teacher = userRepo.findById(klass.getTeacherId()).orElse(null);
         String teacherName = teacher != null ? teacher.getFullName() : UNKNOWN;
@@ -435,20 +366,6 @@ public class ClassroomService {
                 klass.getTeacherId(), teacherName, klass.getStartDate(), klass.getEndDate(),
                 studentCount, admins, klass.getCreatedAt()
         );
-    }
-
-    public String exportStudentsCsv(UUID classId, User currentUser) {
-        permissionService.requireAccessClass(currentUser, classId);
-        StringBuilder csv = new StringBuilder("studentCode,fullName,email,status,joinedAt\n");
-        for (ClassMember member : classMemberRepo.findByClassIdAndStatus(classId, MemberStatus.ACTIVE)) {
-            var student = userRepo.findById(member.getStudentId()).orElse(null);
-            csv.append(csv(member.getStudentCode())).append(',')
-                    .append(csv(student == null ? UNKNOWN : student.getFullName())).append(',')
-                    .append(csv(student == null ? null : student.getEmail())).append(',')
-                    .append(member.getStatus().name()).append(',')
-                    .append(member.getJoinedAt()).append('\n');
-        }
-        return csv.toString();
     }
 
     @Transactional
@@ -478,10 +395,5 @@ public class ClassroomService {
     public record StudentMemberResponse(UUID id, String studentCode, String fullName, String email, String status, Instant joinedAt) {}
 
     public record BulkAddStudentsResult(int added, int reactivated, int skipped, List<String> errors) {}
-
-    private String csv(String value) {
-        if (value == null) return "";
-        return "\"" + value.replace("\"", "\"\"") + "\"";
-    }
 
 }

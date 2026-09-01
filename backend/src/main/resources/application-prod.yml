@@ -1,0 +1,43 @@
+# ======================
+# Production Profile
+# ======================
+spring:
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+        generate_statistics: false
+        jdbc:
+          batch_size: 25
+          batch_versioned_data: true
+          order_inserts: true
+          order_updates: true
+  datasource:
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      idle-timeout: 30000
+      connection-timeout: 5000
+      max-lifetime: 300000
+
+# Disable Swagger in production
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+# Production logging
+logging:
+  level:
+    com.hoanobita: INFO
+    org.springframework: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql: WARN
+
+server:
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/plain,text/css,application/javascript
+    min-response-size: 1024

@@ -27,14 +27,14 @@ public class PermissionService {
     /** Check if user can manage (create/edit/delete) content in a class */
     public boolean canManageClass(User user, UUID classId) {
         if (user.isTeacher()) return true;
-        if (user.isAdmin()) return classAdminRepo.existsByClassIdAndAdminId(classId, user.getId());
+        if (user.isAdmin()) return true;
         return false;
     }
 
     /** Check if user can view content of a class */
     public boolean canAccessClass(User user, UUID classId) {
         if (user.isTeacher()) return true;
-        if (user.isAdmin()) return classAdminRepo.existsByClassIdAndAdminId(classId, user.getId());
+        if (user.isAdmin()) return true;
         if (user.isStudent()) return classMemberRepo.existsByClassIdAndStudentIdAndStatus(classId, user.getId(), MemberStatus.ACTIVE);
         return false;
     }
@@ -49,29 +49,17 @@ public class PermissionService {
         return classAdminRepo.existsByClassIdAndAdminId(classId, adminId);
     }
 
-    /** Check if admin can access a student's progress (student must be in at least one of admin's classes) */
+    /** Check if admin can access a student's progress */
     public boolean canAccessStudentProgress(User admin, UUID studentId) {
         if (admin.isTeacher()) return true;
-        if (!admin.isAdmin()) return false;
-        
-        List<UUID> adminClassIds = classAdminRepo.findClassIdsByAdminId(admin.getId());
-        if (adminClassIds.isEmpty()) return false;
-        
-        List<UUID> studentClassIds = classMemberRepo.findClassIdsByStudentId(studentId);
-        
-        // Check for intersection
-        for (UUID classId : studentClassIds) {
-            if (adminClassIds.contains(classId)) {
-                return true;
-            }
-        }
+        if (admin.isAdmin()) return true;
         return false;
     }
 
     /** Get all class IDs accessible to user */
     public List<UUID> getAccessibleClassIds(User user) {
         if (user.isTeacher()) return null; // null means all
-        if (user.isAdmin()) return classAdminRepo.findClassIdsByAdminId(user.getId());
+        if (user.isAdmin()) return null; // admin sees all classes
         if (user.isStudent()) return classMemberRepo.findClassIdsByStudentId(user.getId());
         return List.of();
     }

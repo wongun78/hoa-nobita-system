@@ -11,7 +11,6 @@ import com.hoanobita.topikplatform.common.PageResponse;
 import com.hoanobita.topikplatform.common.PageableUtil;
 import com.hoanobita.topikplatform.grading.entity.Grade;
 import com.hoanobita.topikplatform.grading.repository.GradeRepository;
-import com.hoanobita.topikplatform.risk.RiskDetectionService;
 import com.hoanobita.topikplatform.submission.entity.Submission;
 import com.hoanobita.topikplatform.submission.repository.SubmissionRepository;
 import com.hoanobita.topikplatform.user.dto.*;
@@ -44,13 +43,12 @@ public class UserService {
     private final AssignmentRepository assignmentRepository;
     private final SubmissionRepository submissionRepository;
     private final GradeRepository gradeRepository;
-    private final RiskDetectionService riskDetectionService;
     private final ActivityService activityService;
 
     public UserService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder,
                        ClassMemberRepository classMemberRepository, AssignmentRepository assignmentRepository,
                        SubmissionRepository submissionRepository, GradeRepository gradeRepository,
-                       RiskDetectionService riskDetectionService, ActivityService activityService) {
+                       ActivityService activityService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
@@ -58,7 +56,6 @@ public class UserService {
         this.assignmentRepository = assignmentRepository;
         this.submissionRepository = submissionRepository;
         this.gradeRepository = gradeRepository;
-        this.riskDetectionService = riskDetectionService;
         this.activityService = activityService;
     }
 
@@ -144,8 +141,8 @@ public class UserService {
         // Return with temporary password for dev/local
         return new UserResponse(
                 resp.id(), resp.fullName(), resp.email(), resp.phone(),
-                resp.status(), resp.firstLogin(), resp.avatarUrl(), resp.note(),
-                resp.roles(), resp.createdAt(), tempPassword
+                resp.status(), resp.firstLogin(), resp.avatarUrl(), resp.studentCode(),
+                resp.note(), resp.roles(), resp.createdAt(), tempPassword
         );
     }
 
@@ -167,6 +164,7 @@ public class UserService {
             }
             user.setPhone(request.phone());
         }
+        if (request.studentCode() != null) user.setStudentCode(request.studentCode());
         if (request.note() != null) user.setNote(request.note());
 
         user = userRepository.save(user);
@@ -232,7 +230,7 @@ public class UserService {
         List<UUID> classIds = classMemberRepository.findClassIdsByStudentId(studentId);
         
         if (classIds.isEmpty()) {
-            return new StudentProgressResponse(0, 0, 0, BigDecimal.ZERO, BigDecimal.ZERO, "LOW", List.of());
+            return new StudentProgressResponse(0, 0, 0, BigDecimal.ZERO);
         }
 
         // 2. Find all assignments for those classes
@@ -240,7 +238,7 @@ public class UserService {
         int totalAssignments = assignments.size();
 
         if (totalAssignments == 0) {
-            return new StudentProgressResponse(0, 0, 0, BigDecimal.ZERO, BigDecimal.ZERO, "LOW", List.of());
+            return new StudentProgressResponse(0, 0, 0, BigDecimal.ZERO);
         }
 
         // 3. Find all submissions by the student
@@ -279,16 +277,11 @@ public class UserService {
             averageScore = totalPercentage.divide(new BigDecimal(gradedAssignments), 2, RoundingMode.HALF_UP);
         }
 
-        var risk = riskDetectionService.evaluateStudentAcrossClasses(studentId, classIds);
-
         return new StudentProgressResponse(
                 totalAssignments,
                 submittedAssignments,
                 gradedAssignments,
-                averageScore,
-                risk.submissionRatePercent(),
-                risk.riskLevel(),
-                risk.reasons()
+                averageScore
         );
     }
 
@@ -297,7 +290,7 @@ public class UserService {
         return new UserResponse(
                 user.getId(), user.getFullName(), user.getEmail(), user.getPhone(),
                 user.getStatus().name(), user.isFirstLogin(), user.getAvatarUrl(),
-                user.getNote(), roles, user.getCreatedAt()
+                user.getStudentCode(), user.getNote(), roles, user.getCreatedAt()
         );
     }
 

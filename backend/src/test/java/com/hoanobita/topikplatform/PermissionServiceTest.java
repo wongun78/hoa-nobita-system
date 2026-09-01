@@ -86,15 +86,13 @@ class PermissionServiceTest {
     }
 
     @Test
-    void canManageClass_adminWithAssignment_true() {
-        when(classAdminRepo.existsByClassIdAndAdminId(classId, admin.getId())).thenReturn(true);
+    void canManageClass_adminAlwaysTrue() {
         assertTrue(permissionService.canManageClass(admin, classId));
     }
 
     @Test
-    void canManageClass_adminWithoutAssignment_false() {
-        when(classAdminRepo.existsByClassIdAndAdminId(classId, admin.getId())).thenReturn(false);
-        assertFalse(permissionService.canManageClass(admin, classId));
+    void canManageClass_adminWithoutAssignment_true() {
+        assertTrue(permissionService.canManageClass(admin, classId));
     }
 
     @Test
@@ -110,8 +108,7 @@ class PermissionServiceTest {
     }
 
     @Test
-    void canAccessClass_adminWithAssignment_true() {
-        when(classAdminRepo.existsByClassIdAndAdminId(classId, admin.getId())).thenReturn(true);
+    void canAccessClass_adminAlwaysTrue() {
         assertTrue(permissionService.canAccessClass(admin, classId));
     }
 
@@ -137,10 +134,8 @@ class PermissionServiceTest {
     }
 
     @Test
-    void getAccessibleClassIds_admin_returnsAssignedClasses() {
-        List<UUID> adminClasses = List.of(UUID.randomUUID());
-        when(classAdminRepo.findClassIdsByAdminId(admin.getId())).thenReturn(adminClasses);
-        assertEquals(adminClasses, permissionService.getAccessibleClassIds(admin));
+    void getAccessibleClassIds_admin_returnsNullForAll() {
+        assertNull(permissionService.getAccessibleClassIds(admin));
     }
 
     @Test
@@ -158,19 +153,13 @@ class PermissionServiceTest {
     }
 
     @Test
-    void canAccessStudentProgress_adminWithSharedClass_true() {
-        UUID studentId = UUID.randomUUID();
-        when(classAdminRepo.findClassIdsByAdminId(admin.getId())).thenReturn(List.of(classId));
-        when(classMemberRepo.findClassIdsByStudentId(studentId)).thenReturn(List.of(classId));
-        assertTrue(permissionService.canAccessStudentProgress(admin, studentId));
+    void canAccessStudentProgress_adminAlwaysTrue() {
+        assertTrue(permissionService.canAccessStudentProgress(admin, UUID.randomUUID()));
     }
 
     @Test
-    void canAccessStudentProgress_adminNoSharedClass_false() {
-        UUID studentId = UUID.randomUUID();
-        when(classAdminRepo.findClassIdsByAdminId(admin.getId())).thenReturn(List.of(classId));
-        when(classMemberRepo.findClassIdsByStudentId(studentId)).thenReturn(List.of(UUID.randomUUID()));
-        assertFalse(permissionService.canAccessStudentProgress(admin, studentId));
+    void canAccessStudentProgress_adminNoSharedClass_true() {
+        assertTrue(permissionService.canAccessStudentProgress(admin, UUID.randomUUID()));
     }
 
     @Test

@@ -1,4 +1,6 @@
 spring:
+  main:
+    lazy-initialization: true
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/hoanobita}
     username: ${DB_USER:hoanobita}
@@ -26,8 +28,12 @@ app:
     secret: ${JWT_SECRET:HoaNobitaLocalDevelopmentJwtSecretKeyMustBeLongEnoughForHS256Algorithm}
     expires-seconds: 3600
   upload-dir: ${UPLOAD_DIR:uploads}
+  storage:
+    type: ${APP_STORAGE_TYPE:local}
+    gcs:
+      bucket: ${APP_STORAGE_GCS_BUCKET:}
   cors:
-    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000,https://*.a.run.app}
   seed:
     enabled: ${APP_SEED_ENABLED:false}
 
@@ -39,7 +45,7 @@ springdoc:
 
 logging:
   level:
-    com.hoanobita: DEBUG
+    com.hoanobita: INFO
     org.springframework.security: WARN
 
 management:

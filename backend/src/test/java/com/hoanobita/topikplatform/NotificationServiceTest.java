@@ -15,8 +15,6 @@ import com.hoanobita.topikplatform.notification.entity.NotificationRead;
 import com.hoanobita.topikplatform.notification.repository.NotificationReadRepository;
 import com.hoanobita.topikplatform.notification.repository.NotificationRepository;
 import com.hoanobita.topikplatform.user.entity.User;
-import com.hoanobita.topikplatform.user.repository.UserRepository;
-import com.hoanobita.topikplatform.websocket.NotificationWebSocketService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,8 +37,6 @@ class NotificationServiceTest {
     @Mock private PermissionService permissions;
     @Mock private SecurityUtils security;
     @Mock private ActivityService activityService;
-    @Mock private NotificationWebSocketService wsService;
-    @Mock private UserRepository userRepository;
 
     @InjectMocks
     private NotificationService notificationService;
@@ -78,7 +74,6 @@ class NotificationServiceTest {
             n.setId(UUID.randomUUID());
             return n;
         });
-        when(userRepository.findAll()).thenReturn(List.of(studentUser));
 
         NotificationRequest req = new NotificationRequest("New Test", "Content", TargetType.ALL, null);
         NotificationResponse result = notificationService.create(req);
@@ -86,7 +81,6 @@ class NotificationServiceTest {
         assertNotNull(result);
         assertEquals("New Test", result.title());
         verify(repo).save(any(Notification.class));
-        verify(wsService).sendToUser(eq(studentUser.getEmail()), any(NotificationResponse.class));
     }
 
     @Test

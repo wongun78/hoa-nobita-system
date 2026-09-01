@@ -34,6 +34,9 @@ public class User extends BaseEntity {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
+    @Column(name = "student_code", length = 50)
+    private String studentCode;
+
     @Column(columnDefinition = "text")
     private String note;
 
@@ -67,6 +70,9 @@ public class User extends BaseEntity {
 
     public String getAvatarUrl() { return avatarUrl; }
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
+
+    public String getStudentCode() { return studentCode; }
+    public void setStudentCode(String studentCode) { this.studentCode = studentCode; }
 
     public String getNote() { return note; }
     public void setNote(String note) { this.note = note; }

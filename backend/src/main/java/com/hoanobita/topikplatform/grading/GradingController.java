@@ -2,8 +2,6 @@ package com.hoanobita.topikplatform.grading;
 
 import com.hoanobita.topikplatform.common.ApiResponse;
 import com.hoanobita.topikplatform.common.PageResponse;
-import com.hoanobita.topikplatform.grading.dto.BulkGradeRequest;
-import com.hoanobita.topikplatform.grading.dto.BulkGradeResponse;
 import com.hoanobita.topikplatform.grading.dto.GradeRequest;
 import com.hoanobita.topikplatform.grading.dto.GradeResponse;
 import com.hoanobita.topikplatform.submission.dto.SubmissionResponse;
@@ -45,12 +43,6 @@ public class GradingController {
                                                                      @RequestParam(required = false) String search,
                                                                      @RequestParam(required = false) String status) {
         return ApiResponse.ok(service.submissions(classId, page, size, sort, search, status));
-    }
-
-    @PostMapping("/assignments/{assignmentId}/submissions/bulk-grade")
-    public ApiResponse<BulkGradeResponse> bulkGrade(@PathVariable UUID assignmentId,
-                                                    @RequestBody BulkGradeRequest req) {
-        return ApiResponse.ok(service.bulkGrade(assignmentId, req));
     }
 
     @PostMapping("/submissions/{submissionId}/grade")

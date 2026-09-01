@@ -9,8 +9,6 @@ import com.hoanobita.topikplatform.common.PageResponse;
 import com.hoanobita.topikplatform.common.PageableUtil;
 import com.hoanobita.topikplatform.common.PermissionService;
 import com.hoanobita.topikplatform.common.SecurityUtils;
-import com.hoanobita.topikplatform.grading.dto.BulkGradeRequest;
-import com.hoanobita.topikplatform.grading.dto.BulkGradeResponse;
 import com.hoanobita.topikplatform.grading.dto.GradeRequest;
 import com.hoanobita.topikplatform.grading.dto.GradeResponse;
 import com.hoanobita.topikplatform.grading.entity.Grade;
@@ -129,52 +127,6 @@ public class GradingService {
         };
         if (cmp == null) return defaultSort;
         return desc ? cmp.reversed() : cmp;
-    }
-
-    @Transactional
-    public BulkGradeResponse bulkGrade(UUID assignmentId, BulkGradeRequest request) {
-        Assignment assignment = assignments.findActiveById(assignmentId)
-                .orElseThrow(() -> BusinessException.notFound("Không tìm thấy bài tập"));
-        permissions.requireManageClass(security.currentUser(), assignment.getClassId());
-        if (request == null || request.grades() == null || request.grades().isEmpty()) {
-            throw BusinessException.badRequest("Danh sách điểm không được rỗng");
-        }
-
-        int gradedCount = 0;
-        List<BulkGradeResponse.BulkGradeError> errors = new java.util.ArrayList<>();
-        for (var item : request.grades()) {
-            UUID submissionId = item == null ? null : item.submissionId();
-            try {
-                if (submissionId == null) throw BusinessException.badRequest("submissionId là bắt buộc");
-                if (item.score() == null) throw BusinessException.badRequest("Điểm là bắt buộc");
-                Submission submission = submissions.findActiveById(submissionId)
-                        .orElseThrow(() -> BusinessException.notFound("Không tìm thấy bài nộp"));
-                if (!submission.getAssignmentId().equals(assignmentId)) {
-                    throw BusinessException.badRequest("Bài nộp không thuộc bài tập này");
-                }
-                if (item.score().signum() < 0) throw BusinessException.badRequest("Điểm không được âm");
-                if (item.score().compareTo(assignment.getMaxScore()) > 0) throw BusinessException.badRequest("Điểm không được vượt quá điểm tối đa");
-
-                Grade grade = grades.findBySubmissionId(submissionId).orElseGet(Grade::new);
-                grade.setSubmissionId(submissionId);
-                grade.setScore(item.score());
-                grade.setFeedback(item.feedback());
-                grade.setGradedBy(security.currentUser().getId());
-                grade.setGradedAt(Instant.now());
-                submission.setStatus(SubmissionStatus.GRADED);
-                if (item.feedbackFileId() != null) submission.setFeedbackFileId(item.feedbackFileId());
-                if (item.feedbackLink() != null) submission.setFeedbackLink(item.feedbackLink());
-                submissions.save(submission);
-                grades.save(grade);
-                gradedCount++;
-            } catch (RuntimeException ex) {
-                errors.add(new BulkGradeResponse.BulkGradeError(submissionId, ex.getMessage()));
-            }
-        }
-        if (gradedCount > 0) {
-            activityService.log("SUBMISSIONS_BULK_GRADED", "ASSIGNMENT", assignment.getId(), assignment.getTitle(), assignment.getClassId(), "Đã chấm hàng loạt " + gradedCount + " bài nộp cho bài tập: " + assignment.getTitle());
-        }
-        return new BulkGradeResponse(gradedCount, errors.size(), errors);
     }
 
     @Transactional

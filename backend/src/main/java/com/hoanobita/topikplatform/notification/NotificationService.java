@@ -14,8 +14,6 @@ import com.hoanobita.topikplatform.notification.entity.NotificationRead;
 import com.hoanobita.topikplatform.notification.repository.NotificationReadRepository;
 import com.hoanobita.topikplatform.notification.repository.NotificationRepository;
 import com.hoanobita.topikplatform.user.entity.User;
-import com.hoanobita.topikplatform.user.repository.UserRepository;
-import com.hoanobita.topikplatform.websocket.NotificationWebSocketService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,20 +31,15 @@ public class NotificationService {
     private final PermissionService permissions;
     private final SecurityUtils security;
     private final ActivityService activityService;
-    private final NotificationWebSocketService wsService;
-    private final UserRepository userRepository;
 
     public NotificationService(NotificationRepository repo, NotificationReadRepository readRepo,
                                PermissionService permissions, SecurityUtils security,
-                               ActivityService activityService, NotificationWebSocketService wsService,
-                               UserRepository userRepository) {
+                               ActivityService activityService) {
         this.repo = repo;
         this.readRepo = readRepo;
         this.permissions = permissions;
         this.security = security;
         this.activityService = activityService;
-        this.wsService = wsService;
-        this.userRepository = userRepository;
     }
 
     public PageResponse<NotificationResponse> list(Integer page, Integer size, String sort, String search, String status) {
@@ -188,16 +181,7 @@ public class NotificationService {
         repo.save(n);
         activityService.log("NOTIFICATION_CREATED", "NOTIFICATION", n.getId(), n.getTitle(), req.targetType() == TargetType.CLASS ? req.targetId() : null, "Đã tạo thông báo mới: " + n.getTitle());
 
-        NotificationResponse response = toResponse(n, null);
-
-        // Push real-time notification via WebSocket
-        try {
-            pushNotification(user, n, response);
-        } catch (Exception ignored) {
-            // WebSocket push is best-effort; don't fail the request
-        }
-
-        return response;
+        return toResponse(n, null);
     }
 
     @Transactional
@@ -234,33 +218,4 @@ public class NotificationService {
         return value != null && value.toLowerCase().contains(keyword);
     }
 
-    /**
-     * Push notification via WebSocket to target users.
-     * Best-effort — does not throw on failure.
-     */
-    private void pushNotification(User sender, Notification notification, NotificationResponse response) {
-        switch (notification.getTargetType()) {
-            case ALL -> {
-                // Broadcast to all connected users (students and teachers)
-                userRepository.findAll().stream()
-                        .filter(u -> !u.getId().equals(sender.getId()))
-                        .forEach(u -> wsService.sendToUser(u.getEmail(), response));
-            }
-            case CLASS -> {
-                if (notification.getTargetId() != null) {
-                    List<UUID> classIds = List.of(notification.getTargetId());
-                    // Members are notified by their email
-                    userRepository.findAll().stream()
-                            .filter(u -> !u.getId().equals(sender.getId()))
-                            .forEach(u -> wsService.sendToUser(u.getEmail(), response));
-                }
-            }
-            case USER -> {
-                if (notification.getTargetId() != null) {
-                    userRepository.findById(notification.getTargetId())
-                            .ifPresent(targetUser -> wsService.sendToUser(targetUser.getEmail(), response));
-                }
-            }
-        }
-    }
 }

@@ -12,6 +12,7 @@ public record UserResponse(
         String status,
         boolean firstLogin,
         String avatarUrl,
+        String studentCode,
         String note,
         List<String> roles,
         Instant createdAt,
@@ -20,7 +21,7 @@ public record UserResponse(
 ) {
     // Constructor without temporaryPassword
     public UserResponse(UUID id, String fullName, String email, String phone, String status,
-                        boolean firstLogin, String avatarUrl, String note, List<String> roles, Instant createdAt) {
-        this(id, fullName, email, phone, status, firstLogin, avatarUrl, note, roles, createdAt, null);
+                        boolean firstLogin, String avatarUrl, String studentCode, String note, List<String> roles, Instant createdAt) {
+        this(id, fullName, email, phone, status, firstLogin, avatarUrl, studentCode, note, roles, createdAt, null);
     }
 }
