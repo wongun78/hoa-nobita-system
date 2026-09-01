@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Grid2X2, List, Pencil, Plus, X } from 'lucide-react'
+import { Grid2X2, List, Pencil, Plus } from 'lucide-react'
 import { z } from 'zod'
 import { useNewAuth } from '../auth/use-auth'
-import { EmptyState, ErrorState, FilterBar, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
+import { EmptyState, ErrorState, FilterBar, FilterSelect, Modal, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { api } from '../core/api'
 import { ApiClientError } from '../core/http'
 import type { ClassItem, ClassStatus, UserItem } from '../core/types'
@@ -85,17 +85,11 @@ export function ClassesPage() {
   return (
     <div className="space-y-5">
       <PageHeader eyebrow="Quản lý lớp học" title={isAdmin ? 'Lớp được giao' : 'Lớp học'} description={isAdmin ? 'CLASS_ADMIN chỉ thấy lớp được phân quyền và không có action global-only.' : 'Tìm kiếm, lọc và quản lý lớp học.'} actions={canCreate && <Button onClick={() => setShowCreate(true)}><Plus size={16} /> Tạo lớp</Button>} />
-      <FilterBar><SearchInput value={search} onChange={(e) => { setPage(0); setSearch(e.target.value) }} placeholder="Tìm lớp, mã lớp" /><select className="rounded-2xl border border-sky-100 bg-white px-3 py-2.5 text-sm" value={status} onChange={(e) => { setPage(0); setStatus(e.target.value) }}><option value="">Tất cả trạng thái</option><option value="DRAFT">Nháp</option><option value="ACTIVE">Đang học</option><option value="COMPLETED">Hoàn thành</option><option value="ARCHIVED">Lưu trữ</option></select><div className="ml-auto flex gap-1"><Button variant={view === 'card' ? 'primary' : 'secondary'} onClick={() => setView('card')}><Grid2X2 size={16} /></Button><Button variant={view === 'table' ? 'primary' : 'secondary'} onClick={() => setView('table')}><List size={16} /></Button></div></FilterBar>
+      <FilterBar><SearchInput value={search} onChange={(e) => { setPage(0); setSearch(e.target.value) }} placeholder="Tìm lớp, mã lớp" /><FilterSelect value={status} onChange={(v) => { setPage(0); setStatus(v) }} options={[{ value: 'DRAFT', label: 'Nháp' }, { value: 'ACTIVE', label: 'Đang học' }, { value: 'COMPLETED', label: 'Hoàn thành' }, { value: 'ARCHIVED', label: 'Lưu trữ' }]} placeholder="Tất cả trạng thái" /><div className="ml-auto flex gap-1"><Button variant={view === 'card' ? 'primary' : 'secondary'} onClick={() => setView('card')}><Grid2X2 size={16} /></Button><Button variant={view === 'table' ? 'primary' : 'secondary'} onClick={() => setView('table')}><List size={16} /></Button></div></FilterBar>
       {toast && <div className={`fixed bottom-6 right-6 z-[60] rounded-2xl px-5 py-3 text-sm font-bold shadow-lg ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-rose-50 text-rose-700 ring-1 ring-rose-200'}`}>{toast.message}</div>}
       {editOpen && editItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={resetEdit}>
-          <div className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-          <Card className="shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-black text-slate-950">Sửa lớp — {editItem.code}</h2>
-              <button type="button" onClick={resetEdit} className="rounded-xl p-1 text-slate-400 hover:bg-slate-100"><X size={18} /></button>
-            </div>
-            <form className="grid gap-3" onSubmit={(e) => { e.preventDefault(); editClass.mutate() }}>
+        <Modal open title={`Sửa lớp — ${editItem.code}`} onClose={resetEdit}>
+          <form className="grid gap-3" onSubmit={(e) => { e.preventDefault(); editClass.mutate() }}>
               <div>
                 <FieldLabel htmlFor="edit-name">Tên lớp <span className="text-rose-500">*</span></FieldLabel>
                 <Input id="edit-name" value={editName} onChange={(e) => setEditName(e.target.value)} />
@@ -129,19 +123,11 @@ export function ClassesPage() {
                 <Button disabled={editClass.isPending}>{editClass.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}</Button>
               </div>
             </form>
-          </Card>
-          </div>
-        </div>
+        </Modal>
       )}
       {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={resetCreate}>
-          <div className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-          <Card className="shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-black text-slate-950">Tạo lớp học</h2>
-              <button type="button" onClick={resetCreate} className="rounded-xl p-1 text-slate-400 hover:bg-slate-100"><X size={18} /></button>
-            </div>
-            <form className="grid gap-3" onSubmit={(e) => { e.preventDefault(); create.mutate() }}>
+        <Modal open title="Tạo lớp học" onClose={resetCreate}>
+          <form className="grid gap-3" onSubmit={(e) => { e.preventDefault(); create.mutate() }}>
               <div>
                 <FieldLabel htmlFor="cls-name">Tên lớp <span className="text-rose-500">*</span></FieldLabel>
                 <Input id="cls-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="VD: TOPIK 3,4 ĐÊM" />
@@ -184,9 +170,7 @@ export function ClassesPage() {
                 <Button disabled={create.isPending}>{create.isPending ? 'Đang tạo...' : 'Tạo lớp'}</Button>
               </div>
             </form>
-          </Card>
-          </div>
-        </div>
+        </Modal>
       )}
       {query.isLoading && <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"><SkeletonCard /><SkeletonCard /><SkeletonCard /></div>}
       {query.isError && <ErrorState onRetry={() => void query.refetch()} />}

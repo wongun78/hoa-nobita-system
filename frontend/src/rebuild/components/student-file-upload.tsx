@@ -140,7 +140,7 @@ export function StudentFileUpload({ value, onUploaded, disabled }: StudentFileUp
         }}
         className={clsx(
           'flex min-h-36 w-full flex-col items-center justify-center rounded-3xl border border-dashed p-5 text-center transition focus:outline-none focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:opacity-60',
-          isDragging ? 'border-indigo-300 bg-indigo-50' : 'border-sky-200 bg-gradient-to-br from-white to-sky-50/70 hover:bg-sky-50'
+          isDragging ? 'border-indigo-300 bg-indigo-50' : 'border-slate-200 bg-white hover:bg-slate-50'
         )}
         aria-label="Chọn hoặc kéo thả tệp bài làm"
       >
@@ -151,7 +151,7 @@ export function StudentFileUpload({ value, onUploaded, disabled }: StudentFileUp
           accept={ACCEPTED_EXTENSIONS.join(',')}
           onChange={(event) => chooseFile(event.target.files?.item(0) ?? null)}
         />
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-100 to-pink-100 text-indigo-600">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
           <UploadCloud size={24} />
         </div>
         <div className="mt-3 text-sm font-black text-slate-900">Kéo thả tệp hoặc bấm để chọn</div>

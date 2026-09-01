@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Award, GraduationCap, TrendingUp } from 'lucide-react'
 import { api } from '../core/api'
-import { EmptyState, ErrorState, FilterBar, MetricCard, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
+import { EmptyState, ErrorState, FilterBar, MetricCard, SearchInput, SkeletonCard, StatusBadge, StudentHeroBanner } from '../components/foundation'
 import { Card } from '../layout/ui'
 import { fmtDate } from './phase2-utils'
 import type { SubmissionItem } from '../core/types'
@@ -57,19 +57,16 @@ export function StudentGradesPage() {
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <div className="student-animate-in relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
-        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-        <div className="relative">
-          <h1 className="text-2xl font-black tracking-tight md:text-3xl">Điểm của tôi</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">Tổng hợp điểm đã chấm từ các bài nộp của bạn, kèm trung bình theo từng lớp.</p>
-        </div>
-      </div>
+      <StudentHeroBanner>
+        <h1 className="text-2xl font-black tracking-tight md:text-3xl">Điểm của tôi</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">Tổng hợp điểm đã chấm từ các bài nộp của bạn, kèm trung bình theo từng lớp.</p>
+      </StudentHeroBanner>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <MetricCard label="Điểm trung bình" value={overallAverage == null ? '-' : overallAverage.toFixed(1)} hint="Tất cả bài đã chấm" icon={<TrendingUp size={20} />} tone="emerald" />
         <MetricCard label="Bài đã chấm" value={graded.length} hint="Có điểm hoặc phản hồi" icon={<Award size={20} />} tone="indigo" />
         {summaries.length > 0 && summaries.map((item) => (
-          <Card key={item.classId} className="rounded-3xl bg-gradient-to-br from-white to-sky-50/50 transition hover:-translate-y-0.5 hover:shadow-lg">
+          <Card key={item.classId} className="rounded-3xl border-sky-100 bg-sky-50/30 transition hover:-translate-y-0.5 hover:shadow-lg">
             <div className="flex items-start justify-between gap-3"><div><h2 className="font-black text-slate-950">{item.className}</h2><p className="mt-1 text-xs text-slate-500">{item.gradedCount} bài đã chấm</p></div><div className={`text-3xl font-black ${scoreColor(item.average).accent}`}>{item.average.toFixed(1)}</div></div>
             {item.latest && <p className="mt-4 text-sm text-slate-600">Mới nhất: <b>{item.latest.assignmentTitle}</b> · {item.latest.score}/{item.latest.maxScore ?? '-'}</p>}
           </Card>

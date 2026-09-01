@@ -2,23 +2,11 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Bell, BookOpen, CalendarDays, CheckCircle2, Clock3, GraduationCap, Sparkles, TrendingUp } from 'lucide-react'
 import { api } from '../core/api'
-import { EmptyState, ErrorState, MetricCard, SkeletonCard, StatusBadge } from '../components/foundation'
+import { EmptyState, ErrorState, MetricCard, SkeletonCard, StatusBadge, StudentHeroBanner } from '../components/foundation'
 import { Card } from '../layout/ui'
-import { fmtDate } from './phase2-utils'
+import { fmtDate, getStudentAvatarUrl, isDueSoon, isOverdue, studentAvatarSeed } from './phase2-utils'
 import { useNewAuth } from '../auth/use-auth'
-import type { AssignmentItem, NotificationItem, SubmissionItem } from '../core/types'
-import { getStudentAvatarUrl, studentAvatarSeed } from './phase2-utils'
-
-function isDueSoon(item: AssignmentItem) {
-  if (!item.dueAt) return false
-  const due = new Date(item.dueAt).getTime()
-  const now = Date.now()
-  return due >= now && due - now <= 1000 * 60 * 60 * 24 * 7
-}
-
-function isOverdue(item: AssignmentItem) {
-  return item.dueAt ? new Date(item.dueAt).getTime() < Date.now() : false
-}
+import type { NotificationItem, SubmissionItem } from '../core/types'
 
 function averageScore(items: SubmissionItem[]) {
   const graded = items.filter((item) => typeof item.score === 'number')
@@ -63,10 +51,8 @@ export function StudentHomePage() {
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <div className="student-animate-in relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
-        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-        <div className="absolute -left-6 bottom-0 h-28 w-28 rounded-full bg-white/10 blur-xl" />
-        <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <StudentHeroBanner>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-xs font-bold backdrop-blur"><Sparkles size={14} /> TOPIK Journey</span>
             <h1 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">Hôm nay bạn học gì{user?.fullName ? `, ${user.fullName.split(' ').slice(-1).join('')}` : ''}?</h1>
@@ -74,7 +60,7 @@ export function StudentHomePage() {
           </div>
           {user && <img src={getStudentAvatarUrl(studentAvatarSeed(user))} alt={user.fullName || 'Học viên'} className="hidden h-20 w-20 rounded-2xl border-2 border-white/30 shadow-lg md:block" />}
         </div>
-      </div>
+      </StudentHeroBanner>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Lớp đang học" value={dashboard.data?.joinedClassCount ?? 0} hint="Lớp bạn đã tham gia" icon={<BookOpen size={20} />} tone="indigo" />
@@ -84,17 +70,17 @@ export function StudentHomePage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <Card className="overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-pink-50">
+        <Card className="overflow-hidden rounded-3xl border-indigo-100 bg-indigo-50/40">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.08em] text-indigo-500">Deadline sắp tới</p>
               <h2 className="mt-1 text-xl font-black text-slate-950">Giữ nhịp học thật êm</h2>
             </div>
-            <div className="rounded-2xl bg-white/80 p-3 text-indigo-600"><CalendarDays size={22} /></div>
+            <div className="rounded-2xl bg-white p-3 text-indigo-600"><CalendarDays size={22} /></div>
           </div>
           <div className="mt-4 space-y-3">
             {upcoming.map((item) => (
-              <a key={item.id} href={`/student/assignments/${item.id}`} className="block min-h-16 rounded-2xl border border-white bg-white/80 p-3 transition hover:-translate-y-0.5 hover:shadow-md">
+              <a key={item.id} href={`/student/assignments/${item.id}`} className="block min-h-16 rounded-2xl border border-slate-100 bg-white p-3 transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-black text-slate-900">{item.title}</div>
@@ -161,7 +147,7 @@ export function StudentHomePage() {
           <a href="/student/notifications" className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-indigo-600 transition hover:gap-2">Xem tất cả <span className="transition hover:translate-x-1">→</span></a>
         </Card>
 
-        <Card className="rounded-3xl bg-gradient-to-br from-emerald-50 via-white to-sky-50">
+        <Card className="rounded-3xl border-emerald-100 bg-emerald-50/40">
           <div className="flex items-center gap-3"><CheckCircle2 className="text-emerald-600" /><h2 className="text-lg font-black text-slate-950">Chuyên cần</h2></div>
           <div className="mt-6 text-5xl font-black text-slate-950">{attendanceRate == null ? '-' : `${attendanceRate}%`}</div>
           <p className="mt-2 text-sm text-slate-500">Tỷ lệ có mặt/tính cả đi muộn từ dữ liệu điểm danh cá nhân.</p>

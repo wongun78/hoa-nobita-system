@@ -2,7 +2,7 @@
 import { ResponsiveContainer, Tooltip } from 'recharts'
 import { EmptyState } from '../components/foundation'
 import { Card } from '../layout/ui'
-import type { PageResponse } from '../core/types'
+import type { AssignmentItem, AttendanceItem, PageResponse } from '../core/types'
 
 export function getStudentAvatarUrl(seed: string): string {
   return `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(seed)}`
@@ -73,3 +73,23 @@ export function CustomTooltip({ active, payload, label }: Readonly<{ active?: bo
 }
 
 export const tooltip = <Tooltip content={<CustomTooltip />} />
+
+/* ── Assignment helpers ─────────────────────────────── */
+
+export function isDueSoon(item: AssignmentItem): boolean {
+  if (!item.dueAt) return false
+  const due = new Date(item.dueAt).getTime()
+  return due >= Date.now() && due - Date.now() <= 1000 * 60 * 60 * 24 * 7
+}
+
+export function isOverdue(item: AssignmentItem): boolean {
+  return item.dueAt ? new Date(item.dueAt).getTime() < Date.now() : false
+}
+
+/* ── Attendance helpers ─────────────────────────────── */
+
+export function attendanceRate(items: AttendanceItem[]): number | null {
+  if (!items.length) return null
+  const present = items.filter((r) => r.status === 'PRESENT' || r.status === 'LATE').length
+  return Math.round((present / items.length) * 100)
+}

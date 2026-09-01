@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { Download, ExternalLink, Eye, MessageSquareText, Search } from 'lucide-react'
 import { api } from '../core/api'
-import { EmptyState, ErrorState, FilterBar, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
+import { EmptyState, ErrorState, FilterBar, SearchInput, SkeletonCard, StatusBadge, StudentHeroBanner } from '../components/foundation'
 import { FilePreviewModal } from '../components/file-preview-modal'
 import { Button, Card } from '../layout/ui'
 import { fmtDate } from './phase2-utils'
@@ -65,16 +65,13 @@ function StudentSubmissionDetail({ submissionId }: Readonly<{ submissionId: stri
   const item = query.data
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <div className="student-animate-in relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
-        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-        <div className="relative">
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge value={item.status} />
-          </div>
-          <h1 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">{item.assignmentTitle}</h1>
-          <p className="mt-2 text-sm text-white/80">{item.className} · Nộp lúc {fmtDate(item.submittedAt)}</p>
+      <StudentHeroBanner>
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge value={item.status} />
         </div>
-      </div>
+        <h1 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">{item.assignmentTitle}</h1>
+        <p className="mt-2 text-sm text-white/80">{item.className} · Nộp lúc {fmtDate(item.submittedAt)}</p>
+      </StudentHeroBanner>
       <div className="grid gap-4 xl:grid-cols-[1fr_380px]">
         <Card className="rounded-3xl">
           <h2 className="text-lg font-black text-slate-950">Nội dung bài làm</h2>
@@ -148,13 +145,10 @@ export function StudentSubmissionsPage() {
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <div className="student-animate-in relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
-        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-        <div className="relative">
-          <h1 className="text-2xl font-black tracking-tight md:text-3xl">Bài nộp của tôi</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">Theo dõi toàn bộ bài đã nộp, trạng thái chấm điểm và phản hồi từ giáo viên.</p>
-        </div>
-      </div>
+      <StudentHeroBanner>
+        <h1 className="text-2xl font-black tracking-tight md:text-3xl">Bài nộp của tôi</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">Theo dõi toàn bộ bài đã nộp, trạng thái chấm điểm và phản hồi từ giáo viên.</p>
+      </StudentHeroBanner>
       <FilterBar>
         <div className="min-w-0 flex-1"><SearchInput value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm bài nộp, lớp, phản hồi..." aria-label="Tìm bài nộp" /></div>
         <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0">

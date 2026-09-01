@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, Eye, EyeOff, FileText, LinkIcon, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { FilePreviewModal } from '../components/file-preview-modal'
 import { api } from '../core/api'
-import { ConfirmDialog, EmptyState, ErrorState, FilterBar, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
+import { ConfirmDialog, EmptyState, ErrorState, FilterBar, Modal, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { StudentFileUpload } from '../components/student-file-upload'
 import { Button, Card, FieldLabel, Input, TextArea } from '../layout/ui'
 import { asPage, fmtDate } from './phase2-utils'
@@ -63,15 +63,8 @@ function MaterialEditor({
   const canSubmit = classId && form.title.trim() && (form.description.trim() || form.externalUrl.trim() || file?.id || editing?.fileId)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-sky-100 bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-black text-slate-950">{isEditing ? 'Sửa tài liệu' : 'Thêm tài liệu'}</h2>
-            <p className="mt-1 text-sm text-slate-500">Tạo tài liệu bằng tệp tải lên, liên kết ngoài hoặc mô tả văn bản.</p>
-          </div>
-          <Button type="button" variant="ghost" className="min-h-11" onClick={onClose}>Đóng</Button>
-        </div>
+    <Modal open onClose={onClose} title={isEditing ? 'Sửa tài liệu' : 'Thêm tài liệu'}>
+      <p className="-mt-2 mb-4 text-sm text-slate-500">Tạo tài liệu bằng tệp tải lên, liên kết ngoài hoặc mô tả văn bản.</p>
 
         <div className="space-y-4">
           <div>
@@ -100,11 +93,9 @@ function MaterialEditor({
             {isEditing ? 'Lưu thay đổi' : 'Tạo tài liệu'}
           </Button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
-
 function MaterialRow({ item, classId, onEdit }: Readonly<{ item: MaterialItem; classId: string; onEdit: (item: MaterialItem) => void }>) {
   const qc = useQueryClient()
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -214,7 +205,7 @@ export function MaterialsLibraryPage() {
       {classId && (
         <>
           {/* Single column - editor is now a modal */}
-          <Card className="rounded-3xl bg-gradient-to-r from-indigo-50 to-sky-50">
+            <Card className="rounded-3xl border-indigo-100 bg-indigo-50/50">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-500">Lớp đang chọn</p>

@@ -10,7 +10,7 @@ import { ClassesPage } from './pages/classes-page'
 import { LoginPage } from './pages/login-page'
 import { MaterialsLibraryPage } from './pages/materials-library-page'
 import { NotificationsInboxPage } from './pages/notifications-inbox-page'
-import { AttendancePage, MaterialsPage, ProfilePage, StudentAssignmentSubmitPage } from './pages/operations-pages'
+import { AttendancePage, MaterialsPage, StudentAssignmentSubmitPage } from './pages/operations-pages'
 import { ForbiddenPage, NotFoundPage } from './pages/simple-pages'
 import { StudentAssignmentDetailPage } from './pages/student-assignment-detail-page'
 import { StudentAssignmentsPage } from './pages/student-assignments-page'
@@ -46,7 +46,6 @@ const CalendarPage = lazyWithRetry(() => import('./pages/calendar-page').then((m
 const ClassDetailV2Page = lazyWithRetry(() => import('./pages/class-detail-v2').then((module) => ({ default: module.ClassDetailV2Page })))
 const DashboardPage = lazyWithRetry(() => import('./pages/dashboard-page').then((module) => ({ default: module.DashboardPage })))
 const GradingV2Page = lazyWithRetry(() => import('./pages/grading-v2').then((module) => ({ default: module.GradingV2Page })))
-const ReportsPage = lazyWithRetry(() => import('./pages/reports-page').then((module) => ({ default: module.ReportsPage })))
 
 function RouteFallback() {
   return <div className="space-y-4"><SkeletonCard lines={4} /><SkeletonCard lines={3} /></div>
@@ -93,7 +92,6 @@ export function NewAppRouter() {
       <Route path="/teacher/notifications" element={<RoleFrame roles={['TEACHER_OWNER']}><NotificationsInboxPage /></RoleFrame>} />
       <Route path="/teacher/attendance" element={<RoleFrame roles={['TEACHER_OWNER']}><AttendanceMarkingPage /></RoleFrame>} />
       <Route path="/teacher/calendar" element={<RoleLazyPage roles={['TEACHER_OWNER']}><CalendarPage /></RoleLazyPage>} />
-      <Route path="/teacher/reports" element={<RoleLazyPage roles={['TEACHER_OWNER']}><ReportsPage /></RoleLazyPage>} />
 
       <Route path="/admin/dashboard" element={<RoleLazyPage roles={['CLASS_ADMIN']}><DashboardPage /></RoleLazyPage>} />
       <Route path="/admin/classes" element={<RoleFrame roles={['CLASS_ADMIN']}><ClassesPage /></RoleFrame>} />
@@ -104,20 +102,19 @@ export function NewAppRouter() {
       <Route path="/admin/notifications" element={<RoleFrame roles={['CLASS_ADMIN']}><NotificationsInboxPage /></RoleFrame>} />
       <Route path="/admin/attendance" element={<RoleFrame roles={['CLASS_ADMIN']}><AttendanceMarkingPage /></RoleFrame>} />
       <Route path="/admin/calendar" element={<RoleLazyPage roles={['CLASS_ADMIN']}><CalendarPage /></RoleLazyPage>} />
-      <Route path="/admin/reports" element={<RoleLazyPage roles={['CLASS_ADMIN']}><ReportsPage /></RoleLazyPage>} />
 
       <Route path="/student/home" element={<RoleFrame roles={['STUDENT']}><StudentHomePage /></RoleFrame>} />
       <Route path="/student/classes" element={<RoleFrame roles={['STUDENT']}><StudentClassesPage /></RoleFrame>} />
       <Route path="/student/classes/:classId" element={<RoleFrame roles={['STUDENT']}><StudentClassDetailPage /></RoleFrame>} />
       <Route path="/student/assignments" element={<RoleFrame roles={['STUDENT']}><StudentAssignmentsPage /></RoleFrame>} />
       <Route path="/student/assignments/:assignmentId" element={<RoleFrame roles={['STUDENT']}><StudentAssignmentDetailPage /></RoleFrame>} />
+      <Route path="/student/submissions" element={<RoleFrame roles={['STUDENT']}><StudentSubmissionsPage /></RoleFrame>} />
       <Route path="/student/submissions/:submissionId" element={<RoleFrame roles={['STUDENT']}><StudentSubmissionsPage /></RoleFrame>} />
       <Route path="/student/grades" element={<RoleFrame roles={['STUDENT']}><StudentGradesPage /></RoleFrame>} />
       <Route path="/student/attendance" element={<RoleFrame roles={['STUDENT']}><StudentAttendancePage /></RoleFrame>} />
       <Route path="/student/materials" element={<RoleFrame roles={['STUDENT']}><MaterialsPage /></RoleFrame>} />
       <Route path="/student/calendar" element={<RoleLazyPage roles={['STUDENT']}><CalendarPage /></RoleLazyPage>} />
       <Route path="/student/notifications" element={<RoleFrame roles={['STUDENT']}><NotificationsInboxPage /></RoleFrame>} />
-      <Route path="/student/profile" element={<RoleFrame roles={['STUDENT']}><ProfilePage /></RoleFrame>} />
       <Route path="/student/submit" element={<RoleFrame roles={['STUDENT']}><StudentAssignmentSubmitPage /></RoleFrame>} />
 
       <Route path="/bang-dieu-khien" element={<AppLazyPage><DashboardPage /></AppLazyPage>} />
@@ -130,9 +127,7 @@ export function NewAppRouter() {
       <Route path="/diem-danh" element={<AppFrame><AttendancePage /></AppFrame>} />
       <Route path="/lich-hoc" element={<AppLazyPage><CalendarPage /></AppLazyPage>} />
       <Route path="/nguoi-dung" element={<RoleFrame roles={['TEACHER_OWNER']}><UsersPage /></RoleFrame>} />
-      <Route path="/bao-cao" element={<RoleLazyPage roles={['TEACHER_OWNER', 'CLASS_ADMIN']}><ReportsPage /></RoleLazyPage>} />
       <Route path="/cham-bai" element={<RoleLazyPage roles={['TEACHER_OWNER', 'CLASS_ADMIN']}><GradingV2Page /></RoleLazyPage>} />
-      <Route path="/ho-so" element={<AppFrame><ProfilePage /></AppFrame>} />
       <Route path="/doi-mat-khau" element={<AppFrame><ChangePasswordPage /></AppFrame>} />
 
       <Route path="/dashboard" element={<Navigate to="/bang-dieu-khien" replace />} />
@@ -144,7 +139,6 @@ export function NewAppRouter() {
       <Route path="/grading" element={<Navigate to="/cham-bai" replace />} />
       <Route path="/attendance" element={<Navigate to="/diem-danh" replace />} />
       <Route path="/calendar" element={<Navigate to="/lich-hoc" replace />} />
-      <Route path="/profile" element={<Navigate to="/ho-so" replace />} />
 
       <Route path="/khong-co-quyen" element={<ForbiddenPage />} />
       <Route path="/" element={<Navigate to="/bang-dieu-khien" replace />} />

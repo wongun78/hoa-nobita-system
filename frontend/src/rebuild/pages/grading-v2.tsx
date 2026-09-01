@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, CheckCircle, Download, ExternalLink, Eye, RotateCcw, Send } from 'lucide-react'
+import { ArrowDown, ArrowUp, Download, ExternalLink, Eye, RotateCcw, Send } from 'lucide-react'
 import { useNewAuth } from '../auth/use-auth'
-import { EmptyState, ErrorState, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
+import { EmptyState, ErrorState, FilterSelect, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { FilePreviewModal } from '../components/file-preview-modal'
 import { MultiFileUpload } from '../components/multi-file-upload'
 import { api } from '../core/api'
@@ -103,17 +103,6 @@ export function GradingV2Page() {
     onSuccess: async () => { setToast({ type: 'success', message: 'Đã yêu cầu nộp lại.' }); await qc.invalidateQueries({ queryKey: ['grading-v2', classId] }) },
     onError: (err) => showError(err, 'Không thể yêu cầu nộp lại.'),
   })
-  const bulk = useMutation({
-    mutationFn: () => api.bulkGrade(selected!.assignmentId, queue.items.filter((s) => s.status !== 'GRADED').map((s) => {
-      const item: { submissionId: string; score: number; feedback?: string; feedbackFileId?: string; feedbackLink?: string } = { submissionId: s.id, score: Number(score || s.score || 0), feedback: feedback || undefined }
-      if (feedbackFileId) item.feedbackFileId = feedbackFileId
-      if (feedbackLink) item.feedbackLink = feedbackLink
-      return item
-    })),
-    onSuccess: async () => { setToast({ type: 'success', message: 'Đã chấm hàng loạt.' }); await qc.invalidateQueries({ queryKey: ['grading-v2', classId] }) },
-    onError: (err) => showError(err, 'Không thể chấm hàng loạt.'),
-  })
-
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key === 'Enter' && selected && score) { event.preventDefault(); save.mutate() }
@@ -136,14 +125,8 @@ export function GradingV2Page() {
 
       {/* Filters: Class → Assignment → Search */}
       <Card className="flex flex-col gap-3 md:flex-row">
-        <select className="rounded-2xl border border-sky-100 bg-white px-3 py-2.5 text-sm" value={classId} onChange={(e) => { setClassId(e.target.value); setAssignmentId(''); setPage(0); setSelectedId('') }}>
-          <option value="">{isTeacher ? 'Tất cả lớp' : 'Chọn lớp'}</option>
-          {classPage.items.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-        </select>
-        <select className="rounded-2xl border border-sky-100 bg-white px-3 py-2.5 text-sm" value={assignmentId} onChange={(e) => { setAssignmentId(e.target.value); setPage(0); setSelectedId('') }} disabled={!classId}>
-          <option value="">Tất cả bài tập</option>
-          {assignmentsList.map((a) => <option key={a.id} value={a.id}>{a.title}</option>)}
-        </select>
+        <FilterSelect value={classId} onChange={(v) => { setClassId(v); setAssignmentId(''); setPage(0); setSelectedId('') }} options={classPage.items.map((item) => ({ value: item.id, label: item.name }))} placeholder={isTeacher ? 'Tất cả lớp' : 'Chọn lớp'} />
+        <FilterSelect value={assignmentId} onChange={(v) => { setAssignmentId(v); setPage(0); setSelectedId('') }} options={assignmentsList.map((a) => ({ value: a.id, label: a.title }))} placeholder="Tất cả bài tập" disabled={!classId} />
         <SearchInput value={search} onChange={(e) => { setPage(0); setSearch(e.target.value) }} placeholder="Tìm học viên/bài tập" />
         {(isTeacher || hasRole('CLASS_ADMIN')) && (
           <Button type="button" variant="secondary" disabled={!assignmentId || downloadingZip} onClick={handleExportZip}>
@@ -204,16 +187,17 @@ export function GradingV2Page() {
                     : []
                 if (fileMetas.length === 0) return null
                 return (
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="space-y-2">
                     {fileMetas.map((fm) => (
-                      <span key={fm.fileId} className="inline-flex items-center gap-2">
-                      <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-2xl border border-sky-200 px-3 text-sm font-bold text-slate-700 transition hover:bg-sky-50" onClick={() => setPreviewFile({ id: fm.fileId, name: fm.fileName || 'Bài nộp', type: fm.contentType ?? undefined })}>
-                        <Eye size={16} /> {fm.fileName || 'Xem trước'}
-                      </button>
-                      <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-2xl bg-indigo-600 px-3 text-sm font-bold text-white transition hover:bg-indigo-700" onClick={() => api.downloadFile(fm.fileId, fm.fileName || `submission-${selected.id}`)}>
-                        <Download size={16} />
-                      </button>
-                      </span>
+                      <div key={fm.fileId} className="flex items-center gap-2">
+                        <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-2xl bg-indigo-600 px-3 text-sm font-bold text-white transition hover:bg-indigo-700" onClick={() => api.downloadFile(fm.fileId, fm.fileName || `submission-${selected.id}`)}>
+                          <Download size={16} /> Tải
+                        </button>
+                        <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-2xl border border-sky-200 px-3 text-sm font-bold text-slate-700 transition hover:bg-sky-50" onClick={() => setPreviewFile({ id: fm.fileId, name: fm.fileName || 'Bài nộp', type: fm.contentType ?? undefined })}>
+                          <Eye size={16} /> Xem trước
+                        </button>
+                        <span className="truncate text-xs text-slate-400">{fm.fileName}</span>
+                      </div>
                     ))}
                   </div>
                 )
@@ -228,12 +212,12 @@ export function GradingV2Page() {
               <div className="rounded-2xl border border-sky-100 bg-sky-50/50 p-4 space-y-3">
                 <h3 className="text-sm font-bold text-slate-700">Tệp đính kèm phản hồi</h3>
                 {selected.feedbackFileId && selected.feedbackFileName && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-2xl bg-indigo-600 px-3 text-sm font-bold text-white transition hover:bg-indigo-700" onClick={handleDownloadFeedback}>
+                      <Download size={16} /> Tải
+                    </button>
                     <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-2xl border border-sky-200 px-3 text-sm font-bold text-slate-700 transition hover:bg-sky-50" onClick={() => setPreviewFile({ id: selected.feedbackFileId!, name: selected.feedbackFileName || 'Phản hồi', type: selected.feedbackFileContentType ?? undefined })}>
                       <Eye size={16} /> Xem trước
-                    </button>
-                    <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-2xl bg-indigo-600 px-3 text-sm font-bold text-white transition hover:bg-indigo-700" onClick={handleDownloadFeedback}>
-                      <Download size={16} /> {selected.feedbackFileName}
                     </button>
                     <span className="text-xs text-slate-500">({selected.feedbackFileSize ? Math.round(selected.feedbackFileSize / 1024) + ' KB' : ''})</span>
                   </div>
@@ -250,7 +234,6 @@ export function GradingV2Page() {
               <div className="flex flex-wrap gap-2">
                 <Button type="button" disabled={!score || save.isPending} onClick={() => save.mutate()}><Send size={16} /> Lưu điểm</Button>
                 <Button type="button" variant="secondary" disabled={resubmit.isPending} onClick={() => resubmit.mutate()}><RotateCcw size={16} /> Yêu cầu nộp lại</Button>
-                <Button type="button" variant="secondary" disabled={!score || bulk.isPending} onClick={() => bulk.mutate()}><CheckCircle size={16} /> Chấm hàng loạt</Button>
               </div>
 
               <div className="flex items-center gap-4 text-xs text-slate-400">

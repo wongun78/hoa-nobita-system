@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { BookOpenCheck, CalendarDays, Clock3, GraduationCap, Grid3X3, ListChecks, Rows3 } from 'lucide-react'
 import { api } from '../core/api'
-import { EmptyState, ErrorState, FilterBar, MetricCard, SkeletonCard, StatusBadge } from '../components/foundation'
+import { EmptyState, ErrorState, MetricCard, SkeletonCard, StatusBadge, StudentHeroBanner } from '../components/foundation'
 import { Button, Card } from '../layout/ui'
 import { useNewAuth } from '../auth/use-auth'
 import type { CalendarEvent, ClassItem, RoleName } from '../core/types'
@@ -224,14 +224,10 @@ export function CalendarPage() {
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">
-      <div className="student-animate-in relative overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-6 text-white shadow-lg">
-        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-        <div className="absolute -left-6 bottom-0 h-28 w-28 rounded-full bg-white/10 blur-xl" />
-        <div className="relative">
-          <h1 className="text-2xl font-black tracking-tight md:text-3xl">Lịch học</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">Lịch 90 ngày tới, hiển thị buổi học và hạn nộp bài theo các lớp bạn đang tham gia.</p>
-        </div>
-      </div>
+      <StudentHeroBanner>
+        <h1 className="text-2xl font-black tracking-tight md:text-3xl">Lịch học</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">Lịch 90 ngày tới, hiển thị buổi học và hạn nộp bài theo các lớp bạn đang tham gia.</p>
+      </StudentHeroBanner>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Tổng sự kiện" value={events.length} hint={`${from} → ${to}`} icon={<CalendarDays size={20} />} tone="indigo" />
@@ -240,23 +236,18 @@ export function CalendarPage() {
         <MetricCard label="Sắp tới" value={nextEvent ? compactDateFormatter.format(nextEvent.startsAt) : '-'} hint={nextEvent?.title ?? 'Không có lịch'} icon={<ListChecks size={20} />} tone="emerald" />
       </div>
 
-      {role !== 'STUDENT' && (
-      <FilterBar>
-        <div className="min-w-0 flex-1">
-          {/* <FieldLabel htmlFor="calendar-class">Lọc theo lớp</FieldLabel> */}
-          <select id="calendar-class" className="min-h-11 w-full rounded-2xl border border-sky-100 bg-white px-4 text-sm font-bold text-slate-600 outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" value={classId} onChange={(event) => setClassId(event.target.value)}>
-            <option value="">Tất cả lớp được phép</option>
-            {(classes.data ?? []).map((item: ClassItem) => <option key={item.id} value={item.id}>{item.name} · {item.code}</option>)}
-          </select>
+      <div className="flex flex-wrap items-center gap-3">
+        {role !== 'STUDENT' && (
+        <select id="calendar-class" className="min-h-11 min-w-0 flex-1 rounded-2xl border border-sky-100 bg-white px-4 text-sm font-bold text-slate-600 outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" value={classId} onChange={(event) => setClassId(event.target.value)}>
+          <option value="">Tất cả lớp được phép</option>
+          {(classes.data ?? []).map((item: ClassItem) => <option key={item.id} value={item.id}>{item.name} · {item.code}</option>)}
+        </select>
+        )}
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <ViewButton active={view === 'AGENDA'} icon={<ListChecks size={16} />} label="Agenda" onClick={() => setView('AGENDA')} />
+          <ViewButton active={view === 'MONTH'} icon={<Grid3X3 size={16} />} label="Tháng" onClick={() => setView('MONTH')} />
+          <ViewButton active={view === 'WEEK'} icon={<Rows3 size={16} />} label="Tuần" onClick={() => setView('WEEK')} />
         </div>
-      </FilterBar>
-      )}
-
-      <div className="flex flex-wrap items-center gap-2">
-        <ViewButton active={view === 'AGENDA'} icon={<ListChecks size={16} />} label="Agenda" onClick={() => setView('AGENDA')} />
-        <ViewButton active={view === 'MONTH'} icon={<Grid3X3 size={16} />} label="Tháng" onClick={() => setView('MONTH')} />
-        <ViewButton active={view === 'WEEK'} icon={<Rows3 size={16} />} label="Tuần" onClick={() => setView('WEEK')} />
-
       </div>
 
       {classes.isError && <ErrorState title="Không tải được danh sách lớp" description="Agenda vẫn có thể hiển thị tất cả lớp được phép; thử lại nếu cần lọc lớp." onRetry={() => classes.refetch()} />}

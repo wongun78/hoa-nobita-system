@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
-import { Bell, Check, Copy, Download, Edit3, Eye, FileText, LinkIcon, Plus, Trash2, X } from 'lucide-react'
-import { ConfirmDialog, EmptyState, ErrorState, FilterBar, MetricCard, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
+import { Bell, Check, Copy, Download, Edit3, Eye, FileText, LinkIcon, Plus, Trash2 } from 'lucide-react'
+import { ConfirmDialog, EmptyState, ErrorState, FilterBar, FilterSelect, MetricCard, Modal, PageHeader, PaginationControls, SearchInput, SkeletonCard, StatusBadge } from '../components/foundation'
 import { api } from '../core/api'
 import { ApiClientError } from '../core/http'
 import { MultiFileUpload } from '../components/multi-file-upload'
@@ -101,14 +101,8 @@ function AssignmentFormModal({ assignment, onClose }: Readonly<{ assignment?: As
   const canSubmit = selectedClassIds.length > 0 && title.trim()
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-sky-100 bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-black text-slate-950">{isEdit ? 'Chỉnh sửa bài tập' : 'Tạo bài tập mới'}</h2>
-          <button type="button" onClick={onClose} className="rounded-xl p-1 text-slate-400 hover:bg-slate-100"><X size={18} /></button>
-        </div>
-
-        <div className="space-y-4">
+    <Modal open onClose={onClose} title={isEdit ? 'Chỉnh sửa bài tập' : 'Tạo bài tập mới'}>
+      <div className="space-y-4">
           {/* Multi-class select */}
           <div>
             <FieldLabel>Chọn lớp (có thể chọn nhiều)</FieldLabel>
@@ -195,8 +189,7 @@ function AssignmentFormModal({ assignment, onClose }: Readonly<{ assignment?: As
             {mutation.isPending ? (isEdit ? 'Đang cập nhật...' : 'Đang tạo...') : isEdit ? 'Cập nhật bài tập' : `Tạo bài tập${selectedClassIds.length > 1 ? ` (${selectedClassIds.length} lớp)` : ''}`}
           </Button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -310,16 +303,8 @@ export function AssignmentsV2Page() {
       <PageHeader eyebrow="Quản lý bài tập" title="Bài tập" description="Phân trang server-side, lọc theo trạng thái/lớp, xem progress và missing students." actions={<Button className="min-h-11" onClick={() => setShowCreate(true)}><Plus size={16} /> Tạo bài tập</Button>} />
       <FilterBar>
         <SearchInput value={search} onChange={(e) => { setPage(0); setSearch(e.target.value) }} placeholder="Tìm bài tập" />
-        <select className="rounded-2xl border border-sky-100 bg-white px-3 py-2.5 text-sm" value={status} onChange={(e) => { setPage(0); setStatus(e.target.value) }}>
-          <option value="">Tất cả trạng thái</option>
-          <option value="DRAFT">Nháp</option>
-          <option value="PUBLISHED">Đã đăng</option>
-          <option value="CLOSED">Đã đóng</option>
-        </select>
-        <select className="rounded-2xl border border-sky-100 bg-white px-3 py-2.5 text-sm" value={classId} onChange={(e) => { setPage(0); setClassId(e.target.value) }}>
-          <option value="">Tất cả lớp</option>
-          {classesPage.items.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-        </select>
+        <FilterSelect value={status} onChange={(v) => { setPage(0); setStatus(v) }} options={[{ value: 'DRAFT', label: 'Nháp' }, { value: 'PUBLISHED', label: 'Đã đăng' }, { value: 'CLOSED', label: 'Đã đóng' }]} placeholder="Tất cả trạng thái" />
+        <FilterSelect value={classId} onChange={(v) => { setPage(0); setClassId(v) }} options={classesPage.items.map((item) => ({ value: item.id, label: item.name }))} placeholder="Tất cả lớp" />
       </FilterBar>
       <Card className="max-w-full min-w-0">
         {query.isLoading && <SkeletonCard />}
@@ -360,12 +345,7 @@ export function AssignmentsV2Page() {
     </div>
 
     {selectedId && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setSelectedId('')}>
-        <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-sky-100 bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-black text-slate-950">{selectedAssignment?.title ?? 'Đang tải...'}</h2>
-            <button type="button" onClick={() => setSelectedId('')} className="rounded-xl p-1 text-slate-400 hover:bg-slate-100"><X size={18} /></button>
-          </div>
+      <Modal open title={selectedAssignment?.title ?? 'Đang tải...'} onClose={() => setSelectedId('')}>
           {selected.isLoading && <p className="text-sm text-slate-500">Đang tải chi tiết bài tập...</p>}
           {selected.isError && <EmptyState title="Lỗi tải bài tập" description="Không thể tải chi tiết. Vui lòng thử lại." />}
           {selectedAssignment && (
@@ -410,8 +390,7 @@ export function AssignmentsV2Page() {
               </div>
             </div>
           )}
-        </div>
-      </div>
+      </Modal>
     )}
 
     {toast && (

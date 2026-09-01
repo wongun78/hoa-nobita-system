@@ -52,7 +52,7 @@ export function StudentClassesPage() {
         description="Các lớp TOPIK bạn đang tham gia. Nhấn vào lớp để xem bài học, tài liệu và tiến độ."
       />
 
-      <div className="rounded-3xl border border-sky-100 bg-white/85 p-3 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         <SearchInput value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm theo tên lớp, mã lớp, giáo viên..." aria-label="Tìm lớp học" />
       </div>
 
@@ -68,9 +68,9 @@ export function StudentClassesPage() {
             return (
               <a key={item.id} href={`/student/classes/${item.id}`} className="group block rounded-3xl focus:outline-none focus:ring-4 focus:ring-indigo-100">
                 <Card className="relative flex h-full flex-col overflow-hidden rounded-3xl transition group-hover:-translate-y-1 group-hover:shadow-xl">
-                  <div className={`absolute inset-x-0 top-0 h-2 bg-gradient-to-r ${palette.bar}`} />
+                  <div className={`absolute inset-x-0 top-0 h-2 ${palette.accent.replace('text-', 'bg-').split(' ')[0]}`} />
                   <div className="flex items-start justify-between gap-3 pt-3">
-                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${palette.icon}`}>
+                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${palette.accent}`}>
                       <BookOpen size={22} />
                     </div>
                     <StatusBadge value={item.status} />

@@ -7,8 +7,6 @@ export type SubmissionStatus = 'SUBMITTED' | 'LATE' | 'GRADED' | 'RESUBMIT_REQUE
 export type TargetType = 'CLASS' | 'USER' | 'ALL'
 export type MemberStatus = 'ACTIVE' | 'PAUSED' | 'REMOVED'
 export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE'
-export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH'
-
 export type ApiError = { field?: string; message: string }
 export type ApiEnvelope<T> = {
   success: boolean
@@ -32,6 +30,7 @@ export type AuthUser = {
 }
 
 export type UserItem = AuthUser & {
+  studentCode?: string | null
   note?: string | null
   createdAt: string
   temporaryPassword?: string | null

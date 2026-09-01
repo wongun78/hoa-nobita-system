@@ -1,199 +1,188 @@
-import { Link } from 'react-router-dom'
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, XAxis, YAxis } from 'recharts'
-import { BookOpen, CheckCircle2, FileText, GraduationCap, MessageSquare, School, Sparkles, Users } from 'lucide-react'
-import { EmptyState, ErrorState, MetricCard, PageHeader, RiskBadge, SkeletonCard, StatusBadge } from '../components/foundation'
-import { api } from '../core/api'
-import { Card } from '../layout/ui'
-import { ChartCard, ResponsiveChart, arrayValue, getId, numberValue, textValue, tooltip } from './phase2-utils'
+import { Link } from 'react-router-dom'
+import { BookOpen, CalendarCheck2, ClipboardList, Clock3, FileText, GraduationCap, LayoutDashboard, Megaphone, Sparkles, Users } from 'lucide-react'
+import { api, type TeacherDashboard } from '../core/api'
+import { ErrorState, MetricCard, PageHeader, SkeletonCard, StatusBadge, StudentHeroBanner } from '../components/foundation'
+import { Button, Card } from '../layout/ui'
+import { fmtDate } from './phase2-utils'
+import type { ActivityItem, AssignmentItem, NotificationItem } from '../core/types'
 
-type DashboardRecord = Record<string, unknown>
-
-function chartData(data: DashboardRecord, key: string) {
-  return arrayValue<DashboardRecord>(data[key]).map((item, index) => ({
-    name: textValue(item.name ?? item.label ?? item.className ?? item.status ?? item.bucket, `Mục ${index + 1}`),
-    value: numberValue(item.value ?? item.count ?? item.total ?? item.rate ?? item.averageScore),
-    submitted: numberValue(item.submitted ?? item.submittedCount),
-    missing: numberValue(item.missing ?? item.missingCount),
-    needGrading: numberValue(item.needGrading ?? item.needGradingCount),
-    average: numberValue(item.average ?? item.averageScore ?? item.score),
-  }))
-}
-
-function relativeTime(iso?: string | null): string {
-  if (!iso) return ''
-  const diffMs = Date.now() - new Date(iso).getTime()
-  if (diffMs < 0) return 'Vừa xong'
-  const min = Math.floor(diffMs / 60000)
-  if (min < 1) return 'Vừa xong'
-  if (min < 60) return `${min} phút trước`
-  const hr = Math.floor(min / 60)
-  if (hr < 24) return `${hr} giờ trước`
-  const day = Math.floor(hr / 24)
-  if (day < 7) return `${day} ngày trước`
-  return new Date(iso).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
-}
-
-function deadlineLabel(iso?: string | null): string {
-  if (!iso) return ''
-  const diffMs = new Date(iso).getTime() - Date.now()
-  if (diffMs < 0) return 'Đã hết hạn'
-  const hr = Math.floor(diffMs / 3600000)
-  if (hr < 1) return 'Dưới 1 giờ nữa'
-  if (hr < 24) return `Còn ${hr} giờ`
-  const day = Math.floor(hr / 24)
-  return `Còn ${day} ngày`
-}
-
-function fmtDueDate(iso?: string | null): string {
-  if (!iso) return ''
-  return new Date(iso).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
-}
-
-const RISK_ORDER: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 }
-
-function InsightList({ title, items, empty, renderSubtitle, maxItems = 8, viewAllLink, viewAllLabel }: Readonly<{
-  title: string; items: DashboardRecord[]; empty: string;
-  renderSubtitle?: (item: DashboardRecord) => string;
-  maxItems?: number; viewAllLink?: string; viewAllLabel?: string;
-}>) {
-  const displayed = items.slice(0, maxItems)
-  const hasMore = items.length > maxItems
+function QuickAction({ to, icon, label, description, color }: Readonly<{ to: string; icon: React.ReactNode; label: string; description: string; color: string }>) {
   return (
-    <Card className="rounded-3xl">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-black text-slate-950">{title}</h2>
-        {viewAllLink && <Link to={viewAllLink} className="text-xs font-bold text-indigo-600 hover:underline">{viewAllLabel ?? 'Xem tất cả'}</Link>}
-      </div>
-      <div className="mt-3 divide-y divide-sky-50">
-        {displayed.map((item, index) => (
-          <div key={getId(item, `${title}-${index}`)} className="py-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="font-bold text-slate-900">{textValue(item.title ?? item.className ?? item.studentName ?? item.fullName ?? item.message, 'Mục cần chú ý')}</p>
-                <p className="mt-1 text-sm text-slate-500">{renderSubtitle ? renderSubtitle(item) : textValue(item.description ?? item.reason ?? item.detail ?? item.subtitle, '')}</p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                {typeof item.riskLevel === 'string' && <RiskBadge risk={item.riskLevel as never} />}
-                {typeof item.status === 'string' && <StatusBadge value={item.status} />}
-              </div>
-            </div>
-          </div>
-        ))}
-        {items.length === 0 && <div className="py-6"><EmptyState title={empty} description="Không có cảnh báo quan trọng ở thời điểm hiện tại." /></div>}
-        {hasMore && viewAllLink && (
-          <div className="pt-3 text-center">
-            <Link to={viewAllLink} className="text-sm font-bold text-indigo-600 hover:underline">Xem tất cả ({items.length})</Link>
-          </div>
-        )}
-      </div>
-    </Card>
+    <Link to={to} className="group block rounded-3xl focus:outline-none focus:ring-4 focus:ring-indigo-100">
+      <Card className="flex items-center gap-4 rounded-3xl transition hover:-translate-y-0.5 hover:shadow-lg">
+        <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${color}`}>{icon}</div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-black text-slate-950">{label}</p>
+          <p className="mt-0.5 text-xs text-slate-500">{description}</p>
+        </div>
+      </Card>
+    </Link>
   )
 }
 
 export function TeacherDashboardPage() {
-  const query = useQuery({ queryKey: ['dash', 'teacher'], queryFn: api.dashboardTeacher })
+  const dash = useQuery({ queryKey: ['dashboard', 'teacher'], queryFn: () => api.dashboardTeacher() })
+  const activity = useQuery({ queryKey: ['activity', 'teacher', 'recent'], queryFn: () => api.recentActivityPage({ page: 0, size: 6 }), staleTime: 30_000 })
+  const assignments = useQuery({ queryKey: ['assignments', 'teacher', 'due-soon'], queryFn: () => api.assignmentsPage({ page: 0, size: 5, status: 'PUBLISHED' }), staleTime: 30_000 })
 
-  if (query.isLoading) return <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard /></div>
-  if (query.isError || !query.data) return <ErrorState title="Không thể tải bảng điều khiển giáo viên" onRetry={() => void query.refetch()} />
+  const d = dash.data as TeacherDashboard | undefined
+  const activityItems = useMemo(() => {
+    const raw = activity.data
+    if (!raw) return []
+    return Array.isArray(raw) ? raw : raw.items ?? []
+  }, [activity.data])
+  const upcomingAssignments = useMemo(() => {
+    const raw = assignments.data
+    const items: AssignmentItem[] = Array.isArray(raw) ? raw : raw?.items ?? []
+    return items.filter((item) => item.dueAt && new Date(item.dueAt).getTime() > Date.now()).slice(0, 5)
+  }, [assignments.data])
 
-  const data = query.data as DashboardRecord
-  const charts = data.charts as DashboardRecord ?? {}
-  const kpi = data.kpi as DashboardRecord ?? {}
-  const kpiAssignments = kpi.assignments as DashboardRecord ?? {}
-  const kpiSubmissions = kpi.submissions as DashboardRecord ?? {}
-  const kpiMaterials = kpi.materials as DashboardRecord ?? {}
-  const kpiNotifications = kpi.notifications as DashboardRecord ?? {}
-  const kpiGrading = kpi.grading as DashboardRecord ?? {}
+  if (dash.isLoading) {
+    return (
+      <div className="space-y-5">
+        <SkeletonCard lines={4} />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard /></div>
+      </div>
+    )
+  }
 
-  const classStatus = chartData(charts, 'classStatusChart')
-  const submissionRate = chartData(charts, 'submissionRateByClass')
-  const needGradingChart = chartData(charts, 'needGradingByClass')
-  const averageScore = chartData(charts, 'averageScoreByClass')
-  const gradeDistribution = chartData(charts, 'gradeDistribution')
-  const workflow = chartData(charts, 'assignmentWorkflow')
-  const todayTasks = arrayValue<DashboardRecord>(data.todayTasks)
-  const classHealth = arrayValue<DashboardRecord>(data.classHealth)
-  const riskStudents = arrayValue<DashboardRecord>(data.riskStudents)
-    .sort((a, b) => (RISK_ORDER[String(a.riskLevel)] ?? 3) - (RISK_ORDER[String(b.riskLevel)] ?? 3))
-  const dueSoon = arrayValue<DashboardRecord>(data.assignmentsDueSoon)
-  const recentActivity = arrayValue<DashboardRecord>(data.recentActivity)
+  if (dash.isError) {
+    return <ErrorState title="Không tải được bảng điều khiển" description="Vui lòng thử lại sau ít phút." onRetry={() => dash.refetch()} />
+  }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="Dashboard HOA NOBITA · Giáo viên"
-        title={`Chào ${textValue(data.greetingName, 'Anh Hoà')}, hôm nay lớp học đang vận hành thế nào?`}
-        description="Bảng điều khiển tập trung cho giáo viên: lớp học, bài tập, chấm điểm, rủi ro học viên."
-        actions={<><Link className="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-3 py-1.5 text-xs font-bold !text-white hover:bg-indigo-700 sm:px-4 sm:py-2 sm:text-sm" to="/teacher/classes">Quản lý lớp</Link><Link className="inline-flex items-center justify-center rounded-2xl border border-sky-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-sky-50 sm:px-4 sm:py-2 sm:text-sm" to="/teacher/grading">Mở Grading Center</Link></>}
-      />
+    <div className="space-y-5">
+      {/* Hero Banner */}
+      <StudentHeroBanner>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-xs font-bold backdrop-blur"><Sparkles size={14} /> Giáo viên</span>
+            <h1 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">Bảng điều khiển</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">Tổng quan về hoạt động giảng dạy, bài tập cần chấm và tình hình học viên.</p>
+          </div>
+          <div className="hidden gap-2 md:flex">
+            <Link to="/teacher/classes"><Button variant="secondary" className="bg-white/20 text-white border-white/30 hover:bg-white/30"><BookOpen size={16} />Lớp học</Button></Link>
+            <Link to="/teacher/grading"><Button variant="secondary" className="bg-white/20 text-white border-white/30 hover:bg-white/30"><GraduationCap size={16} />Chấm bài</Button></Link>
+          </div>
+        </div>
+      </StudentHeroBanner>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Lớp hoạt động" value={numberValue(data.activeClassCount)} icon={<School size={20} />} tone="indigo" />
-        <MetricCard label="Học viên" value={numberValue(data.activeStudentCount)} icon={<Users size={20} />} tone="sky" />
-        <MetricCard label="Bài tập" value={numberValue(kpiAssignments.total)} icon={<BookOpen size={20} />} tone="violet" />
-        <MetricCard label="Bài nộp" value={numberValue(kpiSubmissions.submitted)} icon={<FileText size={20} />} tone="emerald" />
-        <MetricCard label="Cần chấm" value={numberValue(data.needGradingCount)} icon={<GraduationCap size={20} />} tone="amber" />
-        <MetricCard label="Tài liệu" value={numberValue(kpiMaterials.total)} icon={<Sparkles size={20} />} tone="rose" />
-        <MetricCard label="Thông báo (7 ngày)" value={numberValue(kpiNotifications.sentLast7Days)} icon={<MessageSquare size={20} />} tone="sky" />
-        <MetricCard label="Tỷ lệ chấm đạt" value={`${Math.round(numberValue(kpiGrading.passRate))}%`} icon={<CheckCircle2 size={20} />} tone="emerald" />
+      {/* Metrics */}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="Lớp học active" value={d?.activeClassCount ?? 0} hint="Đang giảng dạy" icon={<BookOpen size={20} />} tone="indigo" />
+        <MetricCard label="Học viên active" value={d?.activeStudentCount ?? 0} hint="Đang tham gia" icon={<Users size={20} />} tone="sky" />
+        <MetricCard label="Bài tập sắp hết hạn" value={d?.dueSoonAssignmentCount ?? 0} hint="Trong 48 giờ tới" icon={<Clock3 size={20} />} tone="amber" />
+        <MetricCard label="Bài cần chấm" value={(d?.needGradingByClass ?? []).reduce((sum, item) => sum + item.count, 0)} hint="Đang chờ đánh giá" icon={<GraduationCap size={20} />} tone="rose" />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <ChartCard title="Trạng thái lớp" description="Phân bổ lớp theo trạng thái" empty={classStatus.length === 0}>
-          <ResponsiveChart><PieChart>{tooltip}<Pie data={classStatus} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90}>{classStatus.map((_, i) => <Cell key={i} fill={['#6366f1', '#38bdf8', '#f9a8d4', '#34d399'][i % 4]} />)}</Pie></PieChart></ResponsiveChart>
-        </ChartCard>
-        <ChartCard title="Tỷ lệ nộp theo lớp" description="Đã nộp so với chưa nộp" empty={submissionRate.length === 0}>
-          <ResponsiveChart><BarChart data={submissionRate}>{tooltip}<CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="name" /><YAxis /><Bar dataKey="submitted" fill="#38bdf8" name="Đã nộp" radius={[8, 8, 0, 0]} /><Bar dataKey="missing" fill="#fda4af" name="Thiếu" radius={[8, 8, 0, 0]} /></BarChart></ResponsiveChart>
-        </ChartCard>
-        <ChartCard title="Cần chấm theo lớp" description="Ưu tiên cần chấm" empty={needGradingChart.length === 0}>
-          <ResponsiveChart><BarChart data={needGradingChart}>{tooltip}<CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="name" /><YAxis /><Bar dataKey="value" fill="#f59e0b" name="Cần chấm" radius={[8, 8, 0, 0]} /></BarChart></ResponsiveChart>
-        </ChartCard>
-        <ChartCard title="Điểm trung bình theo lớp" description="Theo dõi chất lượng học tập" empty={averageScore.length === 0}>
-          <ResponsiveChart><LineChart data={averageScore}>{tooltip}<CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="name" /><YAxis /><Line dataKey="average" stroke="#6366f1" strokeWidth={3} name="Điểm TB" /></LineChart></ResponsiveChart>
-        </ChartCard>
-        <ChartCard title="Phân phối điểm" description="Phân phối điểm" empty={gradeDistribution.length === 0}>
-          <ResponsiveChart><AreaChart data={gradeDistribution}>{tooltip}<CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="name" /><YAxis /><Area dataKey="value" fill="#c7d2fe" stroke="#6366f1" name="Số bài" /></AreaChart></ResponsiveChart>
-        </ChartCard>
-        <ChartCard title="Luồng bài tập" description="Nháp → Đã đăng → Đã đóng" empty={workflow.length === 0}>
-          <ResponsiveChart><BarChart data={workflow}>{tooltip}<CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="name" /><YAxis /><Bar dataKey="value" fill="#ec4899" name="Số lượng" radius={[8, 8, 0, 0]} /></BarChart></ResponsiveChart>
-        </ChartCard>
+      {/* Quick Actions */}
+      <div>
+        <p className="mb-3 text-xs font-bold uppercase tracking-[0.08em] text-indigo-500">Thao tác nhanh</p>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <QuickAction to="/teacher/classes" icon={<BookOpen size={20} />} label="Quản lý lớp" description="Tạo, chỉnh sửa lớp học" color="bg-indigo-50 text-indigo-600" />
+          <QuickAction to="/teacher/assignments" icon={<ClipboardList size={20} />} label="Tạo bài tập" description="Giao bài cho lớp" color="bg-sky-50 text-sky-600" />
+          <QuickAction to="/teacher/grading" icon={<GraduationCap size={20} />} label="Chấm bài" description="Đánh giá bài nộp" color="bg-emerald-50 text-emerald-600" />
+          <QuickAction to="/teacher/attendance" icon={<CalendarCheck2 size={20} />} label="Điểm danh" description="Theo dõi chuyên cần" color="bg-amber-50 text-amber-600" />
+        </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <InsightList title="Việc hôm nay" items={todayTasks} empty="Hôm nay không có việc gấp" viewAllLink="/teacher/classes" viewAllLabel="Xem tất cả lớp" />
-        <InsightList title="Sức khỏe lớp học" items={classHealth} empty="Các lớp đang ổn định" viewAllLink="/teacher/classes"
-          renderSubtitle={(item) => {
-            const issues = item.issues as string[] | undefined
-            if (issues && issues.length > 0) return issues.join(' · ')
-            const rate = numberValue(item.submissionRate)
-            return `Tỷ lệ nộp ${rate}% · ${numberValue(item.studentCount)} học viên`
-          }}
-        />
-        <InsightList title="Học viên rủi ro" items={riskStudents} empty="Không có học viên rủi ro cao" viewAllLink="/teacher/users" viewAllLabel="Xem tất cả học viên"
-          renderSubtitle={(item) => {
-            const issue = textValue(item.issue, '')
-            const cls = textValue(item.className, '')
-            return issue || cls ? `${issue}${cls ? ` · ${cls}` : ''}` : 'Cần theo dõi'
-          }}
-        />
-        <InsightList title="Bài tập sắp đến hạn" items={dueSoon} empty="Không có deadline gần" viewAllLink="/teacher/assignments"
-          renderSubtitle={(item) => {
-            const due = textValue(item.deadline, '')
-            const cls = textValue(item.className, '')
-            const countdown = deadlineLabel(due)
-            return due ? `${fmtDueDate(due)} · ${countdown}${cls ? ` · ${cls}` : ''}` : cls
-          }}
-        />
-        <div className="xl:col-span-2"><InsightList title="Hoạt động gần đây" items={recentActivity} empty="Chưa có hoạt động mới" maxItems={6} viewAllLink="/teacher/classes" viewAllLabel="Xem tất cả"
-          renderSubtitle={(item) => {
-            const actor = textValue(item.actorName, '')
-            const target = textValue(item.targetName, '')
-            const time = relativeTime(textValue(item.createdAt, undefined))
-            return [actor, target].filter(Boolean).join(' · ') + (time ? ` · ${time}` : '')
-          }}
-        /></div>
+      {/* Main Content Grid */}
+      <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        {/* Grading Queue */}
+        <Card className="overflow-hidden rounded-3xl border-amber-100 bg-amber-50/50">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.08em] text-amber-600">Hàng đợi chấm bài</p>
+              <h2 className="mt-1 text-xl font-black text-slate-950">Bài cần đánh giá</h2>
+            </div>
+            <div className="rounded-2xl bg-white p-3 text-amber-600"><GraduationCap size={22} /></div>
+          </div>
+          {(d?.needGradingByClass ?? []).length > 0 ? (
+            <div className="mt-4 space-y-2">
+              {(d?.needGradingByClass ?? []).map((item) => (
+                <Link key={item.classId} to="/teacher/grading" className="flex items-center justify-between rounded-2xl border border-amber-100 bg-white px-4 py-3 transition hover:border-amber-200 hover:bg-amber-50/50">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-slate-900">{item.className}</p>
+                  </div>
+                  <span className="ml-3 inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-700">{item.count} bài</span>
+                </Link>
+              ))}
+              <Link to="/teacher/grading" className="block rounded-2xl py-2 text-center text-xs font-bold text-amber-600 transition hover:text-amber-700">Xem tất cả →</Link>
+            </div>
+          ) : (
+            <div className="mt-6 rounded-2xl bg-slate-50 p-6 text-center">
+              <p className="text-sm font-semibold text-slate-500">Không có bài nào cần chấm</p>
+              <p className="mt-1 text-xs text-slate-400">Tuyệt vời! Bạn đã chấm hết bài rồi.</p>
+            </div>
+          )}
+        </Card>
+
+        {/* Activity Feed */}
+        <Card className="overflow-hidden rounded-3xl border-indigo-100 bg-indigo-50/50">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.08em] text-indigo-500">Hoạt động gần đây</p>
+              <h2 className="mt-1 text-xl font-black text-slate-950">Nhật ký hệ thống</h2>
+            </div>
+            <div className="rounded-2xl bg-white p-3 text-indigo-600"><LayoutDashboard size={22} /></div>
+          </div>
+          {activityItems.length > 0 ? (
+            <div className="mt-4 space-y-2">
+              {activityItems.slice(0, 5).map((item: ActivityItem) => (
+                <div key={item.id} className="rounded-2xl border border-slate-100 bg-white px-4 py-3">
+                  <p className="text-sm font-semibold text-slate-800">{item.message}</p>
+                  <p className="mt-1 flex items-center gap-2 text-xs text-slate-400">
+                    <span>{item.actorName}</span>
+                    <span>·</span>
+                    <span>{fmtDate(item.createdAt)}</span>
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-6 rounded-2xl bg-slate-50 p-6 text-center">
+              <p className="text-sm font-semibold text-slate-500">Chưa có hoạt động gần đây</p>
+            </div>
+          )}
+        </Card>
       </div>
+
+      {/* Upcoming Assignments */}
+      {upcomingAssignments.length > 0 && (
+        <Card className="overflow-hidden rounded-3xl">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.08em] text-sky-500">Bài tập sắp tới</p>
+              <h2 className="mt-1 text-xl font-black text-slate-950">Deadline cần chú ý</h2>
+            </div>
+            <Link to="/teacher/assignments" className="text-xs font-bold text-indigo-600 hover:text-indigo-700">Xem tất cả →</Link>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-sky-100 text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <th className="pb-2 pr-4">Bài tập</th>
+                  <th className="pb-2 pr-4">Lớp</th>
+                  <th className="pb-2 pr-4">Hạn nộp</th>
+                  <th className="pb-2">Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-sky-50">
+                {upcomingAssignments.map((item) => (
+                  <tr key={item.id} className="transition hover:bg-sky-50/40">
+                    <td className="py-3 pr-4 font-bold text-slate-900">{item.title}</td>
+                    <td className="py-3 pr-4 text-slate-600">{item.className ?? '—'}</td>
+                    <td className="py-3 pr-4 text-slate-600">{fmtDate(item.dueAt)}</td>
+                    <td className="py-3"><StatusBadge value={item.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   )
 }

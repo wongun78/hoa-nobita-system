@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
-import { AlertTriangle, Search } from 'lucide-react'
-import type { RiskLevel, RoleName } from '../core/types'
+import { AlertTriangle, Search, X } from 'lucide-react'
+import type { RoleName } from '../core/types'
 import { Button, Card } from '../layout/ui'
 
 type Tone = 'slate' | 'indigo' | 'sky' | 'emerald' | 'amber' | 'rose' | 'violet'
@@ -17,9 +17,7 @@ const toneClasses: Record<Tone, string> = {
 
 export function PageHeader({ eyebrow, title, description, actions }: Readonly<{ eyebrow?: string; title: string; description?: string; actions?: React.ReactNode }>) {
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-white/70 bg-white/85 p-6 shadow-[0_20px_60px_rgba(79,70,229,0.08)] backdrop-blur">
-      <div className="absolute right-0 top-0 h-28 w-28 rounded-full bg-pink-200/40 blur-2xl" />
-      <div className="absolute -left-8 bottom-0 h-32 w-32 rounded-full bg-sky-200/50 blur-2xl" />
+    <div className="overflow-hidden rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm shadow-slate-200/50">
       <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           {eyebrow && <p className="text-xs font-bold uppercase tracking-[0.08em] text-indigo-500">{eyebrow}</p>}
@@ -32,9 +30,18 @@ export function PageHeader({ eyebrow, title, description, actions }: Readonly<{ 
   )
 }
 
+/** Indigo hero for student-facing pages. */
+export function StudentHeroBanner({ children }: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <div className="student-animate-in relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-600 to-violet-600 p-6 text-white shadow-lg shadow-indigo-500/20">
+      <div className="relative">{children}</div>
+    </div>
+  )
+}
+
 export function MetricCard({ label, value, hint, icon, tone = 'sky' }: Readonly<{ label: string; value: React.ReactNode; hint?: string; icon?: React.ReactNode; tone?: Tone }>) {
   return (
-    <Card className="group overflow-hidden bg-white/90 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+    <Card className="group overflow-hidden bg-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/60">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
@@ -76,13 +83,6 @@ export function RoleBadge({ role }: Readonly<{ role: RoleName }>) {
   return <span className={clsx('inline-flex rounded-full border px-2.5 py-1 text-xs font-bold transition-colors', toneClasses[toneByRole[role]])}>{labelByRole[role]}</span>
 }
 
-export function RiskBadge({ risk }: Readonly<{ risk?: RiskLevel | null }>) {
-  const value = risk ?? 'LOW'
-  const toneByRisk: Record<RiskLevel, Tone> = { LOW: 'emerald', MEDIUM: 'amber', HIGH: 'rose' }
-  const labelMap: Record<RiskLevel, string> = { HIGH: 'Cao', MEDIUM: 'Trung bình', LOW: 'Thấp' }
-  return <span className={clsx('inline-flex rounded-full border px-2.5 py-1 text-xs font-bold transition-colors', toneClasses[toneByRisk[value]])}>{labelMap[value] ?? value}</span>
-}
-
 export function EmptyState({ title, description, action }: Readonly<{ title: string; description?: string; action?: React.ReactNode }>) {
   return (
     <Card className="text-center">
@@ -122,13 +122,27 @@ export function SearchInput(props: Readonly<React.InputHTMLAttributes<HTMLInputE
   return (
     <label className="relative block">
       <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-      <input {...props} className={clsx('w-full rounded-2xl border border-sky-100 bg-white px-9 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100', props.className)} />
+      <input {...props} className={clsx('w-full rounded-xl border border-slate-200/80 bg-white px-9 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100', props.className)} />
     </label>
   )
 }
 
 export function FilterBar({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <div className="flex flex-col gap-3 rounded-3xl border border-sky-100 bg-white/80 p-3 shadow-sm md:flex-row md:items-center">{children}</div>
+  return <div className="flex flex-col gap-2 rounded-2xl border border-slate-200/60 bg-white p-3 shadow-sm shadow-slate-200/40 md:flex-row md:items-center md:gap-3">{children}</div>
+}
+
+export function FilterSelect({ value, onChange, options, placeholder = 'Tất cả', disabled = false }: Readonly<{ value: string; onChange: (value: string) => void; options: Array<{ value: string; label: string }>; placeholder?: string; disabled?: boolean }>) {
+  return (
+    <select
+      className="rounded-xl border border-indigo-100 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none transition hover:border-indigo-200 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 disabled:opacity-50"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+    >
+      <option value="">{placeholder}</option>
+      {options.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+    </select>
+  )
 }
 
 export function PaginationControls({ page, totalPages, onPageChange }: Readonly<{ page: number; totalPages: number; onPageChange: (page: number) => void }>) {
@@ -146,8 +160,8 @@ export function PaginationControls({ page, totalPages, onPageChange }: Readonly<
 export function ConfirmDialog({ open, title, description, confirmLabel = 'Xác nhận', onConfirm, onCancel }: Readonly<{ open: boolean; title: string; description?: string; confirmLabel?: string; onConfirm: () => void; onCancel: () => void }>) {
   if (!open) return null
   return (
-    <dialog open className="fixed inset-0 z-50 m-0 grid h-full w-full max-w-none place-items-center bg-slate-950/30 p-4 backdrop-blur-sm" aria-labelledby="confirm-title">
-      <Card className="w-full max-w-md shadow-2xl">
+    <dialog open className="fixed inset-0 z-50 m-0 grid h-full w-full max-w-none place-items-center bg-black/40 p-4 backdrop-blur-sm" aria-labelledby="confirm-title">
+      <Card className="w-full max-w-md shadow-2xl shadow-slate-900/10">
         <h2 id="confirm-title" className="text-lg font-black text-slate-950">{title}</h2>
         {description && <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>}
         <div className="mt-5 flex justify-end gap-2">
@@ -155,6 +169,22 @@ export function ConfirmDialog({ open, title, description, confirmLabel = 'Xác n
           <Button type="button" onClick={onConfirm}>{confirmLabel}</Button>
         </div>
       </Card>
+    </dialog>
+  )
+}
+
+/** Generic overlay modal. Clicking the backdrop calls `onClose`. */
+export function Modal({ open, title, onClose, maxWidth = 'max-w-lg', children }: Readonly<{ open: boolean; title: string; onClose: () => void; maxWidth?: string; children: React.ReactNode }>) {
+  if (!open) return null
+  return (
+    <dialog open className="fixed inset-0 z-50 m-0 grid h-full w-full max-w-none place-items-center bg-black/40 p-4 backdrop-blur-sm" aria-labelledby="modal-title">
+      <div className={`w-full ${maxWidth} rounded-2xl border border-slate-200/60 bg-white p-5 shadow-2xl shadow-slate-900/10`}>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 id="modal-title" className="font-black text-slate-950">{title}</h2>
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"><X size={18} /></button>
+        </div>
+        {children}
+      </div>
     </dialog>
   )
 }

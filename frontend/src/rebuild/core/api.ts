@@ -27,55 +27,25 @@ import type {
 
 type LoginPayload = { accessToken: string; tokenType?: string; expiresIn?: number; user: AuthUser }
 
-export type TeacherDashboard = Record<string, unknown> & {
-  currentDate?: string
-  greetingName?: string
-  todayActionCount?: number
-  activeClassCount?: number
-  activeStudentCount?: number
-  needGradingCount?: number
-  overdueMissingSubmissionCount?: number
-  totalClasses?: number
-  totalStudents?: number
-  totalAssignments?: number
-  submissionRate?: number
-  averageScore?: number
-  todayTasks?: Array<{ id: string; type?: string; title: string; description?: string; priority?: string; targetUrl?: string; ctaLabel?: string }>
-  classHealth?: unknown[]
-  riskStudents?: unknown[]
-  assignmentsDueSoon?: unknown[]
+export type TeacherDashboard = {
+  activeClassCount: number
+  activeStudentCount: number
+  dueSoonAssignmentCount: number
+  needGradingByClass: Array<{ classId: string; className: string; count: number }>
 }
 
-export type AdminDashboard = Record<string, unknown> & {
-  assignedClassCount?: number
-  studentCount?: number
-  todayNeedGradingCount?: number
-  dueSoonAssignmentCount?: number
-  missingSubmissionCount?: number
-  submissionRate?: number
-  todayTasks?: unknown[]
+export type AdminDashboard = {
+  dueSoonAssignmentCount: number
+  missingSubmissionCount: number
+  assignmentsDueSoon: Array<{ assignmentId: string; title: string; classId: string; className: string; deadline: string }>
 }
 
-export type StudentDashboard = Record<string, unknown> & {
-  joinedClassCount?: number
-  openAssignmentCount?: number
-  dueSoonCount?: number
-  submittedCount?: number
-  gradedCount?: number
-  resubmitRequestedCount?: number
-}
-
-export type ClassStats = {
-  classId: string
-  totalStudents: number
-  totalAssignments: number
-  totalSubmissions: number
-  missingSubmissions: number
-  lateSubmissions: number
-  gradedSubmissions: number
-  needGrading: number
-  submissionRate: number
-  averageScore: number
+export type StudentDashboard = {
+  joinedClassCount: number
+  openAssignmentCount: number
+  dueSoonCount: number
+  gradedCount: number
+  resubmitRequestedCount: number
 }
 
 type AssignmentProgress = { assignmentId: string; totalStudents: number; submittedCount: number; missingCount: number; lateCount: number; gradedCount: number; needGradingCount: number }
@@ -103,11 +73,10 @@ export const api = {
   users: async (params?: QueryParams) => normalizeList(await api.usersPage(params)),
   user: (id: string) => getApi<UserItem>(`/users/${id}`),
   createUser: (payload: { fullName: string; email?: string; phone?: string; role: RoleName; note?: string }) => postApi<UserItem>('/users', payload),
-  updateUser: (id: string, payload: Partial<Pick<UserItem, 'fullName' | 'email' | 'phone' | 'note'>>) => patchApi<UserItem>(`/users/${id}`, payload),
+  updateUser: (id: string, payload: Partial<Pick<UserItem, 'fullName' | 'email' | 'phone' | 'studentCode' | 'note'>>) => patchApi<UserItem>(`/users/${id}`, payload),
   updateUserStatus: (id: string, status: UserStatus) => patchApi<UserItem>(`/users/${id}/status`, { status }),
   deleteUser: (id: string) => deleteApi<string>(`/users/${id}`),
-  studentProgress: (id: string) => getApi<{ totalAssignments: number; submittedAssignments: number; gradedAssignments: number; averageScore: number; submissionRate: number; riskLevel: string; riskReasons: string[] }>(`/users/${id}/progress`),
-  userActivityLogsPage: (id: string, params?: QueryParams) => getApi<PageResponse<ActivityItem> | ActivityItem[]>(`/users/${id}/activity-logs`, params),
+  studentProgress: (id: string) => getApi<{ totalAssignments: number; submittedAssignments: number; gradedAssignments: number; averageScore: number }>(`/users/${id}/progress`),
 
   classesPage: (params?: QueryParams) => getApi<PageResponse<ClassItem> | ClassItem[]>('/classes', params),
   classes: async (params?: QueryParams) => normalizeList(await api.classesPage(params)),
@@ -124,10 +93,6 @@ export const api = {
   updateClassStudentStatus: (id: string, studentId: string, status: MemberStatus) => patchApi<string>(`/classes/${id}/students/${studentId}/status`, { status }),
   addClassAdmin: (id: string, payload: { adminId?: string; userId?: string }) => postApi<string>(`/classes/${id}/admins`, payload),
   removeClassAdmin: (id: string, adminId: string) => deleteApi<string>(`/classes/${id}/admins/${adminId}`),
-  classStats: (id: string) => getApi<ClassStats>(`/classes/${id}/stats`),
-  exportClassStudentsUrl: (id: string) => `${API_BASE_URL}/classes/${id}/students/export?format=csv`,
-  downloadClassStudentsCsv: (id: string) => downloadBlobToFile(`/classes/${id}/students/export`, `students-${id}.csv`, { format: 'csv' }),
-
   lessonsByClassPage: (classId: string, params?: QueryParams) => getApi<PageResponse<LessonItem> | LessonItem[]>(`/classes/${classId}/lessons`, params),
   lessonsByClass: async (classId: string, params?: QueryParams) => normalizeList(await api.lessonsByClassPage(classId, params)),
   createLesson: (classId: string, payload: { title: string; description?: string; lessonDate?: string; orderIndex?: number; status?: LessonStatus }) => postApi<LessonItem>(`/classes/${classId}/lessons`, payload),
@@ -173,7 +138,6 @@ export const api = {
   gradeSubmission: (submissionId: string, payload: { score: number; feedback?: string; feedbackFileId?: string; feedbackLink?: string }) => postApi<GradeItem>(`/submissions/${submissionId}/grade`, payload),
   updateGrade: (gradeId: string, payload: { score: number; feedback?: string; feedbackFileId?: string; feedbackLink?: string }) => patchApi<GradeItem>(`/grades/${gradeId}`, payload),
   requestResubmit: (submissionId: string) => postApi<null>(`/submissions/${submissionId}/request-resubmit`),
-  bulkGrade: (assignmentId: string, grades: Array<{ submissionId: string; score: number; feedback?: string; feedbackFileId?: string; feedbackLink?: string }>) => postApi<{ gradedCount: number; failedCount: number; errors: unknown[] }>(`/assignments/${assignmentId}/submissions/bulk-grade`, { grades }),
   downloadSubmissionsZip: (assignmentId: string, classId?: string) => downloadBlobToFile(`/assignments/${assignmentId}/submissions/export-zip`, `submissions-${assignmentId}.zip`, classId ? { classId } : undefined),
 
   notificationsPage: (params?: QueryParams) => getApi<PageResponse<NotificationItem> | NotificationItem[]>('/notifications', params),
@@ -188,13 +152,6 @@ export const api = {
   recentActivity: async (params?: QueryParams) => normalizeList(await api.recentActivityPage(params)),
   classActivityPage: (classId: string, params?: QueryParams) => getApi<PageResponse<ActivityItem> | ActivityItem[]>(`/classes/${classId}/activity`, params),
   classActivity: async (classId: string, params?: QueryParams) => normalizeList(await api.classActivityPage(classId, params)),
-
-  reportSystem: () => getApi<Record<string, unknown>>('/reports/system'),
-  reportClass: (classId: string) => getApi<Record<string, unknown>>(`/reports/classes/${classId}`),
-  exportSystemReportUrl: () => `${API_BASE_URL}/reports/system/export?format=csv`,
-  exportClassReportUrl: (classId: string) => `${API_BASE_URL}/reports/classes/${classId}/export?format=csv`,
-  downloadSystemReportCsv: () => downloadBlobToFile('/reports/system/export', 'system-report.csv', { format: 'csv' }),
-  downloadClassReportCsv: (classId: string) => downloadBlobToFile(`/reports/classes/${classId}/export`, `class-report-${classId}.csv`, { format: 'csv' }),
 
   uploadFile: async (file: File) => {
     const form = new FormData()

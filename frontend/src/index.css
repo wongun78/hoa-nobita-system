@@ -3,15 +3,11 @@
 :root {
   --bg: #f8fafc;
   --surface: #ffffff;
-  --surface-soft: #fff7ed;
-  --line: #d9efff;
-  --line-strong: #bae6fd;
+  --line: #e2e8f0;
+  --line-strong: #cbd5e1;
   --text: #0f172a;
   --text-soft: #64748b;
   --primary: #4f46e5;
-  --primary-soft: #bae6fd;
-  --blossom: #fbcfe8;
-  --hanji: #fff7ed;
   --font-ui: Inter, "Noto Sans", "Noto Sans KR", "Pretendard", "SUIT", system-ui, sans-serif;
 }
 
@@ -31,7 +27,7 @@ html {
 
 body {
   margin: 0;
-  background: radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--blossom) 48%, transparent), transparent 30%), radial-gradient(circle at 88% 0%, color-mix(in srgb, var(--primary-soft) 52%, transparent), transparent 32%), linear-gradient(180deg, var(--hanji) 0%, var(--bg) 46%, var(--bg) 100%);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--font-ui);
   letter-spacing: -0.01em;
@@ -48,6 +44,108 @@ select {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* ── Shared UI utilities ── */
+
+/* Glassmorphic header action buttons */
+.header-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  padding: 0.6rem;
+  color: #64748b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+.header-btn:hover {
+  background: rgba(255, 255, 255, 0.95);
+  color: #0f172a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+/* Dropdown panels */
+.dropdown-panel {
+  position: absolute;
+  right: 0;
+  z-index: 40;
+  margin-top: 0.5rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  padding: 0.75rem;
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 8px 10px -6px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.02);
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  border-radius: 0.625rem;
+  border: 1px solid transparent;
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #475569;
+  transition: all 0.15s ease;
+}
+.dropdown-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Dark sidebar nav items */
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #94a3b8;
+  transition: all 0.15s ease;
+  position: relative;
+}
+.sidebar-item:hover {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.06);
+}
+.sidebar-item.active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  font-weight: 600;
+}
+.sidebar-item.active::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  border-radius: 0 4px 4px 0;
+  background: #818cf8;
+}
+
+/* Section label in sidebar */
+.sidebar-label {
+  display: block;
+  padding: 1.5rem 0.75rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #475569;
 }
 
 button:focus-visible,
